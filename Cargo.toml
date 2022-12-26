@@ -4,7 +4,12 @@ authors = ["jay3332"]
 version = "0.1.0"
 edition = "2021"
 description = "Essential models and database logic for the Adapt chat platform."
+homepage = "https://adapt.chat"
+license = "AGPL-3.0"
+repository = "https://github.com/AdaptChat/essence"
+readme = "README.md"
+keywords = ["adapt", "adapt-chat"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-
+serde = { version = "1.0", features = ["derive"] }

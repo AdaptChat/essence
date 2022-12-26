@@ -1,3 +1,5 @@
+//! Common object models consumed by Adapt's services.
+
 use std::fmt;
 
 /// An enumeration for the type of a model, which takes up 5 bits in a snowflake.
