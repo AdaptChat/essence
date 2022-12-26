@@ -1,4 +1,4 @@
-use crate::{builder_methods, serde_for_bitflags};
+use crate::{builder_methods, get_pool, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
 
 /// Represents a user account.
@@ -43,6 +43,34 @@ impl User {
         banner: String => set_banner + Some,
         bio: String => set_bio + Some,
         flags: UserFlags => set_flags,
+    }
+
+    /// Creates a new user with the given ID.
+    #[must_use]
+    pub fn partial(id: u64) -> Self {
+        Self {
+            id,
+            ..Self::default()
+        }
+    }
+
+    /// Registers this user in the database.
+    pub async fn register(&self) -> sqlx::Result<()> {
+        sqlx::query!(
+            "INSERT INTO users (id, username, discriminator, avatar, banner, bio, flags)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            self.id as i64,
+            self.username,
+            self.discriminator as i16,
+            self.avatar,
+            self.banner,
+            self.bio,
+            self.flags.bits() as i32,
+        )
+        .execute(get_pool())
+        .await?;
+
+        Ok(())
     }
 }
 

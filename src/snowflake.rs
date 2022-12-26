@@ -17,8 +17,6 @@
 //!                                                model number (0 to 31)
 //! ```
 
-#![allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
-
 use crate::models::ModelType;
 use std::{
     sync::atomic::{AtomicU8, Ordering::Relaxed},

@@ -1,5 +1,12 @@
 #![feature(once_cell)]
-#![allow(clippy::module_name_repetitions)]
+#![allow(
+    clippy::module_name_repetitions,
+    clippy::cast_possible_truncation,
+    clippy::cast_lossless,
+    clippy::cast_possible_wrap,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc
+)]
 
 #[macro_use]
 extern crate dotenv_codegen;
@@ -8,6 +15,8 @@ pub mod database;
 pub mod models;
 pub mod snowflake;
 pub mod ws;
+
+pub(crate) use database::get_pool;
 
 pub mod error {
     use serde::Serialize;
