@@ -1,6 +1,9 @@
 //! Common object models consumed by Adapt's services.
 
+mod user;
+
 use std::fmt;
+pub use user::*;
 
 /// An enumeration for the type of a model, which takes up 5 bits in a snowflake.
 #[repr(u8)]

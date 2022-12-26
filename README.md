@@ -9,5 +9,6 @@ This includes:
 * Object schemas (e.g. `User` or `Guild`)
   * This includes payload schemas, both inbound and outbound (e.g. `UserCreatePayload`).
 * Database operations (e.g. `User::create` or `Guild::delete`)
+* Authentication middleware (e.g. tokens and password hashing)
 * Snowflake generation
 * Utilities that relate to the above
