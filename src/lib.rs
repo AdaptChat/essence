@@ -11,11 +11,13 @@
 #[macro_use]
 extern crate dotenv_codegen;
 
+#[cfg(feature = "db")]
 pub mod database;
 pub mod models;
 pub mod snowflake;
 pub mod ws;
 
+#[cfg(feature = "db")]
 pub(crate) use database::get_pool;
 
 pub mod error {
@@ -119,6 +121,7 @@ macro_rules! visitor {
 visitor!(U32Visitor, u32, visit_u32, "0 and 2^32 - 1");
 visitor!(I64Visitor, i64, visit_i64, "-2^63 and 2^63 - 1");
 
+#[cfg(feature = "db")]
 #[macro_export]
 macro_rules! builder_methods {
     ($($attr:ident: $t:ty => $name:ident $(+ $modifier:ident)?),+ $(,)?) => {

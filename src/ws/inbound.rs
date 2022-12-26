@@ -13,5 +13,5 @@ pub enum InboundMessage {
     /// Ping, sent by the client to harmony.
     Ping,
     /// Pong, used to respond to harmony's ping event.
-    Pong
+    Pong,
 }

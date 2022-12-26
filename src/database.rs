@@ -23,6 +23,7 @@ pub async fn connect() -> Result<(), sqlx::Error> {
 
 /// Retrieves the database pool.
 #[must_use]
+#[inline]
 pub fn get_pool() -> &'static Pool<Postgres> {
     POOL.get().expect("database pool not initialized")
 }

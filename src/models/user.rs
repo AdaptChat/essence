@@ -44,33 +44,55 @@ impl User {
         bio: String => set_bio + Some,
         flags: UserFlags => set_flags,
     }
+}
 
-    /// Creates a new user with the given ID.
-    #[must_use]
-    pub fn partial(id: u64) -> Self {
-        Self {
-            id,
-            ..Self::default()
+macro_rules! construct_user {
+    ($data:ident) => {{
+        User {
+            id: $data.id as _,
+            username: $data.username,
+            discriminator: $data.discriminator as _,
+            avatar: $data.avatar,
+            banner: $data.banner,
+            bio: $data.bio,
+            flags: UserFlags::from_bits_truncate($data.flags as _),
         }
+    }};
+}
+
+macro_rules! fetch_user {
+    ($query:literal, $($arg:expr),* $(,)?) => {{
+        let result = sqlx::query!($query, $($arg),*)
+            .fetch_optional(get_pool())
+            .await?
+            .map(|r| construct_user!(r));
+
+        Ok(result)
+    }};
+}
+
+#[cfg(feature = "db")]
+impl User {
+    /// Fetches a user from the database with the given ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
+    /// returned.
+    pub async fn fetch_by_id(id: u64) -> sqlx::Result<Option<Self>> {
+        fetch_user!("SELECT * FROM users WHERE id = $1", id as i64)
     }
 
-    /// Registers this user in the database.
-    pub async fn register(&self) -> sqlx::Result<()> {
-        sqlx::query!(
-            "INSERT INTO users (id, username, discriminator, avatar, banner, bio, flags)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)",
-            self.id as i64,
-            self.username,
-            self.discriminator as i16,
-            self.avatar,
-            self.banner,
-            self.bio,
-            self.flags.bits() as i32,
+    /// Fetches a user from the database with the given username and discriminator.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
+    /// returned.
+    pub async fn fetch_by_tag(username: &str, discriminator: u16) -> sqlx::Result<Option<Self>> {
+        fetch_user!(
+            "SELECT * FROM users WHERE username = $1 AND discriminator = $2",
+            username,
+            discriminator as i16,
         )
-        .execute(get_pool())
-        .await?;
-
-        Ok(())
     }
 }
 
@@ -99,7 +121,7 @@ pub struct GuildFolder {
 
 /// Represents user info about the client. This has other information that is not available to the
 /// public, such as emails, guilds, and relationships (friends and blocked users).
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct ClientUser {
     /// The public user info about the client.
     #[serde(flatten)]
@@ -131,18 +153,48 @@ impl std::ops::DerefMut for ClientUser {
     }
 }
 
+impl ClientUser {
+    builder_methods! {
+        email: String => set_email + Some,
+        // guilds: Vec<PartialGuild<u64>> => set_guilds,
+        relationships: Vec<Relationship> => set_relationships,
+        // dm_channels: Vec<DmChannel<u64>> => set_dm_channels,
+    }
+}
+
+#[cfg(feature = "db")]
+impl ClientUser {
+    /// Fetches the client user from the database.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the client user.
+    pub async fn fetch(id: u64) -> sqlx::Result<Option<Self>> {
+        let result = sqlx::query!("SELECT * FROM users WHERE id = $1", id as i64)
+            .fetch_optional(get_pool())
+            .await?
+            .map(|r| Self {
+                user: construct_user!(r),
+                email: r.email,
+                relationships: vec![],
+            });
+
+        Ok(result)
+    }
+}
+
 /// Represents the type of relationship a user has with another user.
-#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RelationshipType {
     /// The user is added as a friend.
+    #[default]
     Friend,
     /// The user is blocked.
     Blocked,
 }
 
 /// Represents a relationship that a user has with another user.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct Relationship {
     /// The ID of the user that this relationship is with.
     pub id: u64,

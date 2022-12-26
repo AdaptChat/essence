@@ -13,7 +13,15 @@ keywords = ["adapt", "adapt-chat"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 bitflags = "1.3.2"
-dotenv = "0.15"
-dotenv_codegen = { git = "https://github.com/FerrisChat/dotenv" }
+dotenv = { version = "0.15", optional = true }
+dotenv_codegen = { git = "https://github.com/FerrisChat/dotenv", optional = true }
 serde = { version = "1.0", features = ["derive"] }
-sqlx = { version = "0.6", features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "time"] }
+
+[dependencies.sqlx]
+version = "0.6"
+features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "time"]
+optional = true
+
+[features]
+default = []
+db = ["dep:dotenv", "dep:dotenv_codegen", "dep:sqlx"]
