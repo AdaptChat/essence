@@ -1,5 +1,3 @@
-#![allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
-
 //! Snowflake generation and parsing.
 //!
 //! # Snowflake bit format
@@ -18,6 +16,8 @@
 //!                                                |     node number (0 to 31)
 //!                                                model number (0 to 31)
 //! ```
+
+#![allow(clippy::cast_possible_truncation, clippy::cast_lossless)]
 
 use crate::models::ModelType;
 use std::{
