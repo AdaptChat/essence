@@ -1,5 +1,8 @@
-use crate::{builder_methods, get_pool, serde_for_bitflags};
+use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "db")]
+use crate::get_pool;
 
 /// Represents a user account.
 ///
@@ -46,6 +49,7 @@ impl User {
     }
 }
 
+#[cfg(feature = "db")]
 macro_rules! construct_user {
     ($data:ident) => {{
         User {
@@ -60,6 +64,7 @@ macro_rules! construct_user {
     }};
 }
 
+#[cfg(feature = "db")]
 macro_rules! fetch_user {
     ($query:literal, $($arg:expr),* $(,)?) => {{
         let result = sqlx::query!($query, $($arg),*)

@@ -5,7 +5,7 @@
 //! (from left to right, 0-indexed, `inclusive..exclusive`) are as follows:
 //!
 //! * Bits 0..46: Timestamp in milliseconds since `2022-12-25T00:00:00Z`. (See [`EPOCH`])
-//! * Bits 46..51: The model type represented as an enumeration. (See [`crate::models::ModelType`])
+//! * Bits 46..51: The model type represented as an enumeration. (See [`ModelType`])
 //! * Bits 51..56: The node or process ID that generated the snowflake.
 //! * Bits 56..64: The incrementing counter for the snowflake.
 //!
