@@ -1,9 +1,6 @@
 use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "db")]
-use crate::get_pool;
-
 /// Represents a user account.
 ///
 /// A lot of information is stored in the user's flags, including whether or not the user is a bot
@@ -46,58 +43,6 @@ impl User {
         banner: String => set_banner + Some,
         bio: String => set_bio + Some,
         flags: UserFlags => set_flags,
-    }
-}
-
-#[cfg(feature = "db")]
-macro_rules! construct_user {
-    ($data:ident) => {{
-        User {
-            id: $data.id as _,
-            username: $data.username,
-            discriminator: $data.discriminator as _,
-            avatar: $data.avatar,
-            banner: $data.banner,
-            bio: $data.bio,
-            flags: UserFlags::from_bits_truncate($data.flags as _),
-        }
-    }};
-}
-
-#[cfg(feature = "db")]
-macro_rules! fetch_user {
-    ($query:literal, $($arg:expr),* $(,)?) => {{
-        let result = sqlx::query!($query, $($arg),*)
-            .fetch_optional(get_pool())
-            .await?
-            .map(|r| construct_user!(r));
-
-        Ok(result)
-    }};
-}
-
-#[cfg(feature = "db")]
-impl User {
-    /// Fetches a user from the database with the given ID.
-    ///
-    /// # Errors
-    /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
-    /// returned.
-    pub async fn fetch_by_id(id: u64) -> sqlx::Result<Option<Self>> {
-        fetch_user!("SELECT * FROM users WHERE id = $1", id as i64)
-    }
-
-    /// Fetches a user from the database with the given username and discriminator.
-    ///
-    /// # Errors
-    /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
-    /// returned.
-    pub async fn fetch_by_tag(username: &str, discriminator: u16) -> sqlx::Result<Option<Self>> {
-        fetch_user!(
-            "SELECT * FROM users WHERE username = $1 AND discriminator = $2",
-            username,
-            discriminator as i16,
-        )
     }
 }
 
@@ -164,26 +109,6 @@ impl ClientUser {
         // guilds: Vec<PartialGuild<u64>> => set_guilds,
         relationships: Vec<Relationship> => set_relationships,
         // dm_channels: Vec<DmChannel<u64>> => set_dm_channels,
-    }
-}
-
-#[cfg(feature = "db")]
-impl ClientUser {
-    /// Fetches the client user from the database.
-    ///
-    /// # Errors
-    /// * If an error occurs with fetching the client user.
-    pub async fn fetch(id: u64) -> sqlx::Result<Option<Self>> {
-        let result = sqlx::query!("SELECT * FROM users WHERE id = $1", id as i64)
-            .fetch_optional(get_pool())
-            .await?
-            .map(|r| Self {
-                user: construct_user!(r),
-                email: r.email,
-                relationships: vec![],
-            });
-
-        Ok(result)
     }
 }
 

@@ -1,3 +1,5 @@
+pub mod user;
+
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::sync::OnceLock;
 

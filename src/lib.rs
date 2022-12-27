@@ -12,14 +12,18 @@
 #[cfg(feature = "db")]
 extern crate dotenv_codegen;
 
+#[cfg(feature = "auth")]
+pub mod auth;
 #[cfg(feature = "db")]
-pub mod database;
+pub mod db;
+pub mod http;
+mod maybe;
 pub mod models;
+#[cfg(feature = "snowflakes")]
 pub mod snowflake;
 pub mod ws;
 
-#[cfg(feature = "db")]
-pub(crate) use database::get_pool;
+pub use maybe::Maybe;
 
 pub mod error {
     use serde::Serialize;

@@ -1,6 +1,6 @@
 //! Common object models consumed by Adapt's services.
 
-mod user;
+pub mod user;
 
 use std::fmt;
 pub use user::*;
