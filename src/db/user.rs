@@ -1,4 +1,4 @@
-use super::DbExt;
+use super::{auth::AuthDbExt, DbExt};
 use crate::http::user::CreateUserResponse;
 use crate::models::user::{ClientUser, User, UserFlags};
 
@@ -118,13 +118,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
         }
 
         let token = crate::auth::generate_token(id);
-        sqlx::query!(
-            r#"INSERT INTO tokens (user_id, token) VALUES ($1, $2)"#,
-            id as i64,
-            token,
-        )
-        .execute(self.transaction())
-        .await?;
+        self.create_token(id, &token).await?;
 
         Ok(CreateUserResponse { id, token })
     }

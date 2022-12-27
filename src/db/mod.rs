@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod user;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
@@ -38,7 +39,7 @@ pub async fn migrate() {
         .expect("could not run database migrations");
 }
 
-pub trait DbExt<'a>
+pub trait DbExt<'a>: Sized
 where
     Self: 'a,
 {
