@@ -26,7 +26,7 @@ macro_rules! fetch_user {
     }};
 }
 
-#[async_trait::async_trait]
+// #[async_trait::async_trait]
 pub trait UserDbExt: for<'a> DbExt<'a> {
     /// Fetches a user from the database with the given ID.
     ///

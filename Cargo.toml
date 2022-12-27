@@ -12,7 +12,7 @@ keywords = ["adapt", "adapt-chat"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-async-trait = { version = "0.1.60", optional = true }
+# async-trait = { version = "0.1.60", optional = true }
 argon2-async = { version = "0.2.0", optional = true }
 base64 = { version = "0.20.0", optional = true }
 bitflags = "1.3.2"
@@ -29,5 +29,5 @@ optional = true
 [features]
 default = ["snowflakes"]
 auth = ["snowflakes", "dep:argon2-async", "dep:base64", "dep:ring"]
-db = ["dep:async-trait", "dep:dotenv", "dep:dotenv_codegen", "dep:sqlx"]
+db = ["dep:dotenv", "dep:dotenv_codegen", "dep:sqlx"]
 snowflakes = []

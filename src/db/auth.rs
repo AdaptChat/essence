@@ -1,6 +1,5 @@
 use super::DbExt;
 
-#[async_trait::async_trait]
 pub trait AuthDbExt: for<'a> DbExt<'a> {
     /// Creates a new token for the given user ID.
     ///
