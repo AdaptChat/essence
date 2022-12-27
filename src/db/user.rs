@@ -83,7 +83,6 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with registering the user.
-    #[inline]
     async fn register_user(
         &mut self,
         id: u64,
