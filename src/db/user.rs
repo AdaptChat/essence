@@ -1,4 +1,5 @@
-use super::{get_pool, DbExt};
+use super::DbExt;
+use crate::http::user::CreateUserResponse;
 use crate::models::user::{ClientUser, User, UserFlags};
 
 macro_rules! construct_user {
@@ -33,6 +34,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
+    #[inline]
     async fn fetch_user_by_id(&self, id: u64) -> sqlx::Result<Option<User>> {
         fetch_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
@@ -42,6 +44,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
+    #[inline]
     async fn fetch_user_by_tag(
         &self,
         username: &str,
@@ -59,9 +62,10 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with fetching the client user.
+    #[inline]
     async fn fetch_client_user(&self, id: u64) -> sqlx::Result<Option<ClientUser>> {
         let result = sqlx::query!("SELECT * FROM users WHERE id = $1", id as i64)
-            .fetch_optional(get_pool())
+            .fetch_optional(self.executor())
             .await?
             .map(|r| ClientUser {
                 user: construct_user!(r),
@@ -70,6 +74,59 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
             });
 
         Ok(result)
+    }
+
+    /// Registers a user in the database with the given payload. No validation is done, they must
+    /// be done before calling this method.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with registering the user.
+    #[inline]
+    async fn register_user(
+        &mut self,
+        id: u64,
+        username: String,
+        email: String,
+        password: String,
+    ) -> crate::Result<CreateUserResponse> {
+        let hashed = crate::auth::hash_password(&password).await?;
+
+        let discriminator = sqlx::query!(
+            "INSERT INTO
+                users (id, username, email, password)
+            VALUES
+                ($1, $2, $3, $4)
+            RETURNING
+                discriminator",
+            id as i64,
+            username,
+            email,
+            hashed,
+        )
+        .fetch_optional(self.transaction())
+        .await?;
+
+        if discriminator.is_none() {
+            return Err(crate::Error::AlreadyTaken {
+                what: "username",
+                message: "Username is already taken".to_string(),
+            });
+        }
+
+        let token = crate::auth::generate_token(id);
+        sqlx::query!(
+            r#"INSERT INTO tokens (user_id, token) VALUES ($1, $2)"#,
+            id as i64,
+            token,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(CreateUserResponse { id, token })
     }
 }
 

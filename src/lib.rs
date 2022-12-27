@@ -16,6 +16,7 @@ extern crate dotenv_codegen;
 pub mod auth;
 #[cfg(feature = "db")]
 pub mod db;
+pub mod error;
 pub mod http;
 mod maybe;
 pub mod models;
@@ -23,42 +24,14 @@ pub mod models;
 pub mod snowflake;
 pub mod ws;
 
+pub use error::{Error, Result};
 pub use maybe::Maybe;
-
-pub mod error {
-    use serde::Serialize;
-
-    /// A type alias for a [`Result`] with the error type [`Error`].
-    pub type Result<T> = std::result::Result<T, Error>;
-
-    /// An error that occurs within Adapt.
-    #[derive(Debug, Serialize)]
-    pub enum Error {
-        /// Received a malformed JSON or Msgpack body.
-        InvalidBody,
-    }
-
-    impl Error {
-        /// The HTTP status code associated with this error. If this error is not sent over HTTP, this
-        /// will be `None`.
-        #[must_use]
-        pub const fn http_status_code(&self) -> Option<u16> {
-            Some(
-                #[allow(unreachable_patterns)]
-                match self {
-                    Self::InvalidBody => 400,
-                    _ => return None,
-                },
-            )
-        }
-    }
-}
-
-pub use error::Error;
 
 #[macro_export]
 macro_rules! serde_for_bitflags {
     (u32: $t:ty) => {
+        use ::std::result::Result;
+
         impl serde::Serialize for $t {
             fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
             where
@@ -113,7 +86,7 @@ macro_rules! visitor {
                 formatter.write_str(concat!("an integer between ", $bounds))
             }
 
-            fn $m<E>(self, v: $t) -> Result<Self::Value, E>
+            fn $m<E>(self, v: $t) -> ::std::result::Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {

@@ -56,10 +56,12 @@ where
     type Executor = &'a Self;
     type Transaction = Self::Executor;
 
+    #[inline]
     fn executor(&'a self) -> Self::Executor {
         self
     }
 
+    #[inline]
     fn transaction(&'a mut self) -> Self::Transaction {
         self
     }
@@ -72,10 +74,12 @@ where
     type Executor = &'a Pool<Postgres>;
     type Transaction = &'a mut Self;
 
+    #[inline]
     fn executor(&'a self) -> Self::Executor {
         get_pool()
     }
 
+    #[inline]
     fn transaction(&'a mut self) -> Self::Transaction {
         self
     }
