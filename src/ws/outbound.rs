@@ -14,6 +14,6 @@ pub enum OutboundMessage {
     /// Ready, sent by harmony when it is ready to send and receive events.
     Ready {
         /// The ID of the current session.
-        session_id: String
+        session_id: String,
     },
 }

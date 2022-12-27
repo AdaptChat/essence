@@ -1,6 +1,6 @@
 pub mod user;
 
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
 use std::sync::OnceLock;
 
 /// The global database pool.
@@ -36,4 +36,47 @@ pub async fn migrate() {
         .run(get_pool())
         .await
         .expect("could not run database migrations");
+}
+
+pub trait DbExt<'a>
+where
+    Self: 'a,
+{
+    type Executor: sqlx::PgExecutor<'a>;
+    type Transaction: sqlx::PgExecutor<'a>;
+
+    fn executor(&'a self) -> Self::Executor;
+    fn transaction(&'a mut self) -> Self::Transaction;
+}
+
+impl<'a> DbExt<'a> for Pool<Postgres>
+where
+    Self: 'a,
+{
+    type Executor = &'a Self;
+    type Transaction = Self::Executor;
+
+    fn executor(&'a self) -> Self::Executor {
+        self
+    }
+
+    fn transaction(&'a mut self) -> Self::Transaction {
+        self
+    }
+}
+
+impl<'a> DbExt<'a> for Transaction<'a, Postgres>
+where
+    Self: 'a,
+{
+    type Executor = &'a Pool<Postgres>;
+    type Transaction = &'a mut Self;
+
+    fn executor(&'a self) -> Self::Executor {
+        get_pool()
+    }
+
+    fn transaction(&'a mut self) -> Self::Transaction {
+        self
+    }
 }
