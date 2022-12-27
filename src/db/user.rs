@@ -1,5 +1,4 @@
-use super::{auth::AuthDbExt, DbExt};
-use crate::http::user::CreateUserResponse;
+use super::DbExt;
 use crate::models::user::{ClientUser, User, UserFlags};
 
 macro_rules! construct_user {
@@ -92,7 +91,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
         username: String,
         email: String,
         password: String,
-    ) -> crate::Result<CreateUserResponse> {
+    ) -> crate::Result<()> {
         let hashed = crate::auth::hash_password(&password).await?;
 
         let discriminator = sqlx::query!(
@@ -117,10 +116,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
             });
         }
 
-        let token = crate::auth::generate_token(id);
-        self.create_token(id, &token).await?;
-
-        Ok(CreateUserResponse { id, token })
+        Ok(())
     }
 }
 
