@@ -11,4 +11,9 @@ pub enum OutboundMessage {
     Ping,
     /// Pong, sent by harmony to respond to client's ping event.
     Pong,
+    /// Ready, sent by harmony when it is ready to send and receive events.
+    Ready {
+        /// The ID of the current session.
+        session_id: String
+    },
 }
