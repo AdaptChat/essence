@@ -26,13 +26,28 @@ macro_rules! fetch_user {
     }};
 }
 
+macro_rules! fetch_client_user {
+    ($self:ident, $query:literal, $($arg:expr),* $(,)?) => {{
+        let result = sqlx::query!($query, $($arg),*)
+            .fetch_optional($self.executor())
+            .await?
+            .map(|r| ClientUser {
+                user: construct_user!(r),
+                email: r.email,
+                password: r.password,
+                relationships: vec![],
+            });
+
+        Ok(result)
+    }};
+}
+
 pub trait UserDbExt: for<'a> DbExt<'a> {
     /// Fetches a user from the database with the given ID.
     ///
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
-    #[inline]
     async fn fetch_user_by_id(&self, id: u64) -> sqlx::Result<Option<User>> {
         fetch_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
@@ -42,7 +57,6 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
-    #[inline]
     async fn fetch_user_by_tag(
         &self,
         username: &str,
@@ -60,18 +74,20 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with fetching the client user.
-    #[inline]
-    async fn fetch_client_user(&self, id: u64) -> sqlx::Result<Option<ClientUser>> {
-        let result = sqlx::query!("SELECT * FROM users WHERE id = $1", id as i64)
-            .fetch_optional(self.executor())
-            .await?
-            .map(|r| ClientUser {
-                user: construct_user!(r),
-                email: r.email,
-                relationships: vec![],
-            });
+    async fn fetch_client_user_by_id(&self, id: u64) -> sqlx::Result<Option<ClientUser>> {
+        fetch_client_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
+    }
 
-        Ok(result)
+    /// Fetches the client user from the database by email.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the client user. If the user is not found, `Ok(None)` is
+    /// returned.
+    async fn fetch_client_user_by_email(
+        &self,
+        email: impl AsRef<str> + Send,
+    ) -> sqlx::Result<Option<ClientUser>> {
+        fetch_client_user!(self, "SELECT * FROM users WHERE email = $1", email.as_ref())
     }
 
     /// Registers a user in the database with the given payload. No validation is done, they must

@@ -80,13 +80,16 @@ pub struct ClientUser {
     ///
     /// If the client is a bot, this is `None`.
     pub email: Option<String>,
+    /// (Used internally) The hashed password of the client's account. This will never be present.
+    #[serde(skip)]
+    pub password: Option<String>,
+    // /// A list of DM channels that the client has open.
+    // pub dm_channels: Vec<DmChannel<u64>>,
     // /// A list of guilds that the client is a member of. This is a list of partial guilds that
     // /// include information such as the guild's ID, name, icon, and owner.
     // pub guilds: Vec<PartialGuild<u64>>,
     /// A list of relationships that the client has with other users.
     pub relationships: Vec<Relationship>,
-    // /// A list of DM channels that the client has open.
-    // pub dm_channels: Vec<DmChannel<u64>>,
 }
 
 impl std::ops::Deref for ClientUser {
@@ -111,6 +114,8 @@ impl ClientUser {
         // dm_channels: Vec<DmChannel<u64>> => set_dm_channels,
     }
 }
+
+/// Represents a client user with addition to their password.
 
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
