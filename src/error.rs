@@ -4,7 +4,7 @@ use serde::Serialize;
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// An error that occurs within Adapt.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum Error {
