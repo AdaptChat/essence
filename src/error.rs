@@ -3,13 +3,29 @@ use serde::Serialize;
 /// A type alias for a [`Result`] with the error type [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Copy, Clone, Debug, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MalformedBodyErrorType {
+    /// Invalid content type.
+    InvalidContentType,
+    /// Body was invalid UTF-8.
+    InvalidUtf8,
+    /// Received invalid JSON body.
+    InvalidJson,
+}
+
 /// An error that occurs within Adapt.
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum Error {
     /// Received a malformed JSON or MsgPack body.
-    MalformedBody,
+    MalformedBody {
+        /// Extra information about the error.
+        error_type: MalformedBodyErrorType,
+        /// A generalized message about the error.
+        message: String,
+    },
     /// You are missing the request body in an endpoint that requires it. This is commonly JSON
     /// or MsgPack.
     MissingBody {
@@ -87,7 +103,7 @@ impl Error {
     #[must_use]
     pub const fn http_status_code(&self) -> Option<u16> {
         Some(match self {
-            Self::MalformedBody
+            Self::MalformedBody { .. }
             | Self::MissingBody { .. }
             | Self::InvalidField { .. }
             | Self::MissingField { .. }
