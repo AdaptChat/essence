@@ -1,7 +1,28 @@
 use crate::db::DbExt;
+use crate::models::UserFlags;
 
 #[async_trait::async_trait]
 pub trait AuthDbExt<'a>: DbExt<'a> {
+    /// Fetches the password hash for the given user ID and verifies it against the given password.
+    ///
+    /// # Note
+    /// This assumes that the user is not a bot account and has a password that is not NULL.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user.
+    /// * If the user is not found.
+    async fn verify_password(&'a self, user_id: u64, password: String) -> crate::Result<bool> {
+        let hashed: String = sqlx::query!(
+            r#"SELECT password AS "password!" FROM users WHERE id = $1"#,
+            user_id as i64,
+        )
+        .fetch_one(self.executor())
+        .await?
+        .password;
+
+        Ok(crate::auth::verify_password(password, hashed).await?)
+    }
+
     /// Fetches a user token from the database with the given user ID.
     ///
     /// # Errors
@@ -9,12 +30,30 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     /// `Ok(None)` is returned.
     async fn fetch_token(&'a self, user_id: u64) -> sqlx::Result<Option<String>> {
         sqlx::query!(
-            "SELECT token FROm tokens WHERE user_id = $1",
+            "SELECT token FROM tokens WHERE user_id = $1",
             user_id as i64
         )
         .fetch_optional(self.executor())
         .await
         .map(|r| r.map(|r| r.token))
+    }
+
+    /// Resolves a user ID and their user flags from a token. Returns `(user_id, flags)`.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user token. If the user token is not found,
+    /// `Ok(None)` is returned.
+    async fn fetch_user_info_by_token(
+        &'a self,
+        token: impl AsRef<str> + Send,
+    ) -> sqlx::Result<Option<(u64, UserFlags)>> {
+        sqlx::query!(
+            "SELECT id, flags FROM users WHERE id = (SELECT user_id FROM tokens WHERE token = $1)",
+            token.as_ref(),
+        )
+        .fetch_optional(self.executor())
+        .await
+        .map(|r| r.map(|r| (r.id as u64, UserFlags::from_bits_truncate(r.flags as u32))))
     }
 
     /// Creates a new token for the given user ID.

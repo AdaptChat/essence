@@ -150,6 +150,21 @@ pub trait UserDbExt<'a>: DbExt<'a> {
 
         Ok(())
     }
+
+    /// Deletes a user from the database.
+    ///
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the user.
+    async fn delete_user(&'a mut self, id: u64) -> sqlx::Result<()> {
+        sqlx::query!("DELETE FROM users WHERE id = $1", id as i64)
+            .execute(self.transaction())
+            .await?;
+
+        Ok(())
+    }
 }
 
 impl<'a, T> UserDbExt<'a> for T where T: DbExt<'a> {}

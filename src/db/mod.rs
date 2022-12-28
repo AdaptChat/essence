@@ -48,11 +48,11 @@ where
     fn transaction(&'a mut self) -> Self::Transaction;
 }
 
-impl<'a> DbExt<'a> for Pool<Postgres>
+impl<'a> DbExt<'a> for &'static Pool<Postgres>
 where
     Self: 'a,
 {
-    type Executor = &'a Self;
+    type Executor = Self;
     type Transaction = Self::Executor;
 
     #[inline]

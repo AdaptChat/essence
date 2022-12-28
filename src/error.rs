@@ -63,6 +63,15 @@ pub enum Error {
         /// The error message.
         message: &'static str,
     },
+    /// The request required a valid authentication token, but one of the following happened:
+    ///
+    /// * The token was not provided.
+    /// * The token was malformed, i.e. a non-UTF-8 string.
+    /// * The token does not exist or is invalid.
+    InvalidToken {
+        /// The error message.
+        message: &'static str,
+    },
     /// Invalid login credentials were provided, i.e. an invalid password.
     InvalidCredentials {
         /// Which credential was invalid.
@@ -109,7 +118,7 @@ impl Error {
             | Self::MissingField { .. }
             | Self::MalformedIp { .. }
             | Self::UnsupportedAuthMethod { .. } => 400,
-            Self::InvalidCredentials { .. } => 401,
+            Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } => 409,
             Self::Ratelimited { .. } => 429,
