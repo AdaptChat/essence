@@ -1,7 +1,5 @@
 #![feature(once_cell)]
-#![feature(async_fn_in_trait)]
 #![allow(
-    incomplete_features,
     clippy::module_name_repetitions,
     clippy::cast_possible_truncation,
     clippy::cast_lossless,
@@ -22,7 +20,7 @@ pub mod models;
 pub mod snowflake;
 pub mod ws;
 
-pub use error::{Error, Result};
+pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
 
 #[macro_export]

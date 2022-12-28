@@ -42,13 +42,14 @@ macro_rules! fetch_client_user {
     }};
 }
 
-pub trait UserDbExt: for<'a> DbExt<'a> {
+#[async_trait::async_trait]
+pub trait UserDbExt<'a>: DbExt<'a> {
     /// Fetches a user from the database with the given ID.
     ///
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
-    async fn fetch_user_by_id(&self, id: u64) -> sqlx::Result<Option<User>> {
+    async fn fetch_user_by_id(&'a self, id: u64) -> sqlx::Result<Option<User>> {
         fetch_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
@@ -58,7 +59,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
     async fn fetch_user_by_tag(
-        &self,
+        &'a self,
         username: &str,
         discriminator: u16,
     ) -> sqlx::Result<Option<User>> {
@@ -74,7 +75,7 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with fetching the client user.
-    async fn fetch_client_user_by_id(&self, id: u64) -> sqlx::Result<Option<ClientUser>> {
+    async fn fetch_client_user_by_id(&'a self, id: u64) -> sqlx::Result<Option<ClientUser>> {
         fetch_client_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
@@ -84,14 +85,30 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     /// * If an error occurs with fetching the client user. If the user is not found, `Ok(None)` is
     /// returned.
     async fn fetch_client_user_by_email(
-        &self,
+        &'a self,
         email: impl AsRef<str> + Send,
     ) -> sqlx::Result<Option<ClientUser>> {
         fetch_client_user!(self, "SELECT * FROM users WHERE email = $1", email.as_ref())
     }
 
+    /// Returns `true` if the given email is taken.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn is_email_taken(&'a self, email: impl AsRef<str> + Send) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
+            email.as_ref()
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists;
+
+        Ok(result.unwrap())
+    }
+
     /// Registers a user in the database with the given payload. No validation is done, they must
-    /// be done before calling this method.
+    /// be done before calling this method. Hashing of the password is done here.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -100,13 +117,14 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     /// # Errors
     /// * If an error occurs with registering the user.
     async fn register_user(
-        &mut self,
+        &'a mut self,
         id: u64,
-        username: String,
-        email: String,
-        password: String,
+        username: impl AsRef<str> + Send,
+        email: impl AsRef<str> + Send,
+        password: impl AsRef<str> + Send,
     ) -> crate::Result<()> {
-        let hashed = crate::auth::hash_password(&password).await?;
+        let password = password.as_ref();
+        let hashed = crate::auth::hash_password(password).await?;
 
         let discriminator = sqlx::query!(
             "INSERT INTO
@@ -116,8 +134,8 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
             RETURNING
                 discriminator",
             id as i64,
-            username,
-            email,
+            username.as_ref(),
+            email.as_ref(),
             hashed,
         )
         .fetch_optional(self.transaction())
@@ -134,4 +152,4 @@ pub trait UserDbExt: for<'a> DbExt<'a> {
     }
 }
 
-impl<T> UserDbExt for T where T: for<'a> DbExt<'a> {}
+impl<'a, T> UserDbExt<'a> for T where T: DbExt<'a> {}

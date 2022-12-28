@@ -1,12 +1,13 @@
 use crate::db::DbExt;
 
-pub trait AuthDbExt: for<'a> DbExt<'a> {
+#[async_trait::async_trait]
+pub trait AuthDbExt<'a>: DbExt<'a> {
     /// Fetches a user token from the database with the given user ID.
     ///
     /// # Errors
     /// * If an error occurs with fetching the user token. If the user token is not found,
     /// `Ok(None)` is returned.
-    async fn fetch_token(&self, user_id: u64) -> sqlx::Result<Option<String>> {
+    async fn fetch_token(&'a self, user_id: u64) -> sqlx::Result<Option<String>> {
         sqlx::query!(
             "SELECT token FROm tokens WHERE user_id = $1",
             user_id as i64
@@ -25,7 +26,7 @@ pub trait AuthDbExt: for<'a> DbExt<'a> {
     /// # Errors
     /// * If an error occurs with creating the token.
     async fn create_token(
-        &mut self,
+        &'a mut self,
         user_id: u64,
         token: impl AsRef<str> + Send,
     ) -> sqlx::Result<()> {
@@ -47,7 +48,7 @@ pub trait AuthDbExt: for<'a> DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with deleting the tokens.
-    async fn delete_all_tokens(&mut self, user_id: u64) -> sqlx::Result<()> {
+    async fn delete_all_tokens(&'a mut self, user_id: u64) -> sqlx::Result<()> {
         sqlx::query!("DELETE FROM tokens WHERE user_id = $1", user_id as i64)
             .execute(self.transaction())
             .await
@@ -55,4 +56,4 @@ pub trait AuthDbExt: for<'a> DbExt<'a> {
     }
 }
 
-impl<T> AuthDbExt for T where T: for<'a> DbExt<'a> {}
+impl<'a, T> AuthDbExt<'a> for T where T: DbExt<'a> {}

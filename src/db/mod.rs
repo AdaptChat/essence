@@ -1,5 +1,8 @@
-pub mod auth;
-pub mod user;
+mod auth;
+mod user;
+
+pub use auth::AuthDbExt;
+pub use user::UserDbExt;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
 use std::sync::OnceLock;
@@ -38,7 +41,7 @@ pub trait DbExt<'a>: Sized
 where
     Self: 'a,
 {
-    type Executor: sqlx::PgExecutor<'a>;
+    type Executor: sqlx::PgExecutor<'static>;
     type Transaction: sqlx::PgExecutor<'a>;
 
     fn executor(&'a self) -> Self::Executor;
@@ -63,11 +66,11 @@ where
     }
 }
 
-impl<'a> DbExt<'a> for Transaction<'a, Postgres>
+impl<'a> DbExt<'a> for Transaction<'static, Postgres>
 where
     Self: 'a,
 {
-    type Executor = &'a Pool<Postgres>;
+    type Executor = &'static Pool<Postgres>;
     type Transaction = &'a mut Self;
 
     #[inline]
