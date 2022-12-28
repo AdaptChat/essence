@@ -11,13 +11,8 @@ pub static POOL: OnceLock<Pool<Postgres>> = OnceLock::new();
 ///
 /// # Errors
 /// * If the database connection fails.
-pub async fn connect() -> Result<(), sqlx::Error> {
-    let pool = PgPoolOptions::new()
-        .connect(dotenv!(
-            "DATABASE_URL",
-            "DATABASE_URL environment variable not set"
-        ))
-        .await?;
+pub async fn connect(url: &str) -> Result<(), sqlx::Error> {
+    let pool = PgPoolOptions::new().connect(url).await?;
 
     POOL.set(pool)
         .expect("cannot initialize database pool more than once");

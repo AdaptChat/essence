@@ -10,10 +10,6 @@
     clippy::missing_panics_doc
 )]
 
-#[macro_use]
-#[cfg(feature = "db")]
-extern crate dotenv_codegen;
-
 #[cfg(feature = "auth")]
 pub mod auth;
 #[cfg(feature = "db")]
