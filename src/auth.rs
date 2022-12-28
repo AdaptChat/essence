@@ -6,23 +6,18 @@ use base64::{
     engine::fast_portable::{FastPortable, NO_PAD},
 };
 use ring::rand::{SecureRandom, SystemRandom};
-use std::{fs, sync::OnceLock, time::UNIX_EPOCH};
+use std::{sync::OnceLock, time::UNIX_EPOCH};
 
 pub use argon2_async::{hash as hash_password, verify as verify_password};
 
 pub static RNG: OnceLock<SystemRandom> = OnceLock::new();
 
 /// Configures and initializes the Argon2 hasher. This must be called before using the hasher.
-pub async fn configure_hasher() {
+pub async fn configure_hasher(secret_key: &'static [u8]) {
     let mut config = Config::new();
 
-    let key = fs::read("secret.key")
-        .expect("secret.key file does not exist")
-        .into_boxed_slice();
-    let key: &'static _ = Box::leak(key);
-
     config
-        .set_secret_key(Some(key))
+        .set_secret_key(Some(secret_key))
         .set_memory_cost(4096)
         .set_iterations(64);
 
