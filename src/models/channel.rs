@@ -22,9 +22,15 @@ pub struct TextBasedGuildChannelInfo {
 #[serde(rename_all = "snake_case")]
 pub enum GuildChannelInfo {
     /// A normal text channel.
-    Text(TextBasedGuildChannelInfo),
+    Text {
+        #[serde(flatten)]
+        info: TextBasedGuildChannelInfo,
+    },
     /// A text channel that has an announcement feed that can be subscribed to.
-    Announcement(TextBasedGuildChannelInfo),
+    Announcement {
+        #[serde(flatten)]
+        info: TextBasedGuildChannelInfo,
+    },
     /// A voice channel.
     Voice {
         /// The user limit of the channel. This should be a value between `0` and `500`. A value
