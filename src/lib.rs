@@ -24,6 +24,8 @@ pub mod ws;
 pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
 
+pub type Timestamp = chrono::DateTime<chrono::Utc>;
+
 #[macro_export]
 macro_rules! serde_for_bitflags {
     (u32: $t:ty) => {
