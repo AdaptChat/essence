@@ -60,9 +60,11 @@ pub struct EditChannelPayload {
     pub name: Option<String>,
     /// The new topic or description of the channel. Explicitly setting this to `None` will clear
     /// the topic. Only takes effect for text-based channels in guilds, or group chats.
+    #[serde(default)]
     pub topic: Maybe<String>,
     /// The new icon URL of the channel. Explicitly setting this to `None` will clear the icon.
     /// Takes effect for all channels except for user DMs.
+    #[serde(default)]
     pub icon: Maybe<String>,
     /// The new user limit of the voice channel. Explicitly setting this to `None` will remove the
     /// current limit, if there is any. Only takes effect for guild voice channels.
@@ -78,6 +80,7 @@ pub struct EditChannelPositionPayload {
     pub position: u16,
     /// The new scope of the channel. If left blank, the scope will not be changed. If set to
     /// `Null`, the channel will be moved to the root of the channel list.
+    #[serde(default)]
     pub scope: Maybe<u64>,
 }
 

@@ -37,49 +37,41 @@ pub async fn migrate() {
         .expect("could not run database migrations");
 }
 
-pub trait DbExt<'a>: Sized
-where
-    Self: 'a,
-{
+pub trait DbExt<'t>: Sized + Send {
     type Executor: sqlx::PgExecutor<'static>;
-    type Transaction: sqlx::PgExecutor<'a>;
+    type Transaction: sqlx::PgExecutor<'t>;
 
-    fn executor(&'a self) -> Self::Executor;
-    fn transaction(&'a mut self) -> Self::Transaction;
+    fn executor(&self) -> Self::Executor;
+    fn transaction(&mut self) -> Self::Transaction;
 }
 
-impl<'a> DbExt<'a> for &'static Pool<Postgres>
-where
-    Self: 'a,
-{
+impl DbExt<'static> for &'static Pool<Postgres> {
     type Executor = Self;
     type Transaction = Self::Executor;
 
     #[inline]
-    fn executor(&'a self) -> Self::Executor {
+    fn executor(&self) -> Self::Executor {
         self
     }
 
     #[inline]
-    fn transaction(&'a mut self) -> Self::Transaction {
+    fn transaction(&mut self) -> Self::Transaction {
         self
     }
 }
 
-impl<'a> DbExt<'a> for Transaction<'static, Postgres>
-where
-    Self: 'a,
-{
+impl<'t> DbExt<'t> for Transaction<'static, Postgres> {
     type Executor = &'static Pool<Postgres>;
-    type Transaction = &'a mut Self;
+    type Transaction = &'t mut Self;
 
     #[inline]
-    fn executor(&'a self) -> Self::Executor {
+    fn executor(&self) -> Self::Executor {
         get_pool()
     }
 
     #[inline]
-    fn transaction(&'a mut self) -> Self::Transaction {
-        self
+    fn transaction(&mut self) -> Self::Transaction {
+        // SAFETY: `self` will only be acted on while the transaction is still active.
+        unsafe { std::mem::transmute(self) }
     }
 }

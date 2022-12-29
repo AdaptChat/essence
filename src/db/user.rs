@@ -1,5 +1,8 @@
 use super::DbExt;
+use crate::db::get_pool;
+use crate::http::user::EditUserPayload;
 use crate::models::user::{ClientUser, User, UserFlags};
+use crate::{Error, NotFoundExt};
 
 macro_rules! construct_user {
     ($data:ident) => {{
@@ -43,13 +46,13 @@ macro_rules! fetch_client_user {
 }
 
 #[async_trait::async_trait]
-pub trait UserDbExt<'a>: DbExt<'a> {
+pub trait UserDbExt<'t>: DbExt<'t> {
     /// Fetches a user from the database with the given ID.
     ///
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
-    async fn fetch_user_by_id(&'a self, id: u64) -> sqlx::Result<Option<User>> {
+    async fn fetch_user_by_id(&self, id: u64) -> sqlx::Result<Option<User>> {
         fetch_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
@@ -59,7 +62,7 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
     async fn fetch_user_by_tag(
-        &'a self,
+        &self,
         username: &str,
         discriminator: u16,
     ) -> sqlx::Result<Option<User>> {
@@ -75,7 +78,7 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with fetching the client user.
-    async fn fetch_client_user_by_id(&'a self, id: u64) -> sqlx::Result<Option<ClientUser>> {
+    async fn fetch_client_user_by_id(&self, id: u64) -> sqlx::Result<Option<ClientUser>> {
         fetch_client_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
@@ -85,7 +88,7 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     /// * If an error occurs with fetching the client user. If the user is not found, `Ok(None)` is
     /// returned.
     async fn fetch_client_user_by_email(
-        &'a self,
+        &self,
         email: impl AsRef<str> + Send,
     ) -> sqlx::Result<Option<ClientUser>> {
         fetch_client_user!(self, "SELECT * FROM users WHERE email = $1", email.as_ref())
@@ -95,7 +98,7 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with the database.
-    async fn is_email_taken(&'a self, email: impl AsRef<str> + Send) -> sqlx::Result<bool> {
+    async fn is_email_taken(&self, email: impl AsRef<str> + Send) -> sqlx::Result<bool> {
         let result = sqlx::query!(
             "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
             email.as_ref()
@@ -117,7 +120,7 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     /// # Errors
     /// * If an error occurs with registering the user.
     async fn register_user(
-        &'a mut self,
+        &mut self,
         id: u64,
         username: impl AsRef<str> + Send,
         email: impl AsRef<str> + Send,
@@ -142,13 +145,84 @@ pub trait UserDbExt<'a>: DbExt<'a> {
         .await?;
 
         if discriminator.is_none() {
-            return Err(crate::Error::AlreadyTaken {
+            return Err(Error::AlreadyTaken {
                 what: "username",
                 message: "Username is already taken".to_string(),
             });
         }
 
         Ok(())
+    }
+
+    /// Edits a user in the database with the given payload. No validation is done, they must
+    /// be done before calling this method.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the user.
+    /// * If the user is not found.
+    /// * If the user is trying to change their username to one that is already taken.
+    async fn edit_user(&mut self, id: u64, payload: EditUserPayload) -> crate::Result<User> {
+        let mut user = get_pool()
+            .fetch_user_by_id(id)
+            .await?
+            .ok_or_not_found("user", "user not found")?;
+
+        if let Some(username) = payload.username {
+            let discriminator = if sqlx::query!(
+                "SELECT discriminator FROM users WHERE username = $1 AND discriminator = $2",
+                username,
+                user.discriminator as i16,
+            )
+            .fetch_optional(get_pool())
+            .await?
+            .is_none()
+            {
+                user.discriminator as i16
+            } else {
+                let discriminator =
+                    sqlx::query!("SELECT generate_discriminator($1) AS out", username)
+                        .fetch_one(get_pool())
+                        .await?
+                        .out;
+
+                discriminator.ok_or_else(|| Error::AlreadyTaken {
+                    what: "username",
+                    message: "Username is already taken".to_string(),
+                })?
+            };
+
+            sqlx::query!(
+                "UPDATE users SET username = $1, discriminator = $2 WHERE id = $3",
+                username,
+                discriminator,
+                id as i64,
+            )
+            .execute(self.transaction())
+            .await?;
+
+            user.username = username;
+            user.discriminator = discriminator as u16;
+        }
+
+        user.avatar = payload.avatar.into_option_or_if_absent(user.avatar);
+        user.banner = payload.banner.into_option_or_if_absent(user.banner);
+        user.bio = payload.bio.into_option_or_if_absent(user.bio);
+
+        sqlx::query!(
+            r#"UPDATE users SET avatar = $1, banner = $2, bio = $3 WHERE id = $4"#,
+            user.avatar,
+            user.banner,
+            user.bio,
+            id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(user)
     }
 
     /// Deletes a user from the database.
@@ -158,7 +232,7 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with deleting the user.
-    async fn delete_user(&'a mut self, id: u64) -> sqlx::Result<()> {
+    async fn delete_user(&mut self, id: u64) -> sqlx::Result<()> {
         sqlx::query!("DELETE FROM users WHERE id = $1", id as i64)
             .execute(self.transaction())
             .await?;
@@ -167,4 +241,4 @@ pub trait UserDbExt<'a>: DbExt<'a> {
     }
 }
 
-impl<'a, T> UserDbExt<'a> for T where T: DbExt<'a> {}
+impl<'t, T> UserDbExt<'t> for T where T: DbExt<'t> {}

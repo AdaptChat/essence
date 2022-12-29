@@ -25,12 +25,15 @@ pub struct EditGuildPayload {
     pub name: Option<String>,
     /// The new description of the guild. Leave empty to keep the current description, and set to
     /// `null` to remove the description.
+    #[serde(default)]
     pub description: Maybe<String>,
     /// The new icon URL of the guild. Leave empty to keep the current icon, and set to `null` to
     /// remove the icon.
+    #[serde(default)]
     pub icon: Maybe<String>,
     /// The new banner URL of the guild. Leave empty to keep the current banner, and set to `null`
     /// to remove the banner.
+    #[serde(default)]
     pub banner: Maybe<String>,
     /// Whether the guild should be public or not. Leave empty to keep the current setting.
     pub public: Option<bool>,

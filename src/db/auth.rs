@@ -2,7 +2,7 @@ use crate::db::DbExt;
 use crate::models::UserFlags;
 
 #[async_trait::async_trait]
-pub trait AuthDbExt<'a>: DbExt<'a> {
+pub trait AuthDbExt<'t>: DbExt<'t> {
     /// Fetches the password hash for the given user ID and verifies it against the given password.
     ///
     /// # Note
@@ -11,7 +11,7 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     /// # Errors
     /// * If an error occurs with fetching the user.
     /// * If the user is not found.
-    async fn verify_password(&'a self, user_id: u64, password: String) -> crate::Result<bool> {
+    async fn verify_password(&self, user_id: u64, password: String) -> crate::Result<bool> {
         let hashed: String = sqlx::query!(
             r#"SELECT password AS "password!" FROM users WHERE id = $1"#,
             user_id as i64,
@@ -28,7 +28,7 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     /// # Errors
     /// * If an error occurs with fetching the user token. If the user token is not found,
     /// `Ok(None)` is returned.
-    async fn fetch_token(&'a self, user_id: u64) -> sqlx::Result<Option<String>> {
+    async fn fetch_token(&self, user_id: u64) -> sqlx::Result<Option<String>> {
         sqlx::query!(
             "SELECT token FROM tokens WHERE user_id = $1",
             user_id as i64
@@ -44,7 +44,7 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     /// * If an error occurs with fetching the user token. If the user token is not found,
     /// `Ok(None)` is returned.
     async fn fetch_user_info_by_token(
-        &'a self,
+        &self,
         token: impl AsRef<str> + Send,
     ) -> sqlx::Result<Option<(u64, UserFlags)>> {
         sqlx::query!(
@@ -65,7 +65,7 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     /// # Errors
     /// * If an error occurs with creating the token.
     async fn create_token(
-        &'a mut self,
+        &mut self,
         user_id: u64,
         token: impl AsRef<str> + Send,
     ) -> sqlx::Result<()> {
@@ -87,7 +87,7 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     ///
     /// # Errors
     /// * If an error occurs with deleting the tokens.
-    async fn delete_all_tokens(&'a mut self, user_id: u64) -> sqlx::Result<()> {
+    async fn delete_all_tokens(&mut self, user_id: u64) -> sqlx::Result<()> {
         sqlx::query!("DELETE FROM tokens WHERE user_id = $1", user_id as i64)
             .execute(self.transaction())
             .await
@@ -95,4 +95,4 @@ pub trait AuthDbExt<'a>: DbExt<'a> {
     }
 }
 
-impl<'a, T> AuthDbExt<'a> for T where T: DbExt<'a> {}
+impl<'t, T> AuthDbExt<'t> for T where T: DbExt<'t> {}

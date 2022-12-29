@@ -2,9 +2,13 @@ use serde::{de::Deserialize, ser::Serialize, Deserializer, Serializer};
 
 /// A serde value that distinguishes between null and missing values.
 ///
+/// # Note
 /// When used as a field in a serializable type (although not needed for deserialization), the
 /// attribute `#[serde(default, skip_serializing_if = "Maybe::is_absent")]` must be placed on the
 /// field.
+///
+/// When used as a field in a deserialization, the attribute `#[serde(default)]` must be placed on
+/// the field.
 #[derive(Clone, Debug, Default)]
 pub enum Maybe<T> {
     /// The field is absent.
@@ -31,7 +35,20 @@ impl<T> Maybe<T> {
         }
     }
 
+    /// Turns this into an `Option`, but if the value is `Absent`, the given fallback value is used
+    /// instead.
+    #[inline]
+    #[allow(clippy::missing_const_for_fn)] // false positive
+    pub fn into_option_or_if_absent(self, fallback: Option<T>) -> Option<T> {
+        match self {
+            Self::Value(v) => Some(v),
+            Self::Null => None,
+            Self::Absent => fallback,
+        }
+    }
+
     /// Turns this into an `Option`.
+    #[inline]
     pub fn into_option(self) -> Option<T> {
         self.into()
     }

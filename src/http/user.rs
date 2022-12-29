@@ -53,11 +53,14 @@ pub struct EditUserPayload {
     pub username: Option<String>,
     /// The new avatar URL of the user. Leave empty to keep the current avatar, and set to `null` to
     /// remove the avatar.
+    #[serde(default)]
     pub avatar: Maybe<String>,
     /// The new banner URL of the user. Leave empty to keep the current banner, and set to `null` to
     /// remove the banner.
+    #[serde(default)]
     pub banner: Maybe<String>,
     /// The new bio of the user. Leave empty to keep the current bio, and set to `null` to remove
     /// the bio.
+    #[serde(default)]
     pub bio: Maybe<String>,
 }
