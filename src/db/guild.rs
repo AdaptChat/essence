@@ -154,8 +154,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 allowed_permissions AS "allowed_permissions!",
                 denied_permissions AS "denied_permissions!"
             "#,
-            guild_id as i64,
             role_id as i64,
+            guild_id as i64,
             role_flags.bits() as i32,
         )
         .fetch_one(self.transaction())
