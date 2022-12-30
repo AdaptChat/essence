@@ -18,11 +18,13 @@ pub mod http;
 mod maybe;
 pub mod models;
 #[cfg(feature = "snowflakes")]
+mod permissions;
 pub mod snowflake;
 pub mod ws;
 
 pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
+pub use permissions::calculate_permissions;
 
 pub type Timestamp = chrono::DateTime<chrono::Utc>;
 

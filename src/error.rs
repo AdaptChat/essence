@@ -79,6 +79,13 @@ pub enum Error {
         /// The error message.
         message: &'static str,
     },
+    /// You must be a member of the guild to perform the requested action.
+    NotMember {
+        /// The ID of the guild you are not a member of.
+        guild_id: u64,
+        /// The error message.
+        message: &'static str,
+    },
     /// Something was already taken, e.g. a username or email.
     AlreadyTaken {
         /// What was already taken.
@@ -119,6 +126,7 @@ impl Error {
             | Self::MalformedIp { .. }
             | Self::UnsupportedAuthMethod { .. } => 400,
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
+            Self::NotMember { .. } => 403,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } => 409,
             Self::Ratelimited { .. } => 429,

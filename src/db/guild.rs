@@ -5,10 +5,57 @@ use crate::{
         Guild, GuildChannel, GuildFlags, GuildMemberCount, MaybePartialUser, Member, PartialGuild,
         PermissionPair, Permissions, Role, RoleFlags,
     },
+    Error,
 };
 
 #[async_trait::async_trait]
 pub trait GuildDbExt<'t>: DbExt<'t> {
+    /// Asserts a guild with the given ID exists.
+    async fn assert_guild_exists(&self, guild_id: u64) -> crate::Result<()> {
+        if !sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1)",
+            guild_id as i64
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or(false)
+        {
+            return Err(Error::NotFound {
+                entity: "guild",
+                message: format!("Guild with ID {guild_id} does not exist"),
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Asserts the given user is a member of the given guild.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the member.
+    async fn assert_member_in_guild(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+        self.assert_guild_exists(guild_id).await?;
+
+        if !sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM members WHERE guild_id = $1 AND id = $2)",
+            guild_id as i64,
+            user_id as i64,
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or(false)
+        {
+            return Err(Error::NotMember {
+                guild_id,
+                message: "You must be a member of the guild to perform the requested action.",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Fetches a partial guild from the database with the given ID.
     ///
     /// # Errors
