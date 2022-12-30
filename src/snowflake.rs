@@ -65,11 +65,11 @@ pub fn generate_snowflake(model_type: ModelType, node_id: u8) -> u64 {
     unsafe { generate_snowflake_unchecked(model_type, node_id) }
 }
 
-/// Sets the model type of the given snowflake.
+/// Returns the given snowflake with its model type altered to the given one.
 #[inline]
-pub fn set_model_type(snowflake: &mut u64, model_type: ModelType) {
-    *snowflake &= !(0b11111 << 13);
-    *snowflake |= (model_type as u64) << 13;
+#[must_use]
+pub const fn with_model_type(snowflake: u64, model_type: ModelType) -> u64 {
+    snowflake & !(0b11111 << 13) | (model_type as u64) << 13
 }
 
 /// Reads parts of a snowflake.
@@ -147,5 +147,24 @@ mod tests {
 
         assert_eq!(reader.model_type(), ModelType::Channel);
         assert_eq!(reader.node_id(), 6);
+    }
+
+    #[test]
+    fn test_with_model_type() {
+        let original = generate_snowflake(ModelType::User, 0);
+        let original_reader = SnowflakeReader::new(original);
+
+        let new = with_model_type(original, ModelType::Channel);
+        let new_reader = SnowflakeReader::new(new);
+
+        assert_eq!(
+            original_reader.timestamp_millis(),
+            new_reader.timestamp_millis()
+        );
+        assert_eq!(original_reader.node_id(), new_reader.node_id());
+        assert_eq!(original_reader.increment(), new_reader.increment());
+
+        assert_eq!(original_reader.model_type(), ModelType::User);
+        assert_eq!(new_reader.model_type(), ModelType::Channel);
     }
 }
