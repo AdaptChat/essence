@@ -65,6 +65,13 @@ pub fn generate_snowflake(model_type: ModelType, node_id: u8) -> u64 {
     unsafe { generate_snowflake_unchecked(model_type, node_id) }
 }
 
+/// Sets the model type of the given snowflake.
+#[inline]
+pub fn set_model_type(snowflake: &mut u64, model_type: ModelType) {
+    *snowflake &= !(0b11111 << 13);
+    *snowflake |= (model_type as u64) << 13;
+}
+
 /// Reads parts of a snowflake.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct SnowflakeReader(u64);
