@@ -1,8 +1,10 @@
 use super::DbExt;
-use crate::db::get_pool;
-use crate::http::user::EditUserPayload;
-use crate::models::user::{ClientUser, User, UserFlags};
-use crate::{Error, NotFoundExt};
+use crate::{
+    db::get_pool,
+    http::user::EditUserPayload,
+    models::user::{ClientUser, User, UserFlags},
+    Error, NotFoundExt,
+};
 
 macro_rules! construct_user {
     ($data:ident) => {{

@@ -3,7 +3,7 @@ use crate::serde_for_bitflags;
 use serde::Serialize;
 
 /// A role in a guild.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct Role {
     /// The snowflake ID of the role.
     pub id: u64,

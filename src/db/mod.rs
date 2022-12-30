@@ -1,7 +1,14 @@
 mod auth;
+mod channel;
+mod guild;
+mod member;
+mod role;
 mod user;
 
 pub use auth::AuthDbExt;
+pub use guild::GuildDbExt;
+pub use member::MemberDbExt;
+pub use role::RoleDbExt;
 pub use user::UserDbExt;
 
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
