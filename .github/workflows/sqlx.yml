@@ -29,7 +29,7 @@ jobs:
       if: steps.rust-cache.outputs.cache-hit != 'true'
       run: cargo install sqlx-cli --no-default-features --features rustls,postgres
 
-    - run: cargo sqlx mig run && cargo sqlx prepare
+    - run: cargo sqlx mig run && cargo sqlx prepare -- --all-features
       env:
         DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgres"
 
