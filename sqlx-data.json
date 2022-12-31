@@ -1,3 +1,1531 @@
 {
-  "db": "PostgreSQL"
+  "db": "PostgreSQL",
+  "0f99362fa3d40808a27279737bf5f4fbebc623ebc60af6e067e2f1a9857d95b2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "color",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gradient",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "allowed_permissions",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM roles WHERE guild_id = $1 AND id = $2"
+  },
+  "13a9bda24d4f58f3538f0d958f1cfc7a0fe964545d45b636db5aff7ac930499f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int8",
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO\n                guilds (id, name, description, icon, banner, owner_id, flags)\n            VALUES\n                ($1, $2, $3, $4, $5, $6, $7)\n            "
+  },
+  "179f3babac19b2c6a4dde26dbadc37ea17e2ea34bf95a3f714841a8e0cac2f6f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "role_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "user_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                    role_id,\n                    user_id,\n                    guild_id\n                FROM\n                    role_data\n                WHERE\n                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                "
+  },
+  "1860915af47291fe425dd536ade0db4b8b18bc6083efcb685152ca5f740456bb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
+  },
+  "1909c5820bb8b1deebf1e7aea99c09ef6b91133641f274a632292ec4cfe0724c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1)"
+  },
+  "24ade9288fd8119e54fcf7f1498135255b48dc03ee574ad3b7185515a8267865": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "vanity_url",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "member_count!",
+          "ordinal": 8,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT \n                guilds.*,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds \n            WHERE \n                id IN (SELECT guild_id FROM members WHERE id = $1)\n            "
+  },
+  "2bb472caf08d980deb946359f3d68dd0295fa710d12580dfe9711dedaa1a6aaa": {
+    "describe": {
+      "columns": [
+        {
+          "name": "guild_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "kind",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT guild_id, owner_id, type AS kind FROM channels WHERE id = $1"
+  },
+  "316d43752b75de397eaaefdff0c6cf524d0d2772a9140c61528aa05981cb6463": {
+    "describe": {
+      "columns": [
+        {
+          "name": "target_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "allow",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "deny",
+          "ordinal": 2,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                        target_id,\n                        allow,\n                        deny\n                    FROM\n                        channel_overwrites\n                    WHERE\n                        guild_id = $1\n                    AND\n                        channel_id = $2\n                    "
+  },
+  "366e65997d0ed6a92d40d9031f6b76e77638472532a1c2a8f9e617704a62ce2a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discriminator",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO\n                users (id, username, email, password)\n            VALUES\n                ($1, $2, $3, $4)\n            RETURNING\n                discriminator"
+  },
+  "395e8b194eda3b1c847dcf42ebc5a29c523586a924ed8aacdf2d969c7c9d777d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nick",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "joined_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 9,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                    members.*,\n                    users.username,\n                    users.discriminator,\n                    users.avatar,\n                    users.banner,\n                    users.bio,\n                    users.flags\n                FROM\n                    members\n                INNER JOIN\n                    users\n                ON\n                    members.id = users.id\n                WHERE\n                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                "
+  },
+  "3b742230b799b60f0125f252618921ff0d69773b5595b542cbf322eaada813cb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO channels\n                (id, guild_id, type, name, position, slowmode, nsfw, locked)\n            VALUES\n                ($1, $2, 'text', 'general', 0, 0, false, false)"
+  },
+  "45a536b46a3654b06157d263f6722d44ca054a529c6e7f80f94b17c7c557d31b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "token",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT token FROM tokens WHERE user_id = $1"
+  },
+  "486ac13b159d08c4e8243c0d5923ba930bf20b41ee94465a360f7d5b166b6400": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nick",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "joined_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 9,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members m\n            CROSS JOIN LATERAL (\n                SELECT * FROM users u WHERE u.id = m.id\n            ) AS u\n            WHERE guild_id = $1"
+  },
+  "50293c2e54af11d4c2a553e29b671cef087a159c6ee7182d8ca929ecb748f3b7": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM users WHERE id = $1"
+  },
+  "52645061c871d222d342edf74fa669f5e853ec6b16202c334e1d09ca449df7c4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "joined_at",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO members (id, guild_id) VALUES ($1, $2) RETURNING joined_at"
+  },
+  "6ead10a4ea43d6e21372f6bd5092ef344faa928d3b2a3cfd73b0be1bbf75eac2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discriminator",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int2"
+        ]
+      }
+    },
+    "query": "SELECT discriminator FROM users WHERE username = $1 AND discriminator = $2"
+  },
+  "7132360ca9b4dcbe19bbbe046033fba320ff4fc21e9368c1e7a81e0487e936b6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 2,
+          "type_info": "Int2"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "password",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int2"
+        ]
+      }
+    },
+    "query": "SELECT * FROM users WHERE username = $1 AND discriminator = $2"
+  },
+  "7ca2668d2402b8702ed588885790c4c6657be36f0850d3df2cf0e11998b88001": {
+    "describe": {
+      "columns": [
+        {
+          "name": "role_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT role_id FROM role_data WHERE guild_id = $1"
+  },
+  "7cfdc2708f37e063bf22d6b8353907cf228ed3e8afce3d5b3887beda24d74b00": {
+    "describe": {
+      "columns": [
+        {
+          "name": "allowed_permissions!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position)\n            VALUES\n                ($1, $2, 'Default', $3, 0)\n            RETURNING\n                allowed_permissions AS \"allowed_permissions!\",\n                denied_permissions AS \"denied_permissions!\"\n            "
+  },
+  "82656124ef41560bc2fe44a9e64c26c52399c0b3410f5eef6a609823a599e93d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM tokens WHERE user_id = $1"
+  },
+  "843923b9a0257cf80f1dff554e7dc8fdfc05f489328e8376513124dfb42996e3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 2,
+          "type_info": "Int2"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "password",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM users WHERE id = $1"
+  },
+  "87742854ab3161409d6fb266f96c1d251b75dc157e95dbeb9b13b915b8fee9af": {
+    "describe": {
+      "columns": [
+        {
+          "name": "out",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT generate_discriminator($1) AS out"
+  },
+  "88baf02973b98c1cc93bdc415d026bafd2ea602116ccde8f30067d5b0738fa18": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "description",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "vanity_url",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "member_count!",
+          "ordinal": 8,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                id,\n                name,\n                description,\n                icon,\n                banner,\n                owner_id,\n                flags,\n                vanity_url,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds\n            WHERE\n                id = $1"
+  },
+  "8e9435b541172c361ac79545d45bc91d7826b3ff54f84be50d38d06ec562d5a9": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "color",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gradient",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "allowed_permissions",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM roles WHERE guild_id = $1 ORDER BY position ASC"
+  },
+  "96e239cd603f7da0d7e80a96009137b820aa4236d5c50a77b6ccd01aeb085478": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nick",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "joined_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 9,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members m\n            CROSS JOIN LATERAL (\n                SELECT * FROM users u WHERE u.id = m.id\n            ) AS u\n            WHERE guild_id = $1 AND m.id = $2"
+  },
+  "9917d85ed925023644e6d359b3efffa5e65c7e3cb1a720ed608ed0c83c4f7572": {
+    "describe": {
+      "columns": [
+        {
+          "name": "role_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2"
+  },
+  "9c8cf8e637809e6f9503919f6fa307743f339414bde04132cb938632a38f75f4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(SELECT 1 FROM members WHERE guild_id = $1 AND id = $2)"
+  },
+  "9d2c649ff158908f95226af761c8b96f3e79fb760b1be0335ef2e58a3b2dd831": {
+    "describe": {
+      "columns": [
+        {
+          "name": "password!",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT password AS \"password!\" FROM users WHERE id = $1"
+  },
+  "a94dbea7a6f45cdae81f8be0dda6d149e13fd1ea6ba90ce66e80814681cebb60": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT user_id FROM channel_recipients WHERE channel_id = $1"
+  },
+  "bbfc76e3af9ea14f7db905a60a55ee902e6fd91abc1637767c9d65cf54d16d01": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO tokens (user_id, token) VALUES ($1, $2)"
+  },
+  "c2d79cd2ee7e2ca0694dc47e7cf50f21da605bad0e1dc5575b2d7845747bf733": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT id, flags FROM users WHERE id = (SELECT user_id FROM tokens WHERE token = $1)"
+  },
+  "c3d2ef76d84dfba75ed057018bae924b605ac65fc92357735aa7dccce668b150": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "color",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gradient",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "allowed_permissions",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                    *\n                FROM\n                    roles\n                WHERE\n                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                ORDER BY\n                    position ASC\n                "
+  },
+  "d59fa440c1c209176b8a9c6779321964b1efc6b2aa6289c5d40cf5c07db30e53": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name!",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "kind",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position!",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "icon",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "topic",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 8,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                id,\n                guild_id AS \"guild_id!\",\n                name AS \"name!\",\n                type AS kind,\n                position AS \"position!\",\n                parent_id,\n                icon,\n                topic,\n                nsfw,\n                locked,\n                slowmode,\n                user_limit\n            FROM\n                channels\n            WHERE\n            guild_id = $1"
+  },
+  "d6936366559a2ff31bf0d5346b9e01c226dd6da007bfe74c1ea9d05b82d60481": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int2",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE users SET username = $1, discriminator = $2 WHERE id = $3"
+  },
+  "dd8628efdc56d427db7b0ca21125fd36e7dd31513ee81815649c080b6304dab5": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name!",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "kind",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position!",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "icon",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "topic",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 8,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 10,
+          "type_info": "Int4"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                id,\n                guild_id AS \"guild_id!\",\n                name AS \"name!\",\n                type AS kind,\n                position AS \"position!\",\n                parent_id,\n                icon,\n                topic,\n                nsfw,\n                locked,\n                slowmode,\n                user_limit\n            FROM\n                channels\n            WHERE\n            guild_id IN (SELECT guild_id FROM members WHERE id = $1)"
+  },
+  "e9f8d85417fdc81bd2dbfe749c7da303738ef2b5b1bd2f4fc1a22947108d93a2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "topic",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM channels WHERE id = $1"
+  },
+  "eb537d26b84dc230b2c30bc21b3aef3f246c262a0cd4f4f59f00f5314f7bffe9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE users SET avatar = $1, banner = $2, bio = $3 WHERE id = $4"
+  },
+  "f3f58600e971f1be6cbe206bba24f77769f54c6230e28f5b3dc719b869d9cb3f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 2,
+          "type_info": "Int2"
+        },
+        {
+          "name": "email",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "password",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT * FROM users WHERE email = $1"
+  }
 }
