@@ -25,6 +25,7 @@ pub mod ws;
 pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
 pub use permissions::calculate_permissions;
+pub use utoipa;
 
 pub type Timestamp = chrono::DateTime<chrono::Utc>;
 
