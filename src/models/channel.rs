@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 /// Represents common information found in text-based guild channels.
 #[derive(Clone, Debug, Default, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct TextBasedGuildChannelInfo {
     /// The topic of the channel, if any.
     pub topic: Option<String>,
@@ -20,6 +21,7 @@ pub struct TextBasedGuildChannelInfo {
 /// An intermediate representation of a channel's type. This is never used directly, but is used
 /// to help deserialization.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 #[serde(rename_all = "snake_case")]
 pub enum ChannelType {
     /// A text channel.
@@ -105,6 +107,7 @@ impl ChannelType {
 
 /// Represents the type along with type-specific info of a guild channel.
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum GuildChannelInfo {
@@ -156,6 +159,7 @@ pub struct PermissionOverwrite {
 
 /// Represents a channel in a guild.
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct GuildChannel {
     /// The ID of the channel.
     pub id: u64,
@@ -252,6 +256,7 @@ impl DmChannelInfo {
 
 /// Represents a direct-message-like channel that does not belong in a guild.
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct DmChannel {
     /// The ID of the channel.
     pub id: u64,
@@ -262,6 +267,7 @@ pub struct DmChannel {
 
 /// Represents any channel.
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 #[serde(untagged)]
 pub enum Channel {
     /// A guild channel.
@@ -272,6 +278,7 @@ pub enum Channel {
 
 /// Represents any channel info.
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 #[serde(untagged)]
 pub enum ChannelInfo {
     /// A guild channel.

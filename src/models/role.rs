@@ -1,9 +1,12 @@
 use crate::models::PermissionPair;
 use crate::serde_for_bitflags;
+#[cfg(feature = "client")]
+use serde::Deserialize;
 use serde::Serialize;
 
 /// A role in a guild.
 #[derive(Clone, Debug, Default, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct Role {
     /// The snowflake ID of the role.
     pub id: u64,

@@ -1,7 +1,10 @@
+#[cfg(feature = "client")]
+use serde::Deserialize;
 use serde::Serialize;
 
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 #[serde(tag = "op")]
 #[serde(rename_all = "snake_case")]
 pub enum OutboundMessage {

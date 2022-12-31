@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 /// A lot of information is stored in the user's flags, including whether or not the user is a bot
 /// account.
 #[derive(Clone, Debug, Default, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct User {
     /// The snowflake ID of the user.
     pub id: u64,
@@ -72,6 +73,7 @@ pub struct GuildFolder {
 /// Represents user info about the client. This has other information that is not available to the
 /// public, such as emails, guilds, and relationships (friends and blocked users).
 #[derive(Clone, Debug, Default, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct ClientUser {
     /// The public user info about the client.
     #[serde(flatten)]
@@ -130,6 +132,7 @@ pub enum RelationshipType {
 
 /// Represents a relationship that a user has with another user.
 #[derive(Clone, Debug, Default, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct Relationship {
     /// The ID of the user that this relationship is with.
     pub id: u64,

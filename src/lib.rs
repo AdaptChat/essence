@@ -17,8 +17,8 @@ pub mod error;
 pub mod http;
 mod maybe;
 pub mod models;
-#[cfg(feature = "snowflakes")]
 mod permissions;
+#[cfg(feature = "snowflakes")]
 pub mod snowflake;
 pub mod ws;
 

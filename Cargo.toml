@@ -29,5 +29,6 @@ optional = true
 [features]
 default = ["snowflakes"]
 auth = ["snowflakes", "dep:argon2-async", "dep:base64", "dep:ring"]
+client = []
 db = ["dep:async-trait", "dep:itertools", "dep:sqlx"]
 snowflakes = []

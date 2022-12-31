@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// The method to use to retrieve an authentication token.
 #[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 #[serde(rename_all = "snake_case")]
 pub enum TokenRetrievalMethod {
     /// Generate a new token as a new session. This will keep old tokens but add an alternate token
@@ -16,6 +17,7 @@ pub enum TokenRetrievalMethod {
 
 /// The request body for POST /login
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 pub struct LoginRequest {
     /// The email to log in with.
     pub email: String,
@@ -28,6 +30,7 @@ pub struct LoginRequest {
 
 /// The response body for POST /login
 #[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct LoginResponse {
     /// The user ID of the logged in user.
     pub user_id: u64,

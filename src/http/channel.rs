@@ -1,9 +1,11 @@
-use crate::models::PermissionOverwrite;
-use crate::Maybe;
+use crate::{models::PermissionOverwrite, Maybe};
 use serde::Deserialize;
+#[cfg(feature = "client")]
+use serde::Serialize;
 
 /// The type and other information sent to create a new guild channel.
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 #[serde(tag = "type")]
 pub enum CreateGuildChannelInfo {
     /// A text channel.
@@ -35,6 +37,7 @@ pub enum CreateGuildChannelInfo {
 
 /// The request body sent to create a new channel in a guild.
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 pub struct CreateGuildChannelPayload {
     /// The name of the text channel.
     pub name: String,
@@ -54,6 +57,7 @@ pub struct CreateGuildChannelPayload {
 
 /// The request body sent to modify a channel.
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 pub struct EditChannelPayload {
     /// The new name of the channel. If left blank, the name will not be changed. Takes effect for
     /// all channels except for user DMs.
@@ -61,6 +65,7 @@ pub struct EditChannelPayload {
     /// The new topic or description of the channel. Explicitly setting this to `None` will clear
     /// the topic. Only takes effect for text-based channels in guilds, or group chats.
     #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     pub topic: Maybe<String>,
     /// The new icon URL of the channel. Explicitly setting this to `None` will clear the icon.
     /// Takes effect for all channels except for user DMs.
@@ -73,6 +78,7 @@ pub struct EditChannelPayload {
 
 /// The payload used per channel to specify its new position data.
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 pub struct EditChannelPositionPayload {
     /// The ID of the channel to modify.
     pub id: u64,
@@ -81,6 +87,7 @@ pub struct EditChannelPositionPayload {
     /// The new scope of the channel. If left blank, the scope will not be changed. If set to
     /// `Null`, the channel will be moved to the root of the channel list.
     #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     pub scope: Maybe<u64>,
 }
 

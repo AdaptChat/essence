@@ -1,7 +1,10 @@
 use serde::Deserialize;
+#[cfg(feature = "client")]
+use serde::Serialize;
 
 /// An inbound websocket message sent by the client, received by the server.
 #[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
 #[serde(tag = "op")]
 #[serde(rename_all = "snake_case")]
 pub enum InboundMessage {
