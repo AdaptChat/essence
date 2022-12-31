@@ -3,10 +3,13 @@ use crate::{serde_for_bitflags, Timestamp};
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
+#[cfg(feature = "openapi")]
+use utoipa::ToSchema;
 
 /// The type of a message embed.
 #[derive(Clone, Copy, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum EmbedType {
     /// A custom, rich embed that is manually constructed. This is the only type that is available
@@ -23,6 +26,7 @@ pub enum EmbedType {
 /// The author information of a message embed.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EmbedAuthor {
     /// The name of the author.
     pub name: String,
@@ -35,6 +39,7 @@ pub struct EmbedAuthor {
 /// The footer information of a message embed.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EmbedFooter {
     /// The text of the footer.
     pub text: String,
@@ -45,6 +50,7 @@ pub struct EmbedFooter {
 /// The alignment type of a message embed field.
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub enum MessageEmbedFieldAlignment {
     /// The field is aligned to the left.
     Left,
@@ -61,6 +67,7 @@ pub enum MessageEmbedFieldAlignment {
 /// Information about an embed's field.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EmbedField {
     /// The name of the field.
     pub name: String,
@@ -76,6 +83,7 @@ pub struct EmbedField {
 /// messages.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Embed {
     /// The type of the embed.
     #[serde(rename = "type")]
@@ -109,6 +117,7 @@ pub struct Embed {
 /// Represents a message attachment.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Attachment {
     /// The snowflake ID of the attachment.
     pub id: u64,
@@ -125,6 +134,7 @@ pub struct Attachment {
 /// Represents the type and info of a message.
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(tag = "type", content = "metadata")]
 #[serde(rename_all = "snake_case")]
 pub enum MessageInfo {
@@ -153,6 +163,7 @@ pub enum MessageInfo {
 /// Represents either a member or a user.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(untagged)]
 pub enum MemberOrUser {
     /// A member.
@@ -164,6 +175,7 @@ pub enum MemberOrUser {
 /// Represents a text or system message in a channel.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Message {
     /// The snowflake ID of the message.
     pub id: u64,

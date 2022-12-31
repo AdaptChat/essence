@@ -2,10 +2,13 @@ use crate::{models::PermissionOverwrite, Maybe};
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
+#[cfg(feature = "openapi")]
+use utoipa::ToSchema;
 
 /// The type and other information sent to create a new guild channel.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(tag = "type")]
 pub enum CreateGuildChannelInfo {
     /// A text channel.
@@ -38,6 +41,7 @@ pub enum CreateGuildChannelInfo {
 /// The request body sent to create a new channel in a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct CreateGuildChannelPayload {
     /// The name of the text channel.
     pub name: String,
@@ -58,6 +62,7 @@ pub struct CreateGuildChannelPayload {
 /// The request body sent to modify a channel.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EditChannelPayload {
     /// The new name of the channel. If left blank, the name will not be changed. Takes effect for
     /// all channels except for user DMs.
@@ -79,6 +84,7 @@ pub struct EditChannelPayload {
 /// The payload used per channel to specify its new position data.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EditChannelPositionPayload {
     /// The ID of the channel to modify.
     pub id: u64,
@@ -93,6 +99,8 @@ pub struct EditChannelPositionPayload {
 
 /// The request body sent to modify channel positions.
 #[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(transparent)]
 pub struct EditChannelPositionsPayload {
     /// A list of channel positions to modify.

@@ -55,8 +55,8 @@ macro_rules! construct_guild_channel {
                     };
 
                     match kind {
-                        ChannelType::Text => GuildChannelInfo::Text { info },
-                        ChannelType::Announcement => GuildChannelInfo::Announcement { info },
+                        ChannelType::Text => GuildChannelInfo::Text(info),
+                        ChannelType::Announcement => GuildChannelInfo::Announcement(info),
                         _ => unreachable!(),
                     }
                 }
@@ -135,8 +135,8 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                 };
 
                 ChannelInfo::Guild(match kind {
-                    ChannelType::Text => GuildChannelInfo::Text { info },
-                    ChannelType::Announcement => GuildChannelInfo::Announcement { info },
+                    ChannelType::Text => GuildChannelInfo::Text(info),
+                    ChannelType::Announcement => GuildChannelInfo::Announcement(info),
                     _ => unreachable!(),
                 })
             }

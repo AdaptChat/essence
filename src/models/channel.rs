@@ -1,10 +1,17 @@
 use crate::{models::PermissionPair, Error};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
+use utoipa::openapi::ArrayBuilder;
+#[cfg(feature = "openapi")]
+use utoipa::{
+    openapi::{Array, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
+    ToSchema,
+};
 
 /// Represents common information found in text-based guild channels.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct TextBasedGuildChannelInfo {
     /// The topic of the channel, if any.
     pub topic: Option<String>,
@@ -22,6 +29,7 @@ pub struct TextBasedGuildChannelInfo {
 /// to help deserialization.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ChannelType {
     /// A text channel.
@@ -108,19 +116,14 @@ impl ChannelType {
 /// Represents the type along with type-specific info of a guild channel.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum GuildChannelInfo {
     /// A normal text channel.
-    Text {
-        #[serde(flatten)]
-        info: TextBasedGuildChannelInfo,
-    },
+    Text(TextBasedGuildChannelInfo),
     /// A text channel that has an announcement feed that can be subscribed to.
-    Announcement {
-        #[serde(flatten)]
-        info: TextBasedGuildChannelInfo,
-    },
+    Announcement(TextBasedGuildChannelInfo),
     /// A voice channel.
     Voice {
         /// The user limit of the channel. This should be a value between `0` and `500`. A value
@@ -148,6 +151,7 @@ impl GuildChannelInfo {
 
 /// Represents a permission overwrite.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct PermissionOverwrite {
     /// The ID of the role or user this overwrite applies to. The model type can be extracted from
     /// the ID.
@@ -160,6 +164,7 @@ pub struct PermissionOverwrite {
 /// Represents a channel in a guild.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct GuildChannel {
     /// The ID of the channel.
     pub id: u64,
@@ -206,9 +211,7 @@ impl Default for GuildChannel {
         Self {
             id: 0,
             guild_id: 0,
-            info: GuildChannelInfo::Text {
-                info: TextBasedGuildChannelInfo::default(),
-            },
+            info: GuildChannelInfo::Text(TextBasedGuildChannelInfo::default()),
             name: "general".to_string(),
             position: 0,
             overwrites: Vec::new(),
@@ -217,14 +220,29 @@ impl Default for GuildChannel {
     }
 }
 
+#[cfg(feature = "openapi")]
+fn tuple_u64_u64() -> Array {
+    ArrayBuilder::new()
+        .items(
+            ObjectBuilder::new()
+                .schema_type(SchemaType::Integer)
+                .format(Some(SchemaFormat::KnownFormat(KnownFormat::Int64))),
+        )
+        .min_items(Some(2))
+        .max_items(Some(2))
+        .build()
+}
+
 /// Represents extra information associated with DM channels.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum DmChannelInfo {
     /// A normal DM channel.
     Dm {
         /// The two IDs of the recipients of the DM.
+        #[cfg_attr(feature = "openapi", schema(schema_with = tuple_u64_u64))]
         recipient_ids: (u64, u64),
     },
     /// A group chat consisting of multiple users.

@@ -5,10 +5,13 @@ use crate::{
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
+#[cfg(feature = "openapi")]
+use utoipa::ToSchema;
 
 /// Potentially a partial user.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(untagged)]
 pub enum MaybePartialUser {
     /// A user with full information.
@@ -20,6 +23,7 @@ pub enum MaybePartialUser {
 /// Represents a member of a guild. Members are user objects associated with a guild.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Member {
     /// The user associated with this member. This could be `None` in some cases.
     #[serde(flatten)]
@@ -61,6 +65,7 @@ impl Member {
 /// Represents member counts for a guild.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct GuildMemberCount {
     /// The total number of members in the guild.
     pub total: u32,
@@ -72,6 +77,7 @@ pub struct GuildMemberCount {
 /// Represents a guild with partial information, sometimes referred to as a server.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct PartialGuild {
     /// The snowflake ID of the guild.
     pub id: u64,
@@ -101,6 +107,7 @@ pub struct PartialGuild {
 /// Represents a guild with all information, sometimes referred to as a server.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Guild {
     /// The information available to partial guilds, including the name and ID.
     #[serde(flatten)]

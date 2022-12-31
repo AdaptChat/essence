@@ -1,5 +1,7 @@
 use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "openapi")]
+use utoipa::ToSchema;
 
 /// Represents a user account.
 ///
@@ -7,6 +9,7 @@ use serde::{Deserialize, Serialize};
 /// account.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct User {
     /// The snowflake ID of the user.
     pub id: u64,
@@ -50,6 +53,7 @@ impl User {
 /// Represents information such as the name and color of a guild folder.
 /// This is only shown in the client's UI.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct GuildFolderInfo {
     /// The name of the folder.
     pub name: String,
@@ -59,6 +63,7 @@ pub struct GuildFolderInfo {
 
 /// Represents a folder that contains a collection of guilds. This is only shown in the client's UI.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct GuildFolder {
     /// The path of the folder, with the top-level folder first.
     ///
@@ -74,6 +79,7 @@ pub struct GuildFolder {
 /// public, such as emails, guilds, and relationships (friends and blocked users).
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct ClientUser {
     /// The public user info about the client.
     #[serde(flatten)]
@@ -122,6 +128,7 @@ impl ClientUser {
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub enum RelationshipType {
     /// The user is added as a friend.
     #[default]
@@ -133,6 +140,7 @@ pub enum RelationshipType {
 /// Represents a relationship that a user has with another user.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Relationship {
     /// The ID of the user that this relationship is with.
     pub id: u64,

@@ -2,10 +2,13 @@ use crate::Maybe;
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
+#[cfg(feature = "openapi")]
+use utoipa::{IntoParams, ToSchema};
 
 /// The payload sent to create a new guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct CreateGuildPayload {
     /// The name of the guild. Must be between 2 and 100 characters.
     pub name: String,
@@ -24,6 +27,7 @@ pub struct CreateGuildPayload {
 /// The payload sent to edit a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EditGuildPayload {
     /// The new name of the guild. Leave empty to keep the current name.
     pub name: Option<String>,
@@ -49,6 +53,7 @@ pub struct EditGuildPayload {
 /// The payload sent to delete a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct DeleteGuildPayload {
     /// The password of the user. If this is a bot account, the password is not required and no
     /// body should be sent.
@@ -58,6 +63,7 @@ pub struct DeleteGuildPayload {
 /// The query parameters used to specify what information to return when fetching a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "openapi", derive(IntoParams))]
 pub struct GetGuildQuery {
     /// Whether to resolve the guild's channels in the response.
     #[serde(default)]

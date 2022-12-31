@@ -3,10 +3,13 @@ use crate::serde_for_bitflags;
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
+#[cfg(feature = "openapi")]
+use utoipa::ToSchema;
 
 /// A role in a guild.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct Role {
     /// The snowflake ID of the role.
     pub id: u64,
