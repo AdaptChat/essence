@@ -1,0 +1,42 @@
+name: Generate doc
+
+on:
+  push:
+    branches:
+      - $default-branch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  deploy:
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+
+      - run: cargo doc --all-features --workspace --no-deps
+      - run: echo "<meta http-equiv=\"refresh\" content=\"0; url=essence\">" > target/doc/index.html
+      - run: cp -r target/doc ./docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
