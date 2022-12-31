@@ -3,7 +3,7 @@ name: Generate doc
 on:
   push:
     branches:
-      - $default-branch
+      - main
 
 env:
   CARGO_TERM_COLOR: always
