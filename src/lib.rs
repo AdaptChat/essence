@@ -26,10 +26,24 @@ pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
 pub use permissions::calculate_permissions;
 
-pub type Timestamp = chrono::DateTime<chrono::Utc>;
-
 #[macro_export]
 macro_rules! serde_for_bitflags {
+    (@openapi for $t:ty => $format:ident) => {
+        #[cfg(feature = "openapi")]
+        impl utoipa::ToSchema for $t {
+            fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::Schema> {
+                utoipa::openapi::RefOr::T(
+                    utoipa::openapi::ObjectBuilder::new()
+                        .schema_type(utoipa::openapi::SchemaType::Integer)
+                        .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
+                            utoipa::openapi::KnownFormat::$format,
+                        )))
+                        .build()
+                        .into(),
+                )
+            }
+        }
+    };
     (u32: $t:ty) => {
         use ::std::result::Result;
 
@@ -52,6 +66,8 @@ macro_rules! serde_for_bitflags {
                 })
             }
         }
+
+        serde_for_bitflags!(@openapi for $t => Int32);
     };
     (i64: $t:ty) => {
         impl serde::Serialize for $t {
@@ -73,6 +89,8 @@ macro_rules! serde_for_bitflags {
                 })
             }
         }
+
+        serde_for_bitflags!(@openapi for $t => Int64);
     };
 }
 

@@ -1,7 +1,8 @@
 use crate::{
     models::{GuildChannel, Role, User},
-    serde_for_bitflags, Timestamp,
+    serde_for_bitflags,
 };
+use chrono::{DateTime, Utc};
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
@@ -35,7 +36,7 @@ pub struct Member {
     /// A list of IDs of the roles that the member has. This could be `None` in some cases.
     pub roles: Option<Vec<u64>>,
     /// The time that the member joined the guild.
-    pub joined_at: Timestamp,
+    pub joined_at: DateTime<Utc>,
 }
 
 impl Member {

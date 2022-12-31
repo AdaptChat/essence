@@ -1,4 +1,9 @@
 use serde::{de::Deserialize, ser::Serialize, Deserializer, Serializer};
+#[cfg(feature = "openapi")]
+use utoipa::{
+    openapi::{OneOfBuilder, RefOr, Schema},
+    ToSchema,
+};
 
 /// A serde value that distinguishes between null and missing values.
 ///
@@ -94,5 +99,14 @@ impl<T: Serialize> Serialize for Maybe<T> {
                     `#[serde(default, skip_serializing_if = \"Maybe::is_absent\")]`",
             )),
         }
+    }
+}
+
+#[cfg(feature = "openapi")]
+impl<T: ToSchema> ToSchema for Maybe<T> {
+    fn schema() -> RefOr<Schema> {
+        RefOr::T(Schema::OneOf(
+            OneOfBuilder::new().item(T::schema()).nullable(true).build(),
+        ))
     }
 }

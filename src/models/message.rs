@@ -1,5 +1,6 @@
 use super::{Member, User};
-use crate::{serde_for_bitflags, Timestamp};
+use crate::serde_for_bitflags;
+use chrono::{DateTime, Utc};
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
@@ -96,7 +97,7 @@ pub struct Embed {
     /// title.
     pub url: Option<String>,
     /// The timestamp of the embed.
-    pub timestamp: Option<Timestamp>,
+    pub timestamp: Option<DateTime<Utc>>,
     /// The color of the embed, shown as a stripe on the left side of the embed.
     pub color: Option<u32>,
     /// The hue of the main body of the background. This is only available for rich embeds. This
