@@ -1,7 +1,4 @@
-use crate::{
-    db::DbExt,
-    models::{MaybePartialUser, Member, User, UserFlags},
-};
+use crate::{db::DbExt, models::Member};
 use itertools::Itertools;
 
 macro_rules! query_member {
@@ -31,6 +28,8 @@ macro_rules! query_member {
 
 macro_rules! construct_member {
     ($data:ident, $roles:expr) => {{
+        use $crate::models::{MaybePartialUser, User, UserFlags};
+
         Member {
             user: MaybePartialUser::Full(User {
                 id: $data.id as _,
@@ -48,6 +47,8 @@ macro_rules! construct_member {
         }
     }};
 }
+
+pub(crate) use construct_member;
 
 #[async_trait::async_trait]
 pub trait MemberDbExt<'t>: DbExt<'t> {

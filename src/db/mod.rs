@@ -6,6 +6,7 @@ mod role;
 mod user;
 
 pub use auth::AuthDbExt;
+pub use channel::ChannelDbExt;
 pub use guild::GuildDbExt;
 pub use member::MemberDbExt;
 pub use role::RoleDbExt;

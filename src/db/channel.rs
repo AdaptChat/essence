@@ -10,6 +10,72 @@ use crate::{
 use itertools::Itertools;
 use std::{collections::HashMap, str::FromStr};
 
+macro_rules! query_guild_channels {
+    ($where:literal $(, $($args:expr),*)?) => {{
+        sqlx::query!(
+            r#"SELECT
+                id,
+                guild_id AS "guild_id!",
+                name AS "name!",
+                type AS kind,
+                position AS "position!",
+                parent_id,
+                icon,
+                topic,
+                nsfw,
+                locked,
+                slowmode,
+                user_limit
+            FROM
+                channels
+            WHERE
+            "# + $where,
+            $($($args),*)?
+        )
+    }};
+}
+
+macro_rules! construct_guild_channel {
+    ($data:ident, $overwrites:expr) => {{
+        use std::str::FromStr;
+        use $crate::models::channel::*;
+
+        let kind = ChannelType::from_str(&$data.kind)?;
+
+        Ok(GuildChannel {
+            id: $data.id as _,
+            guild_id: $data.guild_id as _,
+            info: match kind {
+                ChannelType::Text | ChannelType::Announcement => {
+                    let info = TextBasedGuildChannelInfo {
+                        topic: $data.topic,
+                        nsfw: $data.nsfw.unwrap_or_default(),
+                        locked: $data.locked.unwrap_or_default(),
+                        slowmode: $data.slowmode.unwrap_or_default() as u32,
+                    };
+
+                    match kind {
+                        ChannelType::Text => GuildChannelInfo::Text { info },
+                        ChannelType::Announcement => GuildChannelInfo::Announcement { info },
+                        _ => unreachable!(),
+                    }
+                }
+                ChannelType::Voice => GuildChannelInfo::Voice {
+                    user_limit: $data.user_limit.unwrap_or_default() as u32,
+                },
+                _ => GuildChannelInfo::Category,
+            },
+            name: $data.name,
+            position: $data.position as u16,
+            overwrites: $overwrites,
+            parent_id: $data.parent_id.map(|id| id as u64),
+        })
+    }};
+}
+
+#[allow(clippy::redundant_pub_crate)] // false positive
+pub(crate) use {construct_guild_channel, query_guild_channels};
+
 #[async_trait::async_trait]
 pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// Inspects basic information about a channel. Returns a tuple
@@ -169,53 +235,37 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         Ok(Some(channel))
     }
 
-    /// Fetches all channels in a guild.
+    /// Fetches channel overwrites in bulk with a custom WHERE clause.
+    ///
+    /// # Note
+    /// All values will be `Some` for the convenience of using [`Option::take`] to own the values.
     ///
     /// # Errors
-    /// * If an error occurs with fetching the channels.
-    async fn fetch_all_channels_in_guild(&self, guild_id: u64) -> crate::Result<Vec<GuildChannel>> {
-        let channels = sqlx::query!(
-            r#"SELECT
-                id,
-                name AS "name!",
-                type AS kind,
-                position AS "position!",
-                parent_id,
-                icon,
-                topic,
-                nsfw,
-                locked,
-                slowmode,
-                user_limit
-            FROM
-                channels
-            WHERE
-                guild_id = $1
-            "#,
-            guild_id as i64,
-        )
-        .fetch_all(self.executor())
-        .await?;
+    /// * If an error occurs with fetching the channel overwrites.
+    async fn fetch_channel_overwrites_where(
+        &self,
+        clause: impl AsRef<str> + Send,
+        binding_id: u64,
+    ) -> crate::Result<HashMap<u64, Option<Vec<PermissionOverwrite>>>> {
+        #[derive(sqlx::FromRow)]
+        struct Query {
+            channel_id: i64,
+            target_id: i64,
+            allow: i64,
+            deny: i64,
+        }
 
-        let overwrites = sqlx::query!(
-            r#"SELECT
-                channel_id,
-                target_id,
-                allow,
-                deny
-            FROM
-                channel_overwrites
-            WHERE
-                guild_id = $1
-            "#,
-            guild_id as i64,
-        )
+        let overwrites = sqlx::query_as::<_, Query>(&format!(
+            r#"SELECT channel_id, target_id, allow, deny FROM channel_overwrites WHERE {}"#,
+            clause.as_ref(),
+        ))
+        .bind(binding_id as i64)
         .fetch_all(self.executor())
         .await?
         .into_iter()
         .into_group_map_by(|o| o.channel_id as u64);
 
-        let mut overwrites = overwrites
+        let overwrites = overwrites
             .into_iter()
             .map(|(c, o)| {
                 (
@@ -223,7 +273,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     Some(
                         o.into_iter()
                             .map(|o| PermissionOverwrite {
-                                id: o.target_id as u64,
+                                id: o.target_id as _,
                                 permissions: PermissionPair {
                                     allow: Permissions::from_bits_truncate(o.allow),
                                     deny: Permissions::from_bits_truncate(o.deny),
@@ -235,45 +285,33 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             })
             .collect::<HashMap<_, _>>();
 
+        Ok(overwrites)
+    }
+
+    /// Fetches all channels in a guild.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channels.
+    async fn fetch_all_channels_in_guild(&self, guild_id: u64) -> crate::Result<Vec<GuildChannel>> {
+        let channels = query_guild_channels!("guild_id = $1", guild_id as i64)
+            .fetch_all(self.executor())
+            .await?;
+
+        let mut overwrites = self
+            .fetch_channel_overwrites_where("guild_id = $1", guild_id)
+            .await?;
+
         let channels = channels
             .into_iter()
             .map(|c| {
-                let kind = ChannelType::from_str(&c.kind)?;
-
-                Ok(GuildChannel {
-                    id: c.id as u64,
-                    guild_id,
-                    info: match kind {
-                        ChannelType::Text | ChannelType::Announcement => {
-                            let info = TextBasedGuildChannelInfo {
-                                topic: c.topic,
-                                nsfw: c.nsfw.unwrap_or_default(),
-                                locked: c.locked.unwrap_or_default(),
-                                slowmode: c.slowmode.unwrap_or_default() as u32,
-                            };
-
-                            match kind {
-                                ChannelType::Text => GuildChannelInfo::Text { info },
-                                ChannelType::Announcement => {
-                                    GuildChannelInfo::Announcement { info }
-                                }
-                                _ => unreachable!(),
-                            }
-                        }
-                        ChannelType::Voice => GuildChannelInfo::Voice {
-                            user_limit: c.user_limit.unwrap_or_default() as u32,
-                        },
-                        _ => GuildChannelInfo::Category,
-                    },
-                    name: c.name,
-                    position: c.position as u16,
-                    overwrites: overwrites
+                construct_guild_channel!(
+                    c,
+                    overwrites
                         .get_mut(&(c.id as u64))
                         .unwrap_or(&mut None)
                         .take()
-                        .unwrap_or_default(),
-                    parent_id: c.parent_id.map(|id| id as u64),
-                })
+                        .unwrap_or_default()
+                )
             })
             .collect::<crate::Result<Vec<_>>>()?;
 

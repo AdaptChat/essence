@@ -1,10 +1,9 @@
-use crate::{
-    db::DbExt,
-    models::{PermissionPair, Permissions, Role, RoleFlags},
-};
+use crate::{db::DbExt, models::Role};
 
 macro_rules! construct_role {
     ($data:ident) => {{
+        use $crate::models::{PermissionPair, Permissions, RoleFlags};
+
         Role {
             id: $data.id as _,
             guild_id: $data.guild_id as _,
@@ -19,6 +18,8 @@ macro_rules! construct_role {
         }
     }};
 }
+
+pub(crate) use construct_role;
 
 #[async_trait::async_trait]
 pub trait RoleDbExt<'t>: DbExt<'t> {

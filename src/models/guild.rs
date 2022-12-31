@@ -31,6 +31,16 @@ pub struct Member {
 }
 
 impl Member {
+    /// The ID of the user associated with this member.
+    #[inline]
+    #[must_use]
+    pub const fn user_id(&self) -> u64 {
+        match &self.user {
+            MaybePartialUser::Full(user) => user.id,
+            MaybePartialUser::Partial { id } => *id,
+        }
+    }
+
     /// The display name of the member. This is the nickname if the member has one,
     /// else the username.
     ///
