@@ -376,6 +376,9 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .fetch_one(self.transaction())
         .await?;
 
+        // NOTE: we intentionally do not insert the default role into the role_data table as they
+        // are implied to all members.
+
         let permissions = PermissionPair {
             allow: Permissions::from_bits_truncate(perms.allowed_permissions),
             deny: Permissions::from_bits_truncate(perms.denied_permissions),
