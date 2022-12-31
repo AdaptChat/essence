@@ -274,6 +274,7 @@ impl DmChannelInfo {
 /// Represents a direct-message-like channel that does not belong in a guild.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct DmChannel {
     /// The ID of the channel.
     pub id: u64,
@@ -285,6 +286,7 @@ pub struct DmChannel {
 /// Represents any channel.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[serde(untagged)]
 pub enum Channel {
     /// A guild channel.
