@@ -1,10 +1,9 @@
 use crate::{models::PermissionPair, Error};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use utoipa::openapi::ArrayBuilder;
 #[cfg(feature = "openapi")]
 use utoipa::{
-    openapi::{Array, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
+    openapi::{Array, ArrayBuilder, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
     ToSchema,
 };
 
