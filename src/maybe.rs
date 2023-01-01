@@ -50,6 +50,17 @@ impl<T> Maybe<T> {
         }
     }
 
+    /// Turns this into an `Option`, but if the value is `Absent`, the given fallback function is
+    /// called to produce a fallback value.
+    #[inline]
+    pub fn into_option_or_if_absent_then(self, f: impl FnOnce() -> Option<T>) -> Option<T> {
+        match self {
+            Self::Value(v) => Some(v),
+            Self::Null => None,
+            Self::Absent => f(),
+        }
+    }
+
     /// Turns this into an `Option`.
     #[inline]
     pub fn into_option(self) -> Option<T> {

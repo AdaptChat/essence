@@ -127,7 +127,7 @@ pub enum GuildChannelInfo {
     Voice {
         /// The user limit of the channel. This should be a value between `0` and `500`. A value
         /// of `0` indicates the absence of a user limit.
-        user_limit: u32,
+        user_limit: u16,
     },
     /// A category of channels. This isn't really a channel, but it shares many of the same
     /// properties of one.
@@ -293,6 +293,116 @@ pub enum Channel {
     Guild(GuildChannel),
     /// A DM channel.
     Dm(DmChannel),
+}
+
+impl Channel {
+    /// Returns the name of the channel. Returns `None` if the channel is a standard DM channel.
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            Self::Guild(channel) => Some(&channel.name),
+            Self::Dm(channel) => {
+                if let DmChannelInfo::Group { ref name, .. } = channel.info {
+                    Some(name)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Sets the name of the channel to the given name. If the channel is a standard DM channel,
+    /// nothing happens.
+    pub fn set_name(&mut self, name: String) {
+        match self {
+            Self::Guild(channel) => channel.name = name,
+            Self::Dm(channel) => {
+                if let DmChannelInfo::Group {
+                    name: ref mut group_name,
+                    ..
+                } = channel.info
+                {
+                    *group_name = name;
+                }
+            }
+        }
+    }
+
+    /// Returns the topic of the channel.
+    #[must_use]
+    pub fn topic(&self) -> Option<&str> {
+        match self {
+            Self::Guild(channel) => {
+                if let GuildChannelInfo::Text(ref info) | GuildChannelInfo::Announcement(ref info) =
+                    channel.info
+                {
+                    info.topic.as_deref()
+                } else {
+                    None
+                }
+            }
+            Self::Dm(channel) => {
+                if let DmChannelInfo::Group { ref topic, .. } = channel.info {
+                    topic.as_deref()
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Sets the topic of the channel to the given topic.
+    pub fn set_topic(&mut self, topic: Option<String>) {
+        match self {
+            Self::Guild(channel) => {
+                if let GuildChannelInfo::Text(ref mut info)
+                | GuildChannelInfo::Announcement(ref mut info) = channel.info
+                {
+                    info.topic = topic;
+                }
+            }
+            Self::Dm(channel) => {
+                if let DmChannelInfo::Group {
+                    topic: ref mut group_topic,
+                    ..
+                } = channel.info
+                {
+                    *group_topic = topic;
+                }
+            }
+        }
+    }
+
+    /// Returns the icon of the channel.
+    #[must_use]
+    pub fn icon(&self) -> Option<&str> {
+        match self {
+            Self::Guild(_) => None, // TODO: icons for guild channels
+            Self::Dm(channel) => {
+                if let DmChannelInfo::Group { ref icon, .. } = channel.info {
+                    icon.as_deref()
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
+    /// Sets the icon of the channel to the given icon.
+    pub fn set_icon(&mut self, icon: Option<String>) {
+        match self {
+            Self::Guild(_) => (), // TODO: icons for guild channels
+            Self::Dm(channel) => {
+                if let DmChannelInfo::Group {
+                    icon: ref mut group_icon,
+                    ..
+                } = channel.info
+                {
+                    *group_icon = icon;
+                }
+            }
+        }
+    }
 }
 
 /// Represents any channel info.

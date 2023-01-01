@@ -5,7 +5,7 @@ use crate::{
         GuildChannelInfo, PermissionOverwrite, PermissionPair, Permissions,
         TextBasedGuildChannelInfo,
     },
-    Error,
+    Error, NotFoundExt,
 };
 use itertools::Itertools;
 use std::{collections::HashMap, str::FromStr};
@@ -35,6 +35,23 @@ macro_rules! query_guild_channels {
     }};
 }
 
+macro_rules! query_guild_channel_next_position {
+    ($(@clause $clause:literal,)? $($args:expr),*) => {{
+        sqlx::query!(
+            r#"SELECT
+                COALESCE(MAX(position) + 1, 0) AS "position!"
+            FROM
+                channels
+            WHERE
+                guild_id = $1
+            AND
+                (parent_id = $2 OR parent_id IS NULL AND $2 IS NULL)
+            "# $(+ "AND " + $clause)?,
+            $($args),*
+        )
+    }}
+}
+
 macro_rules! construct_guild_channel {
     ($data:ident, $overwrites:expr) => {{
         use std::str::FromStr;
@@ -61,7 +78,7 @@ macro_rules! construct_guild_channel {
                     }
                 }
                 ChannelType::Voice => GuildChannelInfo::Voice {
-                    user_limit: $data.user_limit.unwrap_or_default() as u32,
+                    user_limit: $data.user_limit.unwrap_or_default() as _,
                 },
                 _ => GuildChannelInfo::Category,
             },
@@ -73,6 +90,8 @@ macro_rules! construct_guild_channel {
     }};
 }
 
+use crate::db::get_pool;
+use crate::http::channel::{CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload};
 #[allow(clippy::redundant_pub_crate)] // false positive
 pub(crate) use {construct_guild_channel, query_guild_channels};
 
@@ -141,7 +160,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                 })
             }
             ChannelType::Voice => ChannelInfo::Guild(GuildChannelInfo::Voice {
-                user_limit: channel.user_limit.unwrap_or_default() as u32,
+                user_limit: channel.user_limit.unwrap_or_default() as u16,
             }),
             ChannelType::Category => ChannelInfo::Guild(GuildChannelInfo::Category),
             _ if kind.is_dm() => {
@@ -318,6 +337,252 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .collect::<crate::Result<Vec<_>>>()?;
 
         Ok(channels)
+    }
+
+    /// Creates a new channel in a guild from a payload. Payload must be validated prior to creating
+    /// the channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with creating the channel.
+    async fn create_guild_channel(
+        &mut self,
+        guild_id: u64,
+        channel_id: u64,
+        payload: CreateGuildChannelPayload,
+    ) -> crate::Result<GuildChannel> {
+        let (topic, icon, user_limit) = match &payload.info {
+            CreateGuildChannelInfo::Text { topic, icon }
+            | CreateGuildChannelInfo::Announcement { topic, icon } => {
+                (topic.as_ref(), icon.as_ref(), None)
+            }
+            CreateGuildChannelInfo::Voice { user_limit, icon } => {
+                (None, icon.as_ref(), Some(user_limit))
+            }
+            CreateGuildChannelInfo::Category => (None, None, None),
+        };
+
+        let kind = payload.info.channel_type();
+        let postgres_parent_id = payload.parent_id.map(|id| id as i64);
+
+        // TODO: this could be integrated into the query
+        let position = match kind {
+            ChannelType::Category => {
+                query_guild_channel_next_position!(
+                    @clause "type = 'category'",
+                    guild_id as i64,
+                    postgres_parent_id
+                )
+                .fetch_one(get_pool())
+                .await?
+                .position as u16
+            }
+            _ => {
+                query_guild_channel_next_position!(guild_id as i64, postgres_parent_id)
+                    .fetch_one(get_pool())
+                    .await?
+                    .position as u16
+            }
+        };
+
+        sqlx::query!(
+            "INSERT INTO channels
+                (id, guild_id, type, name, position, parent_id, topic, icon, user_limit)
+            VALUES
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            ",
+            channel_id as i64,
+            guild_id as i64,
+            kind.name(),
+            payload.name,
+            position as i16,
+            postgres_parent_id,
+            topic,
+            icon,
+            user_limit.map(|&limit| limit as i16),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        if let Some(ref overwrites) = payload.overwrites {
+            let (targets, (allow, deny)) = overwrites
+                .iter()
+                .map(|o| {
+                    (
+                        o.id as i64,
+                        (o.permissions.allow.bits(), o.permissions.deny.bits()),
+                    )
+                })
+                .unzip::<_, _, Vec<_>, (Vec<_>, Vec<_>)>();
+
+            sqlx::query(
+                r#"INSERT INTO
+                    channel_overwrites
+                SELECT
+                    $1, $2, out.*
+                FROM
+                    UNNEST($3, $4, $5)
+                AS
+                    out(target_id, allow, deny)
+                "#,
+            )
+            .bind(channel_id as i64)
+            .bind(guild_id as i64)
+            .bind(targets)
+            .bind(allow)
+            .bind(deny)
+            .execute(self.transaction())
+            .await?;
+        }
+
+        let info = match payload.info {
+            CreateGuildChannelInfo::Text { topic, .. }
+            | CreateGuildChannelInfo::Announcement { topic, .. } => {
+                let info = TextBasedGuildChannelInfo {
+                    topic,
+                    ..Default::default()
+                };
+
+                match kind {
+                    ChannelType::Text => GuildChannelInfo::Text(info),
+                    ChannelType::Announcement => GuildChannelInfo::Announcement(info),
+                    _ => unreachable!(),
+                }
+            }
+            CreateGuildChannelInfo::Voice { user_limit, .. } => {
+                GuildChannelInfo::Voice { user_limit }
+            }
+            CreateGuildChannelInfo::Category => GuildChannelInfo::Category,
+        };
+
+        Ok(GuildChannel {
+            id: channel_id,
+            guild_id,
+            info,
+            name: payload.name,
+            position,
+            parent_id: payload.parent_id,
+            overwrites: payload.overwrites.unwrap_or_default(),
+        })
+    }
+
+    /// Edits a channel from a payload. Payload must be validated prior to updating the channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with updating the channel.
+    /// * If the channel is not found.
+    async fn edit_channel(
+        &mut self,
+        channel_id: u64,
+        payload: EditChannelPayload,
+    ) -> crate::Result<Channel> {
+        let mut channel = get_pool()
+            .fetch_channel(channel_id)
+            .await?
+            .ok_or_not_found(
+                "channel",
+                format!("Channel with ID {channel_id} not found."),
+            )?;
+
+        if let Some(name) = payload.name {
+            channel.set_name(name);
+        }
+
+        channel.set_topic(
+            payload
+                .topic
+                .into_option_or_if_absent_then(|| channel.topic().map(ToOwned::to_owned)),
+        );
+        channel.set_icon(
+            payload
+                .icon
+                .into_option_or_if_absent_then(|| channel.icon().map(ToOwned::to_owned)),
+        );
+
+        let limit = payload.user_limit.and_then(|limit| {
+            if let Channel::Guild(GuildChannel {
+                info:
+                    GuildChannelInfo::Voice {
+                        ref mut user_limit, ..
+                    },
+                ..
+            }) = channel
+            {
+                *user_limit = limit;
+                Some(limit as i16)
+            } else {
+                None
+            }
+        });
+
+        sqlx::query!(
+            "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5",
+            channel.name(),
+            channel.topic(),
+            channel.icon(),
+            limit,
+            channel_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(channel)
+    }
+
+    /// Deletes the channel with the given ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the channel.
+    /// * If the channel is not found.
+    async fn delete_channel(&mut self, channel_id: u64) -> crate::Result<()> {
+        let (guild_id, _, kind) = get_pool()
+            .inspect_channel(channel_id)
+            .await?
+            .ok_or_not_found(
+                "channel",
+                format!("Channel with ID {channel_id} not found."),
+            )?;
+
+        if kind.is_guild() {
+            let guild_id = guild_id.ok_or_else(|| Error::InternalError {
+                what: Some("internal"),
+                message: "No guild ID found for guild channel, this is a bug".to_string(),
+                debug: None,
+            })?;
+
+            sqlx::query!(
+                r#"UPDATE
+                    channels
+                SET
+                    position = position - 1
+                WHERE
+                    guild_id = $1
+                AND
+                    position > (SELECT position FROM channels WHERE id = $2)
+                "#,
+                guild_id as i64,
+                channel_id as i64,
+            )
+            .execute(self.transaction())
+            .await?;
+        }
+
+        sqlx::query!("DELETE FROM channels WHERE id = $1", channel_id as i64)
+            .execute(self.transaction())
+            .await?;
+
+        Ok(())
     }
 }
 

@@ -1,4 +1,7 @@
-use crate::{models::PermissionOverwrite, Maybe};
+use crate::{
+    models::{ChannelType, PermissionOverwrite},
+    Maybe,
+};
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
@@ -30,12 +33,26 @@ pub enum CreateGuildChannelInfo {
         /// The user limit of the channel. This should be a value between `0` and `500`. A value
         /// of `0` is the default and indicates the absence of a user limit.
         #[serde(default)]
-        user_limit: u32,
+        user_limit: u16,
         /// The URL of the icon of the channel, if any.
         icon: Option<String>,
     },
     /// A category channel.
     Category,
+}
+
+impl CreateGuildChannelInfo {
+    /// Returns the [`ChannelType`] of the requested channel.
+    #[inline]
+    #[must_use]
+    pub const fn channel_type(&self) -> ChannelType {
+        match self {
+            Self::Text { .. } => ChannelType::Text,
+            Self::Announcement { .. } => ChannelType::Announcement,
+            Self::Voice { .. } => ChannelType::Voice,
+            Self::Category => ChannelType::Category,
+        }
+    }
 }
 
 /// The request body sent to create a new channel in a guild.
@@ -54,9 +71,6 @@ pub struct CreateGuildChannelPayload {
     pub parent_id: Option<u64>,
     /// A list of permission overwrites to apply to the channel, if any.
     pub overwrites: Option<Vec<PermissionOverwrite>>,
-    /// The position of the channel in the channel list. If one isn't provided, the position
-    /// will be the last in its position scope.
-    pub position: Option<u16>,
 }
 
 /// The request body sent to modify a channel.
@@ -79,9 +93,9 @@ pub struct EditChannelPayload {
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     pub icon: Maybe<String>,
-    /// The new user limit of the voice channel. Explicitly setting this to `None` will remove the
+    /// The new user limit of the voice channel. Explicitly setting this to `0` will remove the
     /// current limit, if there is any. Only takes effect for guild voice channels.
-    pub user_limit: Maybe<u16>,
+    pub user_limit: Option<u16>,
 }
 
 /// The payload used per channel to specify its new position data.
