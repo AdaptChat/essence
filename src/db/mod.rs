@@ -12,6 +12,7 @@ pub use member::MemberDbExt;
 pub use role::RoleDbExt;
 pub use user::UserDbExt;
 
+pub use sqlx;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
 use std::sync::OnceLock;
 
