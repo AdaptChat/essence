@@ -118,7 +118,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         user_id: u64,
         channel_id: Option<u64>,
     ) -> crate::Result<Permissions> {
-        self.assert_guild_exists(guild_id).await?;
+        self.assert_member_in_guild(guild_id, user_id).await?;
 
         let mut roles = self.fetch_all_roles_in_guild(guild_id).await?;
         let overwrites = match channel_id {
