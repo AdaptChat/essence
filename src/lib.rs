@@ -6,7 +6,8 @@
     clippy::cast_possible_wrap,
     clippy::cast_sign_loss,
     clippy::missing_errors_doc,
-    clippy::missing_panics_doc
+    clippy::missing_panics_doc,
+    clippy::doc_markdown
 )]
 
 #[cfg(feature = "auth")]

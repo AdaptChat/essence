@@ -1,9 +1,4 @@
 use serde::{de::Deserialize, ser::Serialize, Deserializer, Serializer};
-#[cfg(feature = "openapi")]
-use utoipa::{
-    openapi::{OneOfBuilder, RefOr, Schema},
-    ToSchema,
-};
 
 /// A serde value that distinguishes between null and missing values.
 ///
@@ -14,6 +9,9 @@ use utoipa::{
 ///
 /// When used as a field in a deserialization, the attribute `#[serde(default)]` must be placed on
 /// the field.
+///
+/// # OpenAPI
+/// The override `#[schema(value_type = Option<T>)]` must be placed on the field.
 #[derive(Clone, Debug, Default)]
 pub enum Maybe<T> {
     /// The field is absent.
@@ -99,14 +97,5 @@ impl<T: Serialize> Serialize for Maybe<T> {
                     `#[serde(default, skip_serializing_if = \"Maybe::is_absent\")]`",
             )),
         }
-    }
-}
-
-#[cfg(feature = "openapi")]
-impl<T: ToSchema> ToSchema for Maybe<T> {
-    fn schema() -> RefOr<Schema> {
-        RefOr::T(Schema::OneOf(
-            OneOfBuilder::new().item(T::schema()).nullable(true).build(),
-        ))
     }
 }
