@@ -9,6 +9,7 @@ use crate::models::{ClientUser, Guild};
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[serde(tag = "op")]
 #[serde(rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
 pub enum OutboundMessage {
     /// Sent by harmony when a client first connects to it.
     Hello,
@@ -23,6 +24,6 @@ pub enum OutboundMessage {
         /// The client user of the current session.
         user: ClientUser,
         /// A list of guilds that the session's user is a member of.
-        guilds: Vec<Guild>
+        guilds: Vec<Guild>,
     },
 }

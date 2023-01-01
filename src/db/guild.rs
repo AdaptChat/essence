@@ -1,3 +1,5 @@
+use crate::db::get_pool;
+use crate::http::guild::EditGuildPayload;
 use crate::{
     db::{
         channel::{construct_guild_channel, query_guild_channels},
@@ -10,7 +12,7 @@ use crate::{
         Guild, GuildChannel, GuildFlags, GuildMemberCount, MaybePartialUser, Member, PartialGuild,
         PermissionPair, Permissions, Role, RoleFlags,
     },
-    Error,
+    Error, NotFoundExt,
 };
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -439,6 +441,83 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             roles: Some(vec![role]),
             channels: Some(vec![channel]),
         })
+    }
+
+    /// Edits the guild with the given ID with the given payload. Validation should be done before
+    /// calling this function. Returns a [`PartialGuild`] with updated fields on success.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the guild.
+    /// * If the guild does not exist.
+    async fn edit_guild(
+        &mut self,
+        guild_id: u64,
+        payload: EditGuildPayload,
+    ) -> crate::Result<PartialGuild> {
+        let mut guild = get_pool()
+            .fetch_partial_guild(guild_id)
+            .await?
+            .ok_or_not_found(
+                "guild",
+                format!("Guild with ID {} does not exist", guild_id),
+            )?;
+
+        if let Some(name) = payload.name {
+            guild.name = name;
+        }
+
+        guild.description = payload
+            .description
+            .into_option_or_if_absent(guild.description);
+        guild.icon = payload.icon.into_option_or_if_absent(guild.icon);
+        guild.banner = payload.banner.into_option_or_if_absent(guild.banner);
+
+        match payload.public {
+            Some(true) => guild.flags.insert(GuildFlags::PUBLIC),
+            Some(false) => guild.flags.remove(GuildFlags::PUBLIC),
+            None => (),
+        }
+
+        sqlx::query!(
+            r#"UPDATE
+                guilds
+            SET
+                name = $1, description = $2, icon = $3, banner = $4, flags = $5
+            WHERE
+                id = $6
+            "#,
+            guild.name,
+            guild.description,
+            guild.icon,
+            guild.banner,
+            guild.flags.bits() as i32,
+            guild_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(guild)
+    }
+
+    /// Deletes a guild from the database with the given ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the guild.
+    /// * If the guild does not exist.
+    async fn delete_guild(&mut self, guild_id: u64) -> crate::Result<()> {
+        sqlx::query!("DELETE FROM guilds WHERE id = $1", guild_id as i64)
+            .execute(self.transaction())
+            .await?;
+
+        Ok(())
     }
 }
 
