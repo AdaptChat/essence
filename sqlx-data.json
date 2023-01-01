@@ -1,5 +1,22 @@
 {
   "db": "PostgreSQL",
+  "0879cd2d80bc104b7ffaddbbe03f35ca1edd5b9f25834e8384c99b73951208b2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Text",
+          "Int4",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE\n                guilds\n            SET\n                name = $1, description = $2, icon = $3, banner = $4, flags = $5\n            WHERE\n                id = $6\n            "
+  },
   "0f99362fa3d40808a27279737bf5f4fbebc623ebc60af6e067e2f1a9857d95b2": {
     "describe": {
       "columns": [
@@ -1059,6 +1076,18 @@
       }
     },
     "query": "SELECT user_id FROM channel_recipients WHERE channel_id = $1"
+  },
+  "af3cf99d962f642d6e9069c1687834f0b3633ffe4f42afb2c464167a7a555898": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM guilds WHERE id = $1"
   },
   "bbfc76e3af9ea14f7db905a60a55ee902e6fd91abc1637767c9d65cf54d16d01": {
     "describe": {
