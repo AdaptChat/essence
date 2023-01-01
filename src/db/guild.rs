@@ -84,6 +84,85 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
+    /// Asserts the given user is the owner of the given guild.
+    async fn assert_member_is_owner(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+        self.assert_guild_exists(guild_id).await?;
+
+        if !sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1 AND owner_id = $2)",
+            guild_id as i64,
+            user_id as i64,
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or(false)
+        {
+            return Err(Error::NotOwner {
+                guild_id,
+                message: "You must be the owner of the guild to perform the requested action.",
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Fetches the calculated permissions value for the given member in the given guild. A channel
+    /// ID may be provided to calculate the permissions for a specific channel, otherwise the
+    /// permissions for the guild will be calculated.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn fetch_member_permissions(
+        &self,
+        guild_id: u64,
+        user_id: u64,
+        channel_id: Option<u64>,
+    ) -> crate::Result<Permissions> {
+        self.assert_guild_exists(guild_id).await?;
+
+        let mut roles = self.fetch_all_roles_in_guild(guild_id).await?;
+        let overwrites = match channel_id {
+            Some(channel_id) => Some(self.fetch_channel_overwrites(channel_id).await?),
+            None => None,
+        };
+
+        Ok(crate::calculate_permissions(
+            user_id,
+            &mut roles,
+            overwrites.as_ref().map(AsRef::as_ref),
+        ))
+    }
+
+    /// Asserts the given user has the given permissions in the given guild. A channel ID may be
+    /// provided to assert the permissions for a specific channel, otherwise the permissions for the
+    /// guild will be asserted.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    /// * If the user does not have the given permissions.
+    async fn assert_member_has_permissions(
+        &self,
+        guild_id: u64,
+        user_id: u64,
+        channel_id: Option<u64>,
+        permissions: Permissions,
+    ) -> crate::Result<()> {
+        let member_permissions = self
+            .fetch_member_permissions(guild_id, user_id, channel_id)
+            .await?;
+
+        if !member_permissions.contains(permissions) {
+            return Err(Error::MissingPermissions {
+                guild_id,
+                permissions,
+                message: "You do not have permission to perform the requested action.",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Fetches a partial guild from the database with the given ID.
     ///
     /// # Errors
@@ -461,10 +540,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         let mut guild = get_pool()
             .fetch_partial_guild(guild_id)
             .await?
-            .ok_or_not_found(
-                "guild",
-                format!("Guild with ID {} does not exist", guild_id),
-            )?;
+            .ok_or_not_found("guild", format!("Guild with ID {guild_id} does not exist"))?;
 
         if let Some(name) = payload.name {
             guild.name = name;

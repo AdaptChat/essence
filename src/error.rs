@@ -1,3 +1,4 @@
+use crate::models::Permissions;
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
@@ -94,6 +95,22 @@ pub enum Error {
         /// The error message.
         message: &'static str,
     },
+    /// You must be the owner of the guild to perform the requested action.
+    NotOwner {
+        /// The ID of the guild you are not the owner of.
+        guild_id: u64,
+        /// The error message.
+        message: &'static str,
+    },
+    /// You are missing the required permissions to perform the requested action.
+    MissingPermissions {
+        /// The ID of the guild you are missing permissions in.
+        guild_id: u64,
+        /// The permissions required to perform the requested action.
+        permissions: Permissions,
+        /// The error message.
+        message: &'static str,
+    },
     /// Something was already taken, e.g. a username or email.
     AlreadyTaken {
         /// What was already taken.
@@ -134,7 +151,7 @@ impl Error {
             | Self::MalformedIp { .. }
             | Self::UnsupportedAuthMethod { .. } => 400,
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
-            Self::NotMember { .. } => 403,
+            Self::NotMember { .. } | Self::NotOwner { .. } | Self::MissingPermissions { .. } => 403,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } => 409,
             Self::Ratelimited { .. } => 429,

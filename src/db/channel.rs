@@ -189,32 +189,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     debug: None,
                 })? as u64;
 
-                let overwrites = sqlx::query!(
-                    r#"SELECT
-                        target_id,
-                        allow,
-                        deny
-                    FROM
-                        channel_overwrites
-                    WHERE
-                        guild_id = $1
-                    AND
-                        channel_id = $2
-                    "#,
-                    guild_id as i64,
-                    channel_id as i64,
-                )
-                .fetch_all(self.executor())
-                .await?
-                .into_iter()
-                .map(|o| PermissionOverwrite {
-                    id: o.target_id as u64,
-                    permissions: PermissionPair {
-                        allow: Permissions::from_bits_truncate(o.allow),
-                        deny: Permissions::from_bits_truncate(o.deny),
-                    },
-                })
-                .collect();
+                let overwrites = self.fetch_channel_overwrites(channel_id).await?;
 
                 Channel::Guild(GuildChannel {
                     id: channel_id,
@@ -286,6 +261,33 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .collect::<HashMap<_, _>>();
 
         Ok(overwrites)
+    }
+
+    /// Fetches the channel overwrites for a specific channel. This assumes that the channel is
+    /// a guild channel.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channel overwrites.
+    /// * If the channel is not a guild channel.
+    async fn fetch_channel_overwrites(
+        &self,
+        channel_id: u64,
+    ) -> crate::Result<Vec<PermissionOverwrite>> {
+        Ok(sqlx::query!(
+            "SELECT target_id, allow, deny FROM channel_overwrites WHERE channel_id = $1",
+            channel_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|o| PermissionOverwrite {
+            id: o.target_id as u64,
+            permissions: PermissionPair {
+                allow: Permissions::from_bits_truncate(o.allow),
+                deny: Permissions::from_bits_truncate(o.deny),
+            },
+        })
+        .collect())
     }
 
     /// Fetches all channels in a guild.
