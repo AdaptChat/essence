@@ -2,6 +2,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::models::{ClientUser, Guild};
+
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
@@ -18,5 +20,9 @@ pub enum OutboundMessage {
     Ready {
         /// The ID of the current session.
         session_id: String,
+        /// The client user of the current session.
+        user: ClientUser,
+        /// A list of guilds that the session's user is a member of.
+        guilds: Vec<Guild>
     },
 }
