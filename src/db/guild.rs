@@ -1,13 +1,15 @@
-use crate::db::get_pool;
-use crate::http::guild::EditGuildPayload;
 use crate::{
     db::{
         channel::{construct_guild_channel, query_guild_channels},
+        get_pool,
         member::construct_member,
         role::construct_role,
         ChannelDbExt, DbExt, MemberDbExt, RoleDbExt,
     },
-    http::guild::{CreateGuildPayload, GetGuildQuery},
+    http::{
+        guild::EditGuildPayload,
+        guild::{CreateGuildPayload, GetGuildQuery},
+    },
     models::{
         Guild, GuildChannel, GuildFlags, GuildMemberCount, MaybePartialUser, Member, PartialGuild,
         PermissionPair, Permissions, Role, RoleFlags,
