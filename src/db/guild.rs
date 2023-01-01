@@ -6,10 +6,7 @@ use crate::{
         role::construct_role,
         ChannelDbExt, DbExt, MemberDbExt, RoleDbExt,
     },
-    http::{
-        guild::EditGuildPayload,
-        guild::{CreateGuildPayload, GetGuildQuery},
-    },
+    http::guild::{CreateGuildPayload, EditGuildPayload, GetGuildQuery},
     models::{
         Guild, GuildChannel, GuildFlags, GuildMemberCount, MaybePartialUser, Member, PartialGuild,
         PermissionPair, Permissions, Role, RoleFlags,
