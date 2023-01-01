@@ -121,6 +121,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with registering the user.
+    #[cfg(feature = "auth")]
     async fn register_user(
         &mut self,
         id: u64,

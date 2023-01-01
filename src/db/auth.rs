@@ -11,6 +11,7 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the user.
     /// * If the user is not found.
+    #[cfg(feature = "auth")]
     async fn verify_password(&self, user_id: u64, password: String) -> crate::Result<bool> {
         let hashed: String = sqlx::query!(
             r#"SELECT password AS "password!" FROM users WHERE id = $1"#,
