@@ -5,11 +5,10 @@ use base64::{
     decode_engine, encode_engine,
     engine::fast_portable::{FastPortable, NO_PAD},
 };
-use ring::rand::{SecureRandom, SystemRandom};
 use std::{sync::OnceLock, time::UNIX_EPOCH};
 
 pub use argon2_async::{hash as hash_password, verify as verify_password};
-
+pub use ring::rand::{SecureRandom, SystemRandom};
 pub static RNG: OnceLock<SystemRandom> = OnceLock::new();
 
 /// Configures and initializes the Argon2 hasher. This must be called before using the hasher.

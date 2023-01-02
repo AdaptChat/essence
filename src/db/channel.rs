@@ -171,11 +171,11 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             })
         }
     }
-    
+
     /// Asserts the user is the owner of the given group DM channel.
     async fn assert_user_is_group_owner(&self, channel_id: u64, user_id: u64) -> crate::Result<()> {
         let owner_id = sqlx::query!(
-            "SELECT owner_id FROM channels WHERE id = $1", 
+            "SELECT owner_id FROM channels WHERE id = $1",
             channel_id as i64,
         )
         .fetch_optional(self.executor())
@@ -185,14 +185,15 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             entity: "channel",
             message: format!("No group DM channel with ID {channel_id} found"),
         })?;
-        
+
         if owner_id.is_some_and(|owner_id| owner_id != user_id) {
-            return Err(Error::NotOwner { // TODO: NotGroupDmOwner
+            return Err(Error::NotOwner {
+                // TODO: NotGroupDmOwner
                 guild_id: 0,
                 message: "You are not the owner of this group DM channel",
-            })
+            });
         }
-        
+
         Ok(())
     }
 
