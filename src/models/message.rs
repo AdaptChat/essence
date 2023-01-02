@@ -52,6 +52,7 @@ pub struct EmbedFooter {
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[serde(rename_all = "snake_case")]
 pub enum MessageEmbedFieldAlignment {
     /// The field is aligned to the left.
     Left,
