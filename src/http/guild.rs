@@ -36,20 +36,20 @@ pub struct EditGuildPayload {
     /// `null` to remove the description.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub description: Maybe<String>,
     /// The new icon of the guild. Leave empty to keep the current icon, and set to `null` to
     /// remove the icon. The icon should be represented as a
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub icon: Maybe<String>,
     /// The new banner URL of the guild. Leave empty to keep the current banner, and set to `null`
     /// to remove the banner.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub banner: Maybe<String>,
     /// Whether the guild should be public or not. Leave empty to keep the current setting.
     pub public: Option<bool>,

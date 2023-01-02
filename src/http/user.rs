@@ -70,18 +70,18 @@ pub struct EditUserPayload {
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub avatar: Maybe<String>,
     /// The new banner URL of the user. Leave empty to keep the current banner, and set to `null` to
     /// remove the banner.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub banner: Maybe<String>,
     /// The new bio of the user. Leave empty to keep the current bio, and set to `null` to remove
     /// the bio.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub bio: Maybe<String>,
 }

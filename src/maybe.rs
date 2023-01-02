@@ -11,7 +11,7 @@ use serde::{de::Deserialize, ser::Serialize, Deserializer, Serializer};
 /// the field.
 ///
 /// # OpenAPI
-/// The override `#[schema(value_type = Option<T>)]` must be placed on the field.
+/// The override `#[schema(nullable, value_type = Option<T>)]` must be placed on the field.
 #[derive(Clone, Debug, Default)]
 pub enum Maybe<T> {
     /// The field is absent.
