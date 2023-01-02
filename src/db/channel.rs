@@ -97,6 +97,105 @@ pub(crate) use {construct_guild_channel, query_guild_channels};
 
 #[async_trait::async_trait]
 pub trait ChannelDbExt<'t>: DbExt<'t> {
+    /// Asserts the given channel ID exists in the given guild.
+    async fn assert_channel_in_guild(&self, guild_id: u64, channel_id: u64) -> crate::Result<()> {
+        let exists = sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2)",
+            channel_id as i64,
+            guild_id as i64
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or_default();
+
+        if exists {
+            Ok(())
+        } else {
+            Err(Error::NotFound {
+                entity: "channel",
+                message: format!("Channel with ID {channel_id} not found in this guild"),
+            })
+        }
+    }
+
+    /// Asserts the given channel ID exists in the given guild and is of the given channel type.
+    async fn assert_channel_is_type(
+        &self,
+        guild_id: u64,
+        channel_id: u64,
+        kind: ChannelType,
+    ) -> crate::Result<()> {
+        let exists = sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2 AND type = $3)",
+            channel_id as i64,
+            guild_id as i64,
+            kind.name(),
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or_default();
+
+        if exists {
+            Ok(())
+        } else {
+            Err(Error::NotFound {
+                entity: "channel",
+                message: format!(
+                    "No {} channel with ID {channel_id} found in this guild",
+                    kind.name()
+                ),
+            })
+        }
+    }
+
+    /// Asserts the user is a recipient of the given DM channel.
+    async fn assert_user_is_recipient(&self, channel_id: u64, user_id: u64) -> crate::Result<()> {
+        let exists = sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM channel_recipients WHERE channel_id = $1 AND user_id = $2)",
+            channel_id as i64,
+            user_id as i64
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or_default();
+
+        if exists {
+            Ok(())
+        } else {
+            Err(Error::NotFound {
+                entity: "channel",
+                message: format!("You are not a recipient of any DM channels with ID {channel_id}"),
+            })
+        }
+    }
+    
+    /// Asserts the user is the owner of the given group DM channel.
+    async fn assert_user_is_group_owner(&self, channel_id: u64, user_id: u64) -> crate::Result<()> {
+        let owner_id = sqlx::query!(
+            "SELECT owner_id FROM channels WHERE id = $1", 
+            channel_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|row| row.owner_id.map(|owner_id| owner_id as u64))
+        .ok_or_else(|| Error::NotFound {
+            entity: "channel",
+            message: format!("No group DM channel with ID {channel_id} found"),
+        })?;
+        
+        if owner_id.is_some_and(|owner_id| owner_id != user_id) {
+            return Err(Error::NotOwner { // TODO: NotGroupDmOwner
+                guild_id: 0,
+                message: "You are not the owner of this group DM channel",
+            })
+        }
+        
+        Ok(())
+    }
+
     /// Inspects basic information about a channel. Returns a tuple
     /// `(guild_id, owner_id, channel_type)`.
     ///
@@ -348,6 +447,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with creating the channel.
+    #[allow(clippy::too_many_lines)]
     async fn create_guild_channel(
         &mut self,
         guild_id: u64,
@@ -397,7 +497,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             channel_id as i64,
             guild_id as i64,
             kind.name(),
-            payload.name,
+            payload.name.trim(),
             position as i16,
             postgres_parent_id,
             topic,
@@ -524,7 +624,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
 
         sqlx::query!(
             "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5",
-            channel.name(),
+            channel.name().map(str::trim),
             channel.topic(),
             channel.icon(),
             limit,

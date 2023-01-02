@@ -420,7 +420,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 ($1, $2, $3, $4, $5, $6, $7)
             "#,
             guild_id as i64,
-            payload.name,
+            payload.name.trim(),
             payload.description,
             payload.icon,
             payload.banner,

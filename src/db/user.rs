@@ -140,8 +140,8 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             RETURNING
                 discriminator",
             id as i64,
-            username.as_ref(),
-            email.as_ref(),
+            username.as_ref().trim(),
+            email.as_ref().trim(),
             hashed,
         )
         .fetch_optional(self.transaction())

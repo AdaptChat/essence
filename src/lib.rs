@@ -1,4 +1,5 @@
 #![feature(once_cell)]
+#![feature(is_some_and)]
 #![allow(
     clippy::module_name_repetitions,
     clippy::cast_possible_truncation,
