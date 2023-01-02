@@ -1,5 +1,26 @@
 {
   "db": "PostgreSQL",
+  "08352cdccaa069d3bd25e783dd19b6e290dc2399f1f826e687a1422fdfed4c8e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "position!",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                COALESCE(MAX(position) + 1, 0) AS \"position!\"\n            FROM\n                channels\n            WHERE\n                guild_id = $1\n            AND\n                (parent_id = $2 OR parent_id IS NULL AND $2 IS NULL)\n            AND type = 'category'"
+  },
   "0879cd2d80bc104b7ffaddbbe03f35ca1edd5b9f25834e8384c99b73951208b2": {
     "describe": {
       "columns": [],
@@ -16,6 +37,39 @@
       }
     },
     "query": "UPDATE\n                guilds\n            SET\n                name = $1, description = $2, icon = $3, banner = $4, flags = $5\n            WHERE\n                id = $6\n            "
+  },
+  "0b72902bc8ec599bc847b3671444f3f19f59bdcc47e22697d73196df434c9aca": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM channels WHERE id = $1"
+  },
+  "0cb2f6d718186651a08820321b47dbdcf574f8f20dc8b7d84597bdfde61b0f7b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "position!",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                COALESCE(MAX(position) + 1, 0) AS \"position!\"\n            FROM\n                channels\n            WHERE\n                guild_id = $1\n            AND\n                (parent_id = $2 OR parent_id IS NULL AND $2 IS NULL)\n            "
   },
   "0f99362fa3d40808a27279737bf5f4fbebc623ebc60af6e067e2f1a9857d95b2": {
     "describe": {
@@ -175,6 +229,28 @@
       }
     },
     "query": "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1)"
+  },
+  "23173a02aed59b7bc065a542af23c4d0dec01d5cabc38cbc1c5b4a6d64a7ee77": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2 AND type = $3)"
   },
   "24ade9288fd8119e54fcf7f1498135255b48dc03ee574ad3b7185515a8267865": {
     "describe": {
@@ -603,6 +679,22 @@
     },
     "query": "SELECT * FROM users WHERE username = $1 AND discriminator = $2"
   },
+  "76555742b5d31d1feada4e02caae4da134494976267f1234ceb601a50318829a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text",
+          "Int2",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5"
+  },
   "7aa04aeb7282bfc143d29a7f340984e228163cdb347391cef68943d9689ecb1a": {
     "describe": {
       "columns": [
@@ -671,6 +763,26 @@
       }
     },
     "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position)\n            VALUES\n                ($1, $2, 'Default', $3, 0)\n            RETURNING\n                allowed_permissions AS \"allowed_permissions!\",\n                denied_permissions AS \"denied_permissions!\"\n            "
+  },
+  "8115eb66c0d1520072bfa2515f49b13a66b78921ec126656b7591afc0faec4c4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "owner_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT owner_id FROM channels WHERE id = $1"
   },
   "82656124ef41560bc2fe44a9e64c26c52399c0b3410f5eef6a609823a599e93d": {
     "describe": {
@@ -907,6 +1019,27 @@
       }
     },
     "query": "SELECT * FROM roles WHERE guild_id = $1 ORDER BY position ASC"
+  },
+  "962f4ae79bf3e10d96a5b5c0b7a3e66bf56087581455f113527aa8fd22c83422": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2)"
   },
   "96e239cd603f7da0d7e80a96009137b820aa4236d5c50a77b6ccd01aeb085478": {
     "describe": {
@@ -1183,6 +1316,40 @@
       }
     },
     "query": "SELECT\n                    *\n                FROM\n                    roles\n                WHERE\n                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                ORDER BY\n                    position ASC\n                "
+  },
+  "c7e36a91ac50c648a3a4766123fc0bf7f13c8e901523a356e5c1403cd55d6345": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE\n                    channels\n                SET\n                    position = position - 1\n                WHERE\n                    guild_id = $1\n                AND\n                    position > (SELECT position FROM channels WHERE id = $2)\n                "
+  },
+  "cc22f39ade26da51026eb4764cf22fa1c3e335254deeb3d1f122e210f4d6b205": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(SELECT 1 FROM channel_recipients WHERE channel_id = $1 AND user_id = $2)"
   },
   "d59fa440c1c209176b8a9c6779321964b1efc6b2aa6289c5d40cf5c07db30e53": {
     "describe": {
@@ -1576,5 +1743,25 @@
       }
     },
     "query": "SELECT * FROM users WHERE email = $1"
+  },
+  "f4bb0d3faa8629930605d329c02e9106f4525560fa346edb51c4a1d95b92e39e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text",
+          "Text",
+          "Int2",
+          "Int8",
+          "Text",
+          "Text",
+          "Int2"
+        ]
+      }
+    },
+    "query": "INSERT INTO channels\n                (id, guild_id, type, name, position, parent_id, topic, icon, user_limit)\n            VALUES\n                ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            "
   }
 }
