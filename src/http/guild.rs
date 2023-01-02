@@ -15,7 +15,8 @@ pub struct CreateGuildPayload {
     /// The description of the guild. Must be between 0 and 1000 characters, or `None` for
     /// no description.
     pub description: Option<String>,
-    /// The icon URL for the guild. Must be a valid URL, or `None` to not set an icon.
+    /// The icon for the guild. Must be a valid URL, or `None` to not set an icon. This should be
+    /// a [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme) if provided.
     pub icon: Option<String>,
     /// The banner URL for the guild. Must be a valid URL, or `None` to not set a banner.
     pub banner: Option<String>,
@@ -37,8 +38,9 @@ pub struct EditGuildPayload {
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<u64>))]
     pub description: Maybe<String>,
-    /// The new icon URL of the guild. Leave empty to keep the current icon, and set to `null` to
-    /// remove the icon.
+    /// The new icon of the guild. Leave empty to keep the current icon, and set to `null` to
+    /// remove the icon. The icon should be represented as a
+    /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<u64>))]

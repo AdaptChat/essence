@@ -18,14 +18,16 @@ pub enum CreateGuildChannelInfo {
     Text {
         /// The topic of the text channel, if any.
         topic: Option<String>,
-        /// The URL of the icon of the channel, if any.
+        /// The icon of the channel represented as a
+        /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
         icon: Option<String>,
     },
     /// An announcement channel.
     Announcement {
         /// The topic of the text channel, if any.
         topic: Option<String>,
-        /// The URL of the icon of the channel, if any.
+        /// The icon of the channel represented as a
+        /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
         icon: Option<String>,
     },
     /// A voice channel.
@@ -87,8 +89,10 @@ pub struct EditChannelPayload {
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
     pub topic: Maybe<String>,
-    /// The new icon URL of the channel. Explicitly setting this to `None` will clear the icon.
+    /// The new icon of the channel. Explicitly setting this to `None` will clear the icon.
     /// Takes effect for all channels except for user DMs.
+    ///
+    /// This should be a [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "openapi", schema(value_type = Option<String>))]
