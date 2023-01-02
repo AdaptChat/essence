@@ -87,6 +87,7 @@ pub struct ClientUser {
     /// The associated email of the client's account.
     ///
     /// If the client is a bot, this is `None`.
+    #[cfg_attr(feature = "openapi", schema(format = "email"))]
     pub email: Option<String>,
     /// (Used internally) The hashed password of the client's account. This will never be present.
     #[serde(skip)]

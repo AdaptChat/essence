@@ -95,7 +95,7 @@ pub struct EditChannelPayload {
     /// This should be a [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>, format = "byte"))]
     pub icon: Maybe<String>,
     /// The new user limit of the voice channel. Explicitly setting this to `0` will remove the
     /// current limit, if there is any. Only takes effect for guild voice channels.

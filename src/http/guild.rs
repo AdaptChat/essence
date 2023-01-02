@@ -43,7 +43,7 @@ pub struct EditGuildPayload {
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>, format = "byte"))]
     pub icon: Maybe<String>,
     /// The new banner URL of the guild. Leave empty to keep the current banner, and set to `null`
     /// to remove the banner.

@@ -11,8 +11,10 @@ pub struct CreateUserPayload {
     /// The username of the user. Must be between 2 and 32 characters.
     pub username: String,
     /// The email of the user. Must be a valid email address.
+    #[cfg_attr(feature = "openapi", schema(format = "email"))]
     pub email: String,
     /// The password of the user. Must be between 8 and 32 characters.
+    #[cfg_attr(feature = "openapi", schema(format = "password"))]
     pub password: String,
 }
 
@@ -33,6 +35,7 @@ pub struct CreateUserResponse {
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct DeleteUserPayload {
     /// The password of the user.
+    #[cfg_attr(feature = "openapi", schema(format = "password"))]
     pub password: String,
 }
 
@@ -70,7 +73,7 @@ pub struct EditUserPayload {
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>, format = Byte))]
     pub avatar: Maybe<String>,
     /// The new banner URL of the user. Leave empty to keep the current banner, and set to `null` to
     /// remove the banner.

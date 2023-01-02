@@ -26,6 +26,7 @@ pub struct LoginRequest {
     /// The email to log in with.
     pub email: String,
     /// The password to log in with.
+    #[cfg_attr(feature = "openapi", schema(format = "password"))]
     pub password: String,
     /// The token retrieval method to use.
     #[serde(default)]
