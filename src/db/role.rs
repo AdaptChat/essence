@@ -1,5 +1,5 @@
 use crate::{
-    db::{get_pool, DbExt},
+    db::DbExt,
     http::role::CreateRolePayload,
     models::{Role, RoleFlags},
 };
@@ -67,7 +67,6 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     /// Creates a new role in the given guild ID with the given query. Payload must be validated
     /// before using this method.
     ///
-    ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
     /// rolled back, and the transaction must be committed to save the changes.
@@ -87,6 +86,10 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         if payload.mentionable {
             flags.insert(RoleFlags::MENTIONABLE);
         }
+
+        sqlx::query!("UPDATE roles SET position = position + 1 WHERE position > 0")
+            .execute(self.transaction())
+            .await?;
 
         sqlx::query!(
             r#"INSERT INTO roles
