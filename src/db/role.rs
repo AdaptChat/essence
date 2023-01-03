@@ -1,4 +1,8 @@
-use crate::{db::DbExt, models::Role};
+use crate::{
+    db::{get_pool, DbExt},
+    http::role::CreateRolePayload,
+    models::{Role, RoleFlags},
+};
 
 macro_rules! construct_role {
     ($data:ident) => {{
@@ -58,6 +62,67 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .collect();
 
         Ok(roles)
+    }
+
+    /// Creates a new role in the given guild ID with the given query. Payload must be validated
+    /// before using this method.
+    ///
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with creatimg the role.
+    async fn create_role(
+        &mut self,
+        guild_id: u64,
+        role_id: u64,
+        payload: CreateRolePayload,
+    ) -> crate::Result<Role> {
+        let mut flags = RoleFlags::default();
+        if payload.hoisted {
+            flags.insert(RoleFlags::HOISTED);
+        }
+        if payload.mentionable {
+            flags.insert(RoleFlags::MENTIONABLE);
+        }
+
+        let position = sqlx::query!(
+            r#"SELECT COALESCE(MAX(position) + 1, 0) AS "pos!" FROM roles WHERE guild_id = $1"#,
+            guild_id as i64,
+        )
+        .fetch_one(get_pool())
+        .await?
+        .pos as u16;
+
+        sqlx::query!(
+            r#"INSERT INTO roles
+                (id, guild_id, name, color, allowed_permissions, denied_permissions, position, flags)
+            VALUES
+                ($1, $2, $3, $4, $5, $6, $7, $8)
+            "#,
+            role_id as i64,
+            guild_id as i64,
+            payload.name,
+            payload.color.map(|color| color as i32),
+            payload.permissions.allow.bits(),
+            payload.permissions.deny.bits(),
+            position as i16,
+            flags.bits() as i32,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(Role {
+            id: role_id,
+            guild_id,
+            name: payload.name,
+            color: payload.color,
+            permissions: payload.permissions,
+            position,
+            flags,
+        })
     }
 }
 
