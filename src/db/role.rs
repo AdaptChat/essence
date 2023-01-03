@@ -88,19 +88,11 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             flags.insert(RoleFlags::MENTIONABLE);
         }
 
-        let position = sqlx::query!(
-            r#"SELECT COALESCE(MAX(position) + 1, 0) AS "pos!" FROM roles WHERE guild_id = $1"#,
-            guild_id as i64,
-        )
-        .fetch_one(get_pool())
-        .await?
-        .pos as u16;
-
         sqlx::query!(
             r#"INSERT INTO roles
                 (id, guild_id, name, color, allowed_permissions, denied_permissions, position, flags)
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5, $6, 1, $7)
             "#,
             role_id as i64,
             guild_id as i64,
@@ -108,7 +100,6 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             payload.color.map(|color| color as i32),
             payload.permissions.allow.bits(),
             payload.permissions.deny.bits(),
-            position as i16,
             flags.bits() as i32,
         )
         .execute(self.transaction())
@@ -120,7 +111,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             name: payload.name,
             color: payload.color,
             permissions: payload.permissions,
-            position,
+            position: 1,
             flags,
         })
     }
