@@ -125,6 +125,15 @@ pub enum Error {
         /// The error message.
         message: &'static str,
     },
+    /// You are trying to delete a managed role.
+    RoleIsManaged {
+        /// The ID of the guild the role is in.
+        guild_id: u64,
+        /// The ID of the role that is managed.
+        role_id: u64,
+        /// The error message.
+        message: &'static str,
+    },
     /// Something was already taken, e.g. a username or email.
     AlreadyTaken {
         /// What was already taken.
@@ -168,7 +177,8 @@ impl Error {
             Self::NotMember { .. }
             | Self::NotOwner { .. }
             | Self::MissingPermissions { .. }
-            | Self::RoleTooLow { .. } => 403,
+            | Self::RoleTooLow { .. }
+            | Self::RoleIsManaged { .. } => 403,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } => 409,
             Self::Ratelimited { .. } => 429,
