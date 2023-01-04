@@ -102,6 +102,20 @@ pub enum Error {
         /// The error message.
         message: &'static str,
     },
+    /// You are too low in the role hierarchy to perform the requested action.
+    RoleTooLow {
+        /// The ID of the guild you are not the owner of.
+        guild_id: u64,
+        /// The ID of your top role. This is the role you possess with the highest position.
+        /// This is `None` if you have no roles (the default role).
+        top_role_id: Option<u64>,
+        /// The position of your top role.
+        top_role_position: u16,
+        /// The desired position your top role should be in the role hierarchy.
+        desired_position: u16,
+        /// The error message.
+        message: &'static str,
+    },
     /// You are missing the required permissions to perform the requested action.
     MissingPermissions {
         /// The ID of the guild you are missing permissions in.
@@ -151,7 +165,10 @@ impl Error {
             | Self::MalformedIp { .. }
             | Self::UnsupportedAuthMethod { .. } => 400,
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
-            Self::NotMember { .. } | Self::NotOwner { .. } | Self::MissingPermissions { .. } => 403,
+            Self::NotMember { .. }
+            | Self::NotOwner { .. }
+            | Self::MissingPermissions { .. }
+            | Self::RoleTooLow { .. } => 403,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } => 409,
             Self::Ratelimited { .. } => 429,

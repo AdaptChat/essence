@@ -133,6 +133,24 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         ))
     }
 
+    /// Internally used, see [`Self::assert_member_has_permissions`] instead.
+    async fn assert_member_has_permissions_with(
+        &self,
+        guild_id: u64,
+        member_permissions: Permissions,
+        required_permissions: Permissions,
+    ) -> crate::Result<()> {
+        if !member_permissions.contains(required_permissions) {
+            return Err(Error::MissingPermissions {
+                guild_id,
+                permissions: required_permissions,
+                message: "You do not have permission to perform the requested action.",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Asserts the given user has the given permissions in the given guild. A channel ID may be
     /// provided to assert the permissions for a specific channel, otherwise the permissions for the
     /// guild will be asserted.
@@ -151,15 +169,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             .fetch_member_permissions(guild_id, user_id, channel_id)
             .await?;
 
-        if !member_permissions.contains(permissions) {
-            return Err(Error::MissingPermissions {
-                guild_id,
-                permissions,
-                message: "You do not have permission to perform the requested action.",
-            });
-        }
-
-        Ok(())
+        self.assert_member_has_permissions_with(guild_id, member_permissions, permissions)
+            .await
     }
 
     /// Fetches a partial guild from the database with the given ID.

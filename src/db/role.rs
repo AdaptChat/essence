@@ -2,6 +2,7 @@ use crate::{
     db::DbExt,
     http::role::CreateRolePayload,
     models::{Role, RoleFlags},
+    Error,
 };
 
 macro_rules! construct_role {
@@ -23,10 +24,75 @@ macro_rules! construct_role {
     }};
 }
 
+use crate::db::GuildDbExt;
 pub(crate) use construct_role;
 
 #[async_trait::async_trait]
 pub trait RoleDbExt<'t>: DbExt<'t> {
+    /// Asserts the role exists and returns the position of the role.
+    async fn assert_role_exists(&self, guild_id: u64, role_id: u64) -> crate::Result<u16> {
+        self.assert_guild_exists(guild_id).await?;
+
+        let role = sqlx::query!(
+            "SELECT position FROM roles WHERE guild_id = $1 AND id = $2",
+            guild_id as i64,
+            role_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?;
+
+        role.map_or_else(
+            || {
+                Err(Error::NotFound {
+                    entity: "role",
+                    message: format!("Role with ID {role_id} does not exist"),
+                })
+            },
+            |role| Ok(role.position as u16),
+        )
+    }
+
+    /// Asserts the user's top role is higher than the given role in the given guild.
+    async fn assert_top_role_higher_than(
+        &self,
+        guild_id: u64,
+        user_id: u64,
+        role_id: u64,
+    ) -> crate::Result<()> {
+        let role_position = self.assert_role_exists(guild_id, role_id).await?;
+        let (top_role_id, top_position) = sqlx::query!(
+            r#"SELECT
+                id,
+                position
+            FROM
+                roles
+            WHERE
+                id = (SELECT role_id FROM role_data WHERE user_id = $1 AND guild_id = $2)
+            ORDER BY
+                position DESC
+            LIMIT 1
+            "#,
+            user_id as i64,
+            guild_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map_or((None, 0), |row| (Some(row.id as u64), row.position as u16));
+
+        if role_position >= top_position {
+            return Err(Error::RoleTooLow {
+                guild_id,
+                top_role_id,
+                top_role_position: top_position,
+                desired_position: role_position,
+                message:
+                    "You can only perform the requested action on roles lower than your top role.",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Fetches a role from the database with the given ID.
     ///
     /// # Errors
@@ -117,6 +183,35 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             position: 1,
             flags,
         })
+    }
+
+    /// Deletes the role with the given ID in the given guild.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the role.
+    /// * If the role does not exist.
+    async fn delete_role(&mut self, guild_id: u64, role_id: u64) -> crate::Result<()> {
+        let position = sqlx::query!(
+            "DELETE FROM roles WHERE guild_id = $1 AND id = $2 RETURNING position",
+            guild_id as i64,
+            role_id as i64,
+        )
+        .fetch_one(self.transaction())
+        .await?
+        .position;
+
+        sqlx::query!(
+            "UPDATE roles SET position = position - 1 WHERE position > $1",
+            position as i16,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
     }
 }
 
