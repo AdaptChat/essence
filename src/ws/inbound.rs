@@ -5,8 +5,7 @@ use serde::Serialize;
 /// An inbound websocket message sent by the client, received by the server.
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[serde(tag = "op")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "op", rename_all = "snake_case")]
 pub enum InboundMessage {
     /// Sent by the client to identify and authenticate itself to the websocket.
     Identify {
