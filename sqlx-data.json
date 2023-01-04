@@ -490,6 +490,24 @@
     },
     "query": "INSERT INTO channels\n                (id, guild_id, type, name, position, slowmode, nsfw, locked)\n            VALUES\n                ($1, $2, 'text', 'general', 0, 0, false, false)"
   },
+  "3f85b7625724dd4efc25e1d5ecdcc6a8dcac87a5f8a34ae64c449812ef3cf7a4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Int4",
+          "Int8",
+          "Int8",
+          "Int4",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE\n                roles\n            SET\n                name = $1,\n                color = $2,\n                allowed_permissions = $3,\n                denied_permissions = $4,\n                flags = $5\n            WHERE\n                guild_id = $6\n            AND\n                id = $7\n            "
+  },
   "45a536b46a3654b06157d263f6722d44ca054a529c6e7f80f94b17c7c557d31b": {
     "describe": {
       "columns": [
