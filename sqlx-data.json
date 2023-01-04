@@ -638,6 +638,33 @@
     },
     "query": "SELECT discriminator FROM users WHERE username = $1 AND discriminator = $2"
   },
+  "6f0568456266140996959f041d13cbc9e19b17e20df7e686e0bd89c2341b88f4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "position",
+          "ordinal": 1,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                id,\n                position\n            FROM\n                roles\n            WHERE\n                id = (SELECT role_id FROM role_data WHERE user_id = $1 AND guild_id = $2)\n            ORDER BY\n                position DESC\n            LIMIT 1\n            "
+  },
   "7132360ca9b4dcbe19bbbe046033fba320ff4fc21e9368c1e7a81e0487e936b6": {
     "describe": {
       "columns": [
@@ -1206,6 +1233,27 @@
     },
     "query": "SELECT password AS \"password!\" FROM users WHERE id = $1"
   },
+  "9efeb87f889e715d0325cf58df2e48b939e41d5eaea867992ba82fc71ff018a6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "position",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT position FROM roles WHERE guild_id = $1 AND id = $2"
+  },
   "a94dbea7a6f45cdae81f8be0dda6d149e13fd1ea6ba90ce66e80814681cebb60": {
     "describe": {
       "columns": [
@@ -1250,6 +1298,27 @@
       }
     },
     "query": "INSERT INTO tokens (user_id, token) VALUES ($1, $2)"
+  },
+  "bce0bcb7008ef10358d1184400dea05d757c69f1b64e4c3216d82ae7af749572": {
+    "describe": {
+      "columns": [
+        {
+          "name": "flags",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT flags FROM roles WHERE guild_id = $1 AND id = $2"
   },
   "c2d79cd2ee7e2ca0694dc47e7cf50f21da605bad0e1dc5575b2d7845747bf733": {
     "describe": {
@@ -1565,6 +1634,18 @@
     },
     "query": "SELECT\n                id,\n                guild_id AS \"guild_id!\",\n                name AS \"name!\",\n                type AS kind,\n                position AS \"position!\",\n                parent_id,\n                icon,\n                topic,\n                nsfw,\n                locked,\n                slowmode,\n                user_limit\n            FROM\n                channels\n            WHERE\n            guild_id IN (SELECT guild_id FROM members WHERE id = $1)"
   },
+  "e185e5e048649549a8a6002b0dce896cb7e21b797689ceccf7cf750d4a9c255c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int2"
+        ]
+      }
+    },
+    "query": "UPDATE roles SET position = position - 1 WHERE position > $1"
+  },
   "e25a8fe4392d071f013190ed105536e443701795f250a006da69c02874b93d8e": {
     "describe": {
       "columns": [
@@ -1596,6 +1677,27 @@
       }
     },
     "query": "SELECT target_id, allow, deny FROM channel_overwrites WHERE channel_id = $1"
+  },
+  "e9de53adfec90f502742c12d6ca3f6ccfc02571257b85e142d05fd64d3c53a52": {
+    "describe": {
+      "columns": [
+        {
+          "name": "position",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM roles WHERE guild_id = $1 AND id = $2 RETURNING position"
   },
   "e9f8d85417fdc81bd2dbfe749c7da303738ef2b5b1bd2f4fc1a22947108d93a2": {
     "describe": {
