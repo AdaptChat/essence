@@ -93,6 +93,30 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
+    /// Asserts that the given role is not managed.
+    async fn assert_role_is_not_managed(&self, guild_id: u64, role_id: u64) -> crate::Result<()> {
+        let is_managed = sqlx::query!(
+            "SELECT flags FROM roles WHERE guild_id = $1 AND id = $2",
+            guild_id as i64,
+            role_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map_or(false, |row| {
+            RoleFlags::from_bits_truncate(row.flags as _).contains(RoleFlags::MANAGED)
+        });
+
+        if is_managed {
+            return Err(Error::RoleIsManaged {
+                guild_id,
+                role_id,
+                message: "You cannot delete a managed role.",
+            });
+        }
+
+        Ok(())
+    }
+
     /// Fetches a role from the database with the given ID.
     ///
     /// # Errors
