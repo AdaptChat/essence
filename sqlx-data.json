@@ -71,6 +71,16 @@
     },
     "query": "SELECT\n                COALESCE(MAX(position) + 1, 0) AS \"position!\"\n            FROM\n                channels\n            WHERE\n                guild_id = $1\n            AND\n                (parent_id = $2 OR parent_id IS NULL AND $2 IS NULL)\n            "
   },
+  "0f13e1beaa0f0a32d4411273614a4bc7319318fb12be988a3ad74234d5024965": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "UPDATE roles SET position = position + 1 WHERE position > 0"
+  },
   "0f99362fa3d40808a27279737bf5f4fbebc623ebc60af6e067e2f1a9857d95b2": {
     "describe": {
       "columns": [
@@ -139,6 +149,24 @@
       }
     },
     "query": "SELECT * FROM roles WHERE guild_id = $1 AND id = $2"
+  },
+  "12be787fd9a8ded7a277e77e97a5544cfecdd2c4125db7bb481568828824784b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Text",
+          "Int4",
+          "Int8",
+          "Int8",
+          "Int4"
+        ]
+      }
+    },
+    "query": "INSERT INTO roles\n                (id, guild_id, name, color, allowed_permissions, denied_permissions, position, flags)\n            VALUES\n                ($1, $2, $3, $4, $5, $6, 1, $7)\n            "
   },
   "13a9bda24d4f58f3538f0d958f1cfc7a0fe964545d45b636db5aff7ac930499f": {
     "describe": {
