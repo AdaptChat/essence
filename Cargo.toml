@@ -20,11 +20,16 @@ chrono = { version = "0.4.23", features = ["serde"] }
 itertools = { version = "0.10", optional = true }
 ring = { version = "0.16.20", optional = true }
 serde = { version = "1.0", features = ["derive"] }
-utoipa = { git = "https://github.com/juhaku/utoipa", features = ["axum_extras", "chrono"], optional = true }
 
 [dependencies.sqlx]
 version = "0.6"
 features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "chrono"]
+optional = true
+
+[dependencies.utoipa]
+git = "https://github.com/juhaku/utoipa"
+version = "^2.4.2"
+features = ["axum_extras", "chrono"]
 optional = true
 
 [features]
