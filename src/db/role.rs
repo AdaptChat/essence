@@ -2,7 +2,7 @@ use crate::{
     db::DbExt,
     http::role::CreateRolePayload,
     models::{Role, RoleFlags},
-    Error,
+    Error, NotFoundExt,
 };
 
 macro_rules! construct_role {
@@ -24,7 +24,8 @@ macro_rules! construct_role {
     }};
 }
 
-use crate::db::GuildDbExt;
+use crate::db::{get_pool, GuildDbExt};
+use crate::http::role::EditRolePayload;
 pub(crate) use construct_role;
 
 #[async_trait::async_trait]
@@ -207,6 +208,69 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             position: 1,
             flags,
         })
+    }
+
+    /// Edits the role with the given ID in the given guild. Payload must be validated before using
+    /// this method.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the role.
+    /// * If the role does not exist.
+    async fn edit_role(
+        &mut self,
+        guild_id: u64,
+        role_id: u64,
+        payload: EditRolePayload,
+    ) -> crate::Result<Role> {
+        let mut role = get_pool()
+            .fetch_role(guild_id, role_id)
+            .await?
+            .ok_or_not_found("role", "role not found")?;
+
+        if let Some(name) = payload.name {
+            role.name = name;
+        }
+        if let Some(permissions) = payload.permissions {
+            role.permissions = permissions;
+        }
+        if let Some(mentionable) = payload.mentionable {
+            role.flags.set(RoleFlags::MENTIONABLE, mentionable);
+        }
+        if let Some(hoisted) = payload.hoisted {
+            role.flags.set(RoleFlags::HOISTED, hoisted);
+        }
+        role.color = payload.color.into_option_or_if_absent(role.color);
+
+        sqlx::query!(
+            r#"UPDATE
+                roles
+            SET
+                name = $1,
+                color = $2,
+                allowed_permissions = $3,
+                denied_permissions = $4,
+                flags = $5
+            WHERE
+                guild_id = $6
+            AND
+                id = $7
+            "#,
+            role.name,
+            role.color.map(|color| color as i32),
+            role.permissions.allow.bits(),
+            role.permissions.deny.bits(),
+            role.flags.bits() as i32,
+            guild_id as i64,
+            role_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(role)
     }
 
     /// Deletes the role with the given ID in the given guild.
