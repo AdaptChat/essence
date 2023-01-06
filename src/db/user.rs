@@ -149,7 +149,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
 
         if discriminator.is_none() {
             return Err(Error::AlreadyTaken {
-                what: "username",
+                what: "username".to_string(),
                 message: "Username is already taken".to_string(),
             });
         }
@@ -193,7 +193,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
                         .out;
 
                 discriminator.ok_or_else(|| Error::AlreadyTaken {
-                    what: "username",
+                    what: "username".to_string(),
                     message: "Username is already taken".to_string(),
                 })?
             };

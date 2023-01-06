@@ -113,7 +113,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             Ok(())
         } else {
             Err(Error::NotFound {
-                entity: "channel",
+                entity: "channel".to_string(),
                 message: format!("Channel with ID {channel_id} not found in this guild"),
             })
         }
@@ -141,7 +141,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             Ok(())
         } else {
             Err(Error::NotFound {
-                entity: "channel",
+                entity: "channel".to_string(),
                 message: format!(
                     "No {} channel with ID {channel_id} found in this guild",
                     kind.name()
@@ -166,7 +166,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             Ok(())
         } else {
             Err(Error::NotFound {
-                entity: "channel",
+                entity: "channel".to_string(),
                 message: format!("You are not a recipient of any DM channels with ID {channel_id}"),
             })
         }
@@ -182,7 +182,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .await?
         .map(|row| row.owner_id.map(|owner_id| owner_id as u64))
         .ok_or_else(|| Error::NotFound {
-            entity: "channel",
+            entity: "channel".to_string(),
             message: format!("No group DM channel with ID {channel_id} found"),
         })?;
 
@@ -190,7 +190,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             return Err(Error::NotOwner {
                 // TODO: NotGroupDmOwner
                 guild_id: 0,
-                message: "You are not the owner of this group DM channel",
+                message: "You are not the owner of this group DM channel".to_string(),
             });
         }
 
@@ -657,7 +657,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
 
         if kind.is_guild() {
             let guild_id = guild_id.ok_or_else(|| Error::InternalError {
-                what: Some("internal"),
+                what: Some("internal".to_string()),
                 message: "No guild ID found for guild channel, this is a bug".to_string(),
                 debug: None,
             })?;

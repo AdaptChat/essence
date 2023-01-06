@@ -45,7 +45,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         role.map_or_else(
             || {
                 Err(Error::NotFound {
-                    entity: "role",
+                    entity: "role".to_string(),
                     message: format!("Role with ID {role_id} does not exist"),
                 })
             },
@@ -86,8 +86,9 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
                 top_role_id,
                 top_role_position: top_position,
                 desired_position: role_position,
-                message:
+                message: String::from(
                     "You can only perform the requested action on roles lower than your top role.",
+                ),
             });
         }
 
@@ -111,7 +112,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             return Err(Error::RoleIsManaged {
                 guild_id,
                 role_id,
-                message: "You cannot delete a managed role.",
+                message: "You cannot delete a managed role.".to_string(),
             });
         }
 

@@ -49,7 +49,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .unwrap_or(false)
         {
             return Err(Error::NotFound {
-                entity: "guild",
+                entity: "guild".to_string(),
                 message: format!("Guild with ID {guild_id} does not exist"),
             });
         }
@@ -76,7 +76,9 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         {
             return Err(Error::NotMember {
                 guild_id,
-                message: "You must be a member of the guild to perform the requested action.",
+                message: String::from(
+                    "You must be a member of the guild to perform the requested action.",
+                ),
             });
         }
 
@@ -99,7 +101,9 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         {
             return Err(Error::NotOwner {
                 guild_id,
-                message: "You must be the owner of the guild to perform the requested action.",
+                message: String::from(
+                    "You must be the owner of the guild to perform the requested action.",
+                ),
             });
         }
 
@@ -144,7 +148,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             return Err(Error::MissingPermissions {
                 guild_id,
                 permissions: required_permissions,
-                message: "You do not have permission to perform the requested action.",
+                message: "You do not have permission to perform the requested action.".to_string(),
             });
         }
 

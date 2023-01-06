@@ -38,38 +38,38 @@ pub enum Error {
     /// or MsgPack.
     MissingBody {
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// Invalid field in the request body.
     InvalidField {
         /// The field that failed validation.
-        field: &'static str,
+        field: String,
         /// The error message.
         message: String,
     },
     /// You are missing a required field in the request body.
     MissingField {
         /// The name of the missing field.
-        field: &'static str,
+        field: String,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// Could not resolve a plausible IP address from the request.
     MalformedIp {
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// The entity was not found.
     NotFound {
         /// The type of item that couldn't be found.
-        entity: &'static str,
+        entity: String,
         /// The error message.
         message: String,
     },
     /// Tried authorizing a bot account with anything but an authentication token.
     UnsupportedAuthMethod {
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// The request required a valid authentication token, but one of the following happened:
     ///
@@ -78,28 +78,28 @@ pub enum Error {
     /// * The token does not exist or is invalid.
     InvalidToken {
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// Invalid login credentials were provided, i.e. an invalid password.
     InvalidCredentials {
         /// Which credential was invalid.
-        what: &'static str,
+        what: String,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// You must be a member of the guild to perform the requested action.
     NotMember {
         /// The ID of the guild you are not a member of.
         guild_id: u64,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// You must be the owner of the guild to perform the requested action.
     NotOwner {
         /// The ID of the guild you are not the owner of.
         guild_id: u64,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// You are too low in the role hierarchy to perform the requested action.
     RoleTooLow {
@@ -113,7 +113,7 @@ pub enum Error {
         /// The desired position your top role should be in the role hierarchy.
         desired_position: u16,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// You are missing the required permissions to perform the requested action.
     MissingPermissions {
@@ -122,7 +122,7 @@ pub enum Error {
         /// The permissions required to perform the requested action.
         permissions: Permissions,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// You are trying to delete a managed role.
     RoleIsManaged {
@@ -131,12 +131,12 @@ pub enum Error {
         /// The ID of the role that is managed.
         role_id: u64,
         /// The error message.
-        message: &'static str,
+        message: String,
     },
     /// Something was already taken, e.g. a username or email.
     AlreadyTaken {
         /// What was already taken.
-        what: &'static str,
+        what: String,
         /// The error message.
         message: String,
     },
@@ -152,7 +152,7 @@ pub enum Error {
     /// Internal server error occured, this is likely a bug.
     InternalError {
         /// What caused the error. `None` if unknown.
-        what: Option<&'static str>,
+        what: Option<String>,
         /// The error message.
         message: String,
         /// A debug version of the error, or `None` if there is no debug version.
@@ -190,7 +190,7 @@ impl Error {
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
         Self::InternalError {
-            what: Some("database"),
+            what: Some("database".into()),
             message: e.to_string(),
             debug: Some(format!("{e:?}")),
         }
@@ -201,7 +201,7 @@ impl From<sqlx::Error> for Error {
 impl From<argon2_async::Error> for Error {
     fn from(e: argon2_async::Error) -> Self {
         Self::InternalError {
-            what: Some("hasher"),
+            what: Some("hasher".into()),
             message: e.to_string(),
             debug: Some(format!("{e:?}")),
         }
@@ -218,14 +218,14 @@ pub trait NotFoundExt<T> {
     ///
     /// assert_eq!(Some(5).ok_or_not_found("user", "user not found"), Ok(5));
     /// ```
-    fn ok_or_not_found(self, entity: &'static str, message: impl ToString) -> Result<T>;
+    fn ok_or_not_found(self, entity: impl ToString, message: impl ToString) -> Result<T>;
 }
 
 impl<T> NotFoundExt<T> for Option<T> {
     #[inline]
-    fn ok_or_not_found(self, entity: &'static str, message: impl ToString) -> Result<T> {
+    fn ok_or_not_found(self, entity: impl ToString, message: impl ToString) -> Result<T> {
         self.ok_or_else(|| Error::NotFound {
-            entity,
+            entity: entity.to_string(),
             message: message.to_string(),
         })
     }
