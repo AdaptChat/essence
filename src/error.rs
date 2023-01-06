@@ -25,8 +25,7 @@ pub enum MalformedBodyErrorType {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
-#[serde(tag = "type")]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum Error {
     /// Received a malformed JSON or MsgPack body.
     MalformedBody {
