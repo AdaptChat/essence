@@ -8,8 +8,9 @@ use base64::{
     decode_engine, encode_engine,
     engine::fast_portable::{FastPortable, NO_PAD},
 };
-use std::time::Duration;
-use std::{sync::OnceLock, time::UNIX_EPOCH};
+#[cfg(feature = "auth")]
+use std::sync::OnceLock;
+use std::time::{Duration, UNIX_EPOCH};
 
 #[cfg(feature = "auth")]
 pub use argon2_async::{hash as hash_password, verify as verify_password};
