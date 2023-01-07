@@ -1,5 +1,5 @@
 #![cfg_attr(feature = "db", feature(once_cell))]
-#![cfg_attr(any(feature = "auth", feature = "db"), feature(is_some_and))]
+#![cfg_attr(any(feature = "auth", feature = "db"), feature(is_some_and, async_fn_in_trait))]
 #![allow(
     clippy::module_name_repetitions,
     clippy::cast_possible_truncation,
