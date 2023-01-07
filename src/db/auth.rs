@@ -96,4 +96,4 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     }
 }
 
-impl<'t, T> AuthDbExt<'t> for T where T: DbExt<'t> {}
+impl<'t, T> AuthDbExt<'t> for T where T: DbExt<'t> + Send {}

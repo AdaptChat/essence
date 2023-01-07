@@ -51,7 +51,7 @@ macro_rules! construct_member {
 pub(crate) use construct_member;
 
 // #[async_trait::async_trait]
-pub trait MemberDbExt<'t>: DbExt<'t> {
+pub trait MemberDbExt<'t>: DbExt<'t> where Self: Send {
     /// Fetches a member from the database with the given guild and user ID.
     ///
     /// # Errors
@@ -119,4 +119,4 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     }
 }
 
-impl<'t, T> MemberDbExt<'t> for T where T: DbExt<'t> {}
+impl<'t, T> MemberDbExt<'t> for T where T: DbExt<'t> + Send {}

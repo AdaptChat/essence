@@ -29,7 +29,7 @@ use crate::http::role::EditRolePayload;
 pub(crate) use construct_role;
 
 // #[async_trait::async_trait]
-pub trait RoleDbExt<'t>: DbExt<'t> {
+pub trait RoleDbExt<'t>: DbExt<'t> where Self: Send {
     /// Asserts the role exists and returns the position of the role.
     async fn assert_role_exists(&self, guild_id: u64, role_id: u64) -> crate::Result<u16> {
         self.assert_guild_exists(guild_id).await?;
@@ -304,4 +304,4 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     }
 }
 
-impl<'t, T> RoleDbExt<'t> for T where T: DbExt<'t> {}
+impl<'t, T> RoleDbExt<'t> for T where T: DbExt<'t> + Send {}

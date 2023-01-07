@@ -36,7 +36,7 @@ macro_rules! construct_partial_guild {
 }
 
 // #[async_trait::async_trait]
-pub trait GuildDbExt<'t>: DbExt<'t> {
+pub trait GuildDbExt<'t>: DbExt<'t> where Self: Send {
     /// Asserts a guild with the given ID exists.
     async fn assert_guild_exists(&self, guild_id: u64) -> crate::Result<()> {
         if !sqlx::query!(
@@ -611,4 +611,4 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     }
 }
 
-impl<'t, T> GuildDbExt<'t> for T where T: DbExt<'t> {}
+impl<'t, T> GuildDbExt<'t> for T where T: DbExt<'t> + Send {}

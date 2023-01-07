@@ -48,7 +48,7 @@ macro_rules! fetch_client_user {
 }
 
 // #[async_trait::async_trait]
-pub trait UserDbExt<'t>: DbExt<'t> {
+pub trait UserDbExt<'t>: DbExt<'t> where Self: Send {
     /// Fetches a user from the database with the given ID.
     ///
     /// # Errors
@@ -244,4 +244,4 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     }
 }
 
-impl<'t, T> UserDbExt<'t> for T where T: DbExt<'t> {}
+impl<'t, T> UserDbExt<'t> for T where T: DbExt<'t> + Send {}
