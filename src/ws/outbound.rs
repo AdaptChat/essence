@@ -1,12 +1,9 @@
-#[cfg(feature = "client")]
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 
 use crate::models::{ClientUser, Guild};
 
 /// An outbound websocket message sent by harmony, received by the client.
-#[derive(Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "op", rename_all = "snake_case")]
 #[allow(clippy::large_enum_variant)]
 pub enum OutboundMessage {
