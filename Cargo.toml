@@ -1,7 +1,7 @@
 [package]
 name = "essence"
 authors = ["jay3332"]
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 description = "Essential models and database logic for the Adapt chat platform."
 homepage = "https://adapt.chat"
@@ -34,8 +34,9 @@ optional = true
 
 [features]
 default = ["snowflakes"]
-auth = ["snowflakes", "dep:argon2-async", "dep:base64", "dep:ring"]
+auth = ["snowflakes", "dep:argon2-async", "dep:ring", "token-parsing"]
 client = []
 db = ["dep:async-trait", "dep:itertools", "dep:sqlx"]
 openapi = ["dep:utoipa"]
+token-parsing = ["dep:base64", "snowflakes"]
 snowflakes = []

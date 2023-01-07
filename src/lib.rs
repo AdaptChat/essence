@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "db", feature(once_cell))]
+#![cfg_attr(any(feature = "db", feature = "token-parsing"), feature(once_cell))]
 #![cfg_attr(any(feature = "auth", feature = "db"), feature(is_some_and))]
 #![allow(
     clippy::module_name_repetitions,
@@ -11,7 +11,7 @@
     clippy::doc_markdown
 )]
 
-#[cfg(feature = "auth")]
+#[cfg(any(feature = "auth", feature = "token-parsing"))]
 pub mod auth;
 #[cfg(feature = "db")]
 pub mod db;

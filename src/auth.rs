@@ -1,17 +1,25 @@
-use crate::snowflake::epoch_time;
+#![allow(unused_imports)]
+
+use crate::snowflake::{epoch_time, EPOCH_MILLIS};
+#[cfg(feature = "auth")]
 use argon2_async::{set_config, Config};
 use base64::{
     alphabet::URL_SAFE,
     decode_engine, encode_engine,
     engine::fast_portable::{FastPortable, NO_PAD},
 };
+use std::time::Duration;
 use std::{sync::OnceLock, time::UNIX_EPOCH};
 
+#[cfg(feature = "auth")]
 pub use argon2_async::{hash as hash_password, verify as verify_password};
+#[cfg(feature = "auth")]
 pub use ring::rand::{SecureRandom, SystemRandom};
+#[cfg(feature = "auth")]
 pub static RNG: OnceLock<SystemRandom> = OnceLock::new();
 
 /// Configures and initializes the Argon2 hasher. This must be called before using the hasher.
+#[cfg(feature = "auth")]
 pub async fn configure_hasher(secret_key: &'static [u8]) {
     let mut config = Config::new();
 
@@ -25,6 +33,7 @@ pub async fn configure_hasher(secret_key: &'static [u8]) {
 
 /// Returns a reference to the system RNG.
 #[inline]
+#[cfg(feature = "auth")]
 pub fn get_system_rng() -> &'static SystemRandom {
     RNG.get_or_init(SystemRandom::new)
 }
@@ -51,6 +60,7 @@ const ENGINE: FastPortable = FastPortable::from(&URL_SAFE, NO_PAD);
 /// # See Also
 /// * [`TokenReader`] for a type that can decode tokens.
 #[must_use]
+#[cfg(feature = "auth")]
 pub fn generate_token(user_id: u64) -> String {
     let mut token = encode_engine(user_id.to_string().as_bytes(), &ENGINE);
 
@@ -67,6 +77,7 @@ pub fn generate_token(user_id: u64) -> String {
 }
 
 /// Reads information from a token.
+#[derive(Copy, Clone)]
 pub struct TokenReader<'a>(&'a str, &'a str);
 
 impl<'a> TokenReader<'a> {
@@ -97,6 +108,7 @@ impl<'a> TokenReader<'a> {
             .ok()
             .and_then(|b| String::from_utf8(b).ok())
             .and_then(|s| s.parse().ok())
+            .map(|t: u64| t + EPOCH_MILLIS)
     }
 
     /// Returns the timestamp from the token as a Unix timestamp in seconds.
@@ -111,7 +123,7 @@ impl<'a> TokenReader<'a> {
     #[must_use]
     pub fn timestamp(&self) -> Option<std::time::SystemTime> {
         self.timestamp_millis()
-            .map(std::time::Duration::from_millis)
+            .map(Duration::from_millis)
             .map(|t| UNIX_EPOCH + t)
     }
 }
