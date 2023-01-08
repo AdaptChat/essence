@@ -63,9 +63,14 @@ macro_rules! serde_for_bitflags {
             where
                 D: serde::Deserializer<'de>,
             {
-                Ok(Self {
-                    bits: deserializer.deserialize_u32($crate::U32Visitor)?,
-                })
+                let raw = u32::deserialize(deserializer)?;
+
+                Self::from_bits(raw).ok_or(serde::de::Error::custom(format!(
+                    "invalid bitflags value: {} (expected an integer between {} and {})",
+                    raw,
+                    0,
+                    Self::all().bits(),
+                )))
             }
         }
 
@@ -86,39 +91,23 @@ macro_rules! serde_for_bitflags {
             where
                 D: serde::Deserializer<'de>,
             {
-                Ok(Self {
-                    bits: deserializer.deserialize_i64($crate::I64Visitor)?,
-                })
+                let raw = i64::deserialize(deserializer)?;
+
+                let max = Self::all().bits();
+                let (min, max) = if max > 0 { (0, max) } else { (i64::MIN, i64::MAX) };
+
+                Self::from_bits(raw).ok_or(serde::de::Error::custom(format!(
+                    "invalid bitflags value: {} (expected an integer between {} and {})",
+                    raw,
+                    min,
+                    max,
+                )))
             }
         }
 
         serde_for_bitflags!(@openapi for $t => Int64);
     };
 }
-
-macro_rules! visitor {
-    ($name:ident, $t:ty, $m:ident, $bounds:literal) => {
-        pub(crate) struct $name;
-
-        impl serde::de::Visitor<'_> for $name {
-            type Value = $t;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str(concat!("an integer between ", $bounds))
-            }
-
-            fn $m<E>(self, v: $t) -> ::std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                Ok(v)
-            }
-        }
-    };
-}
-
-visitor!(U32Visitor, u32, visit_u32, "0 and 2^32 - 1");
-visitor!(I64Visitor, i64, visit_i64, "-2^63 and 2^63 - 1");
 
 #[macro_export]
 macro_rules! builder_methods {

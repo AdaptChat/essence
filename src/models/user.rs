@@ -89,8 +89,14 @@ pub struct ClientUser {
     /// If the client is a bot, this is `None`.
     #[cfg_attr(feature = "openapi", schema(format = "email"))]
     pub email: Option<String>,
-    /// (Used internally) The hashed password of the client's account. This will never be present.
+    /// (Used internally) The hashed password of the client's account.
+    ///
+    /// This will never be present:
+    /// * The **field** will exist if the `db` feature enabled, otherwise this field is not
+    /// present and guarded by a `cfg` attribute.
+    /// * The **value** will always be `None` unless it is internally returned by the database.
     #[serde(skip)]
+    #[cfg(feature = "db")]
     pub password: Option<String>,
     // /// A list of DM channels that the client has open.
     // pub dm_channels: Vec<DmChannel<u64>>,
