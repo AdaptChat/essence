@@ -106,8 +106,7 @@ pub enum Error {
         /// The ID of the guild you are not the owner of.
         guild_id: u64,
         /// The ID of your top role. This is the role you possess with the highest position.
-        /// This is `None` if you have no roles (the default role).
-        top_role_id: Option<u64>,
+        top_role_id: u64,
         /// The position of your top role.
         top_role_position: u16,
         /// The desired position your top role should be in the role hierarchy.
@@ -130,6 +129,14 @@ pub enum Error {
         guild_id: u64,
         /// The ID of the role that is managed.
         role_id: u64,
+        /// The error message.
+        message: String,
+    },
+    /// You cannot leave a server or group DM that you are the owner of (you should transfer
+    /// ownership before leaving).
+    CannotLeaveAsOwner {
+        /// The ID of the guild or group DM you are trying to leave.
+        id: u64,
         /// The error message.
         message: String,
     },
@@ -177,7 +184,8 @@ impl Error {
             | Self::NotOwner { .. }
             | Self::MissingPermissions { .. }
             | Self::RoleTooLow { .. }
-            | Self::RoleIsManaged { .. } => 403,
+            | Self::RoleIsManaged { .. }
+            | Self::CannotLeaveAsOwner { .. } => 403,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } => 409,
             Self::Ratelimited { .. } => 429,

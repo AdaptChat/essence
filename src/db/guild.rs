@@ -61,7 +61,12 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with fetching the member.
-    async fn assert_member_in_guild(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+    async fn base_assert_in_guild(
+        &self,
+        guild_id: u64,
+        user_id: u64,
+        error: Error,
+    ) -> crate::Result<()> {
         self.assert_guild_exists(guild_id).await?;
 
         if !sqlx::query!(
@@ -74,15 +79,46 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .exists
         .unwrap_or(false)
         {
-            return Err(Error::NotMember {
+            return Err(error);
+        }
+
+        Ok(())
+    }
+
+    /// Asserts the given user is a member of the given guild, given that the user is the invoker
+    /// of this assertion. (In other words, this references the user as "you")
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the member.
+    async fn assert_invoker_in_guild(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+        self.base_assert_in_guild(
+            guild_id,
+            user_id,
+            Error::NotMember {
                 guild_id,
                 message: String::from(
                     "You must be a member of the guild to perform the requested action.",
                 ),
-            });
-        }
+            },
+        )
+        .await
+    }
 
-        Ok(())
+    /// Asserts the given user is a member of the given guild, and treats the user as a foreign
+    /// user. (In other words, this references the user in the third person)
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the member.
+    async fn assert_member_in_guild(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+        self.base_assert_in_guild(
+            guild_id,
+            user_id,
+            Error::NotFound {
+                entity: "member".to_string(),
+                message: format!("Member with ID {user_id} does not exist in guild {guild_id}"),
+            },
+        )
+        .await
     }
 
     /// Asserts the given user is the owner of the given guild.
@@ -122,7 +158,10 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         user_id: u64,
         channel_id: Option<u64>,
     ) -> crate::Result<Permissions> {
-        self.assert_member_in_guild(guild_id, user_id).await?;
+        self.assert_invoker_in_guild(guild_id, user_id).await?;
+        if self.fetch_partial_guild(guild_id).await?.unwrap().owner_id == user_id {
+            return Ok(Permissions::all());
+        }
 
         let mut roles = self.fetch_all_roles_in_guild(guild_id).await?;
         let overwrites = match channel_id {

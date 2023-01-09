@@ -3,6 +3,10 @@ use crate::models::{PermissionOverwrite, Permissions, Role};
 /// Calculates the permissions after applying all role permissions and channel overwrites.
 /// This mutates `roles` by sorting it by position.
 ///
+/// # Note
+/// This does not account for guild owners (they should have all permissions), this should be
+/// handled by the caller.
+///
 /// # Parameters
 /// * `user_id` - The ID of the user to calculate permissions for.
 /// * `roles` - The roles the user has.

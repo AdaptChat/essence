@@ -1,4 +1,4 @@
-use crate::{db::DbExt, models::Member};
+use crate::{db::DbExt, models::Member, snowflake::with_model_type, NotFoundExt};
 use itertools::Itertools;
 
 macro_rules! query_member {
@@ -48,6 +48,9 @@ macro_rules! construct_member {
     }};
 }
 
+use crate::db::get_pool;
+use crate::http::member::{EditClientMemberPayload, EditMemberPayload};
+use crate::models::ModelType;
 pub(crate) use construct_member;
 
 #[async_trait::async_trait]
@@ -116,6 +119,134 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             .collect::<Vec<_>>();
 
         Ok(members)
+    }
+
+    /// Edits a member in the database with the given guild, user ID, and payload. The payload
+    /// should be validated prior to calling this method.
+    ///
+    /// **This includes roles; roles must be validated prior to calling this method and roles
+    /// that are managed or do not meet required permissions should be removed from the payload.**
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the member.
+    async fn edit_member(
+        &mut self,
+        guild_id: u64,
+        user_id: u64,
+        payload: EditMemberPayload,
+    ) -> crate::Result<Member> {
+        let mut member = get_pool()
+            .fetch_member_by_id(guild_id, user_id)
+            .await?
+            .ok_or_not_found("member", "member not found")?;
+
+        member.nick = payload.nick.into_option_or_if_absent(member.nick);
+
+        sqlx::query!(
+            "UPDATE members SET nick = $1 WHERE guild_id = $2 AND id = $3",
+            member.nick,
+            guild_id as i64,
+            user_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        if let Some(roles) = payload.roles {
+            let default_role_id = with_model_type(guild_id, ModelType::Role);
+            sqlx::query!(
+                r"DELETE FROM role_data WHERE guild_id = $1 AND user_id = $2 AND role_id != $3",
+                guild_id as i64,
+                user_id as i64,
+                default_role_id as i64,
+            )
+            .execute(self.transaction())
+            .await?;
+
+            sqlx::query(
+                r#"INSERT INTO
+                    role_data
+                SELECT
+                    $1, $2, out.*
+                FROM
+                    UNNEST($3)
+                AS
+                    out(role_id)
+                WHERE
+                    role_id IN (SELECT id FROM roles WHERE guild_id = $1)
+                ON CONFLICT DO NOTHING
+                "#,
+            )
+            .bind(guild_id as i64)
+            .bind(user_id as i64)
+            .bind(roles.into_iter().map(|r| r as i64).collect::<Vec<_>>())
+            .fetch_all(self.transaction())
+            .await?;
+
+            member.roles = Some(
+                sqlx::query!(
+                    "SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2",
+                    guild_id as i64,
+                    user_id as i64,
+                )
+                .fetch_all(self.transaction())
+                .await?
+                .into_iter()
+                .map(|r| r.role_id as u64)
+                .collect::<Vec<_>>(),
+            );
+        }
+
+        Ok(member)
+    }
+
+    /// Edits a member in the database with the given guild, user ID, and a
+    /// [`EditClientMemberPayload`].
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the member.
+    async fn edit_client_member(
+        &mut self,
+        guild_id: u64,
+        user_id: u64,
+        payload: EditClientMemberPayload,
+    ) -> crate::Result<Member> {
+        self.edit_member(
+            guild_id,
+            user_id,
+            EditMemberPayload {
+                nick: payload.nick,
+                roles: None,
+            },
+        )
+        .await
+    }
+
+    /// Deletes a member from the database with the given guild and user ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the member.
+    async fn delete_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<()> {
+        sqlx::query!(
+            "DELETE FROM members WHERE guild_id = $1 AND id = $2",
+            guild_id as i64,
+            user_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
     }
 }
 

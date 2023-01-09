@@ -26,6 +26,8 @@ macro_rules! construct_role {
 
 use crate::db::{get_pool, GuildDbExt};
 use crate::http::role::EditRolePayload;
+use crate::models::ModelType;
+use crate::snowflake::with_model_type;
 pub(crate) use construct_role;
 
 #[async_trait::async_trait]
@@ -52,6 +54,37 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             |role| Ok(role.position as u16),
         )
     }
+    /// Fetches the ID and position of the top role of the given user in the given guild.
+    async fn fetch_top_role(&self, guild_id: u64, user_id: u64) -> crate::Result<(u64, u16)> {
+        self.assert_guild_exists(guild_id).await?;
+
+        let role = sqlx::query!(
+            r#"SELECT
+                r.id,
+                r.position
+            FROM roles r
+            INNER JOIN
+                role_data rd
+            ON
+                r.id = rd.role_id
+            WHERE
+                r.guild_id = $1 AND rd.user_id = $2
+            ORDER BY
+                r.position DESC
+            LIMIT 1
+            "#,
+            guild_id as i64,
+            user_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?;
+
+        let info = role.map_or_else(
+            || (with_model_type(guild_id, ModelType::Role), 0),
+            |role| (role.id as u64, role.position as u16),
+        );
+        Ok(info)
+    }
 
     /// Asserts the user's top role is higher than the given role in the given guild.
     async fn assert_top_role_higher_than(
@@ -61,24 +94,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         role_id: u64,
     ) -> crate::Result<()> {
         let role_position = self.assert_role_exists(guild_id, role_id).await?;
-        let (top_role_id, top_position) = sqlx::query!(
-            r#"SELECT
-                id,
-                position
-            FROM
-                roles
-            WHERE
-                id = (SELECT role_id FROM role_data WHERE user_id = $1 AND guild_id = $2)
-            ORDER BY
-                position DESC
-            LIMIT 1
-            "#,
-            user_id as i64,
-            guild_id as i64,
-        )
-        .fetch_optional(self.executor())
-        .await?
-        .map_or((None, 0), |row| (Some(row.id as u64), row.position as u16));
+        let (top_role_id, top_position) = self.fetch_top_role(guild_id, user_id).await?;
 
         if role_position >= top_position {
             return Err(Error::RoleTooLow {
@@ -88,6 +104,33 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
                 desired_position: role_position,
                 message: String::from(
                     "You can only perform the requested action on roles lower than your top role.",
+                ),
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Asserts the invoker's top role is higher than the given target's top role in the given
+    /// guild.
+    async fn assert_top_role_higher_than_target(
+        &self,
+        guild_id: u64,
+        invoker_id: u64,
+        target_id: u64,
+    ) -> crate::Result<()> {
+        let (invoker_top_role_id, invoker_top_position) =
+            self.fetch_top_role(guild_id, invoker_id).await?;
+        let (_, target_top_position) = self.fetch_top_role(guild_id, target_id).await?;
+
+        if invoker_top_position <= target_top_position {
+            return Err(Error::RoleTooLow {
+                guild_id,
+                top_role_id: invoker_top_role_id,
+                top_role_position: invoker_top_position,
+                desired_position: target_top_position,
+                message: String::from(
+                    "You can only perform the requested action on users with a lower top role than your own.",
                 ),
             });
         }
@@ -117,6 +160,37 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         }
 
         Ok(())
+    }
+
+    /// Returns the highest position of the given roles by their IDs.
+    /// If no roles are given, returns 0.
+    ///
+    /// # Errors
+    /// * If an error occurs within the database.
+    async fn fetch_highest_position_in(
+        &self,
+        guild_id: u64,
+        role_ids: &[u64],
+    ) -> crate::Result<u16> {
+        sqlx::query!(
+            r#"SELECT
+                position
+            FROM
+                roles
+            WHERE
+                guild_id = $1
+            AND
+                id = ANY($2)
+            ORDER BY
+                position DESC
+            LIMIT 1
+            "#,
+            guild_id as i64,
+            &role_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map_or(Ok(0), |row| Ok(row.position as u16))
     }
 
     /// Fetches a role from the database with the given ID.
