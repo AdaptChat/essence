@@ -7,7 +7,7 @@ use crate::models::{ClientUser, Guild};
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[serde(tag = "op", rename_all = "snake_case")]
+#[serde(tag = "op", content = "data", rename_all = "snake_case")]
 #[allow(clippy::large_enum_variant)]
 pub enum OutboundMessage {
     /// Sent by harmony when a client first connects to it.
@@ -24,5 +24,11 @@ pub enum OutboundMessage {
         user: ClientUser,
         /// A list of guilds that the session's user is a member of.
         guilds: Vec<Guild>,
+    },
+    /// Sent by harmony when the client joins or creates a guild. Note that this does not include
+    /// guilds received from the `Ready` event, those must be accounted for separately.
+    GuildCreate {
+        /// The guild that was created.
+        guild: Guild,
     },
 }
