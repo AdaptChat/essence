@@ -12,7 +12,7 @@ use utoipa::ToSchema;
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum CreateGuildChannelInfo {
     /// A text channel.
     Text {
