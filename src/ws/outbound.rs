@@ -1,4 +1,3 @@
-use bincode::{Decode, Encode};
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
@@ -6,7 +5,7 @@ use serde::Serialize;
 use crate::models::{ClientUser, Guild};
 
 /// An outbound websocket message sent by harmony, received by the client.
-#[derive(Decode, Encode, Debug, Serialize)]
+#[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[serde(tag = "event", content = "data", rename_all = "snake_case")]
 #[allow(clippy::large_enum_variant)]
