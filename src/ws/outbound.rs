@@ -2,7 +2,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::models::{ClientUser, Guild};
+use crate::models::{ClientUser, Guild, GuildChannel};
 
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
@@ -28,7 +28,12 @@ pub enum OutboundMessage {
     /// Sent by harmony when the client joins or creates a guild. Note that this does not include
     /// guilds received from the `Ready` event, those must be accounted for separately.
     GuildCreate {
-        /// The guild that was created.
+        /// The guild that was joined or created.
         guild: Guild,
+    },
+    /// Sent by harmony when a channel is created within a guild.
+    GuildChannelCreate {
+        /// The channel that was created.
+        channel: GuildChannel,
     },
 }
