@@ -36,7 +36,8 @@ pub enum CreateGuildChannelInfo {
         /// of `0` is the default and indicates the absence of a user limit.
         #[serde(default)]
         user_limit: u16,
-        /// The URL of the icon of the channel, if any.
+        /// The icon of the channel represented as a
+        /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
         icon: Option<String>,
     },
     /// A category channel.
