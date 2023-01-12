@@ -7,6 +7,7 @@ use crate::models::{ClientUser, Guild, GuildChannel};
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "event", content = "data", rename_all = "snake_case")]
 #[allow(clippy::large_enum_variant)]
 pub enum OutboundMessage {

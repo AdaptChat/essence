@@ -80,9 +80,11 @@ pub struct GuildFolder {
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct ClientUser {
     /// The public user info about the client.
     #[serde(flatten)]
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub user: User,
     /// The associated email of the client's account.
     ///
@@ -134,8 +136,9 @@ impl ClientUser {
 
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[serde(rename_all = "snake_case")]
 pub enum RelationshipType {
     /// The user is added as a friend.
     #[default]
@@ -148,6 +151,7 @@ pub enum RelationshipType {
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Relationship {
     /// The ID of the user that this relationship is with.
     pub id: u64,

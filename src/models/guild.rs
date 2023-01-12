@@ -13,10 +13,11 @@ use utoipa::ToSchema;
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(untagged)]
 pub enum MaybePartialUser {
     /// A user with full information.
-    Full(User),
+    Full(#[cfg_attr(feature = "bincode", bincode(with_serde))] User),
     /// A user with only an ID.
     Partial { id: u64 },
 }
@@ -25,6 +26,7 @@ pub enum MaybePartialUser {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Member {
     /// The user associated with this member. This could be `None` in some cases.
     #[serde(flatten)]
@@ -36,6 +38,7 @@ pub struct Member {
     /// A list of IDs of the roles that the member has. This could be `None` in some cases.
     pub roles: Option<Vec<u64>>,
     /// The time that the member joined the guild.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub joined_at: DateTime<Utc>,
 }
 
@@ -79,6 +82,7 @@ pub struct GuildMemberCount {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct PartialGuild {
     /// The snowflake ID of the guild.
     pub id: u64,
@@ -93,9 +97,11 @@ pub struct PartialGuild {
     /// The ID of the owner of the guild.
     pub owner_id: u64,
     /// Extra information about the guild represented through bitflags.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: GuildFlags,
     /// The amount of members in the guild. This could be `None` at times. For partial guilds, the
     /// `online` field of this will also be `None`.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub member_count: Option<GuildMemberCount>,
     /// The vanity URL code of the guild. This solely includes the code, not the full URL.
     /// This is `None` if the guild does not have a vanity URL.
@@ -109,6 +115,7 @@ pub struct PartialGuild {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Guild {
     /// The information available to partial guilds, including the name and ID.
     #[serde(flatten)]
@@ -128,6 +135,7 @@ pub struct Guild {
     /// * The client retrieves the response after a request to join a guild through an invite
     /// * The client receives a ready event containing all guild data through the gateway.
     /// * The client receives a guild create event through the gateway.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub roles: Option<Vec<Role>>,
     /// A list of resolved channels in the guild.
     ///

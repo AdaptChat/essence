@@ -11,6 +11,7 @@ use utoipa::{
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct TextBasedGuildChannelInfo {
     /// The topic of the channel, if any.
     pub topic: Option<String>,
@@ -116,6 +117,7 @@ impl ChannelType {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum GuildChannelInfo {
@@ -151,12 +153,14 @@ impl GuildChannelInfo {
 /// Represents a permission overwrite.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct PermissionOverwrite {
     /// The ID of the role or user this overwrite applies to. The model type can be extracted from
     /// the ID.
     pub id: u64,
     /// The permissions this overwrite grants or denies.
     #[serde(flatten)]
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub permissions: PermissionPair,
 }
 
@@ -164,6 +168,7 @@ pub struct PermissionOverwrite {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct GuildChannel {
     /// The ID of the channel.
     pub id: u64,
