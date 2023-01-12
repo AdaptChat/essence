@@ -17,7 +17,7 @@ use utoipa::ToSchema;
 #[serde(untagged)]
 pub enum MaybePartialUser {
     /// A user with full information.
-    Full(#[cfg_attr(feature = "bincode", bincode(with_serde))] User),
+    Full(User),
     /// A user with only an ID.
     Partial { id: u64 },
 }
@@ -70,6 +70,7 @@ impl Member {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct GuildMemberCount {
     /// The total number of members in the guild.
     pub total: u32,
@@ -101,7 +102,6 @@ pub struct PartialGuild {
     pub flags: GuildFlags,
     /// The amount of members in the guild. This could be `None` at times. For partial guilds, the
     /// `online` field of this will also be `None`.
-    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub member_count: Option<GuildMemberCount>,
     /// The vanity URL code of the guild. This solely includes the code, not the full URL.
     /// This is `None` if the guild does not have a vanity URL.
@@ -135,7 +135,6 @@ pub struct Guild {
     /// * The client retrieves the response after a request to join a guild through an invite
     /// * The client receives a ready event containing all guild data through the gateway.
     /// * The client receives a guild create event through the gateway.
-    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub roles: Option<Vec<Role>>,
     /// A list of resolved channels in the guild.
     ///

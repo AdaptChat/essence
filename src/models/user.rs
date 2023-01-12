@@ -10,6 +10,7 @@ use utoipa::ToSchema;
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct User {
     /// The snowflake ID of the user.
     pub id: u64,
@@ -24,6 +25,7 @@ pub struct User {
     /// The user's bio. This is `None` if the user has no bio.
     pub bio: Option<String>,
     /// A bitmask of extra information associated with this user.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: UserFlags,
 }
 
@@ -84,7 +86,6 @@ pub struct GuildFolder {
 pub struct ClientUser {
     /// The public user info about the client.
     #[serde(flatten)]
-    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub user: User,
     /// The associated email of the client's account.
     ///

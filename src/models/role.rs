@@ -10,6 +10,7 @@ use utoipa::ToSchema;
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Role {
     /// The snowflake ID of the role.
     pub id: u64,
@@ -21,6 +22,7 @@ pub struct Role {
     /// has no color (in which case it inherits the color).
     pub color: Option<u32>,
     /// The permissions users with this role have.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub permissions: PermissionPair,
     /// The position of this role in the role hierarchy. The lower the number, the lower the role.
     /// The default role always has a position of 0.
@@ -30,6 +32,7 @@ pub struct Role {
     /// not be predictable, and will likely be in the order of model creation.
     pub position: u16,
     /// A bitmask of flags representing extra metadata about the role.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: RoleFlags,
 }
 
