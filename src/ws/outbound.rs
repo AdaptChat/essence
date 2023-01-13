@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::models::invite::Invite;
-use crate::models::{Channel, ClientUser, Guild, GuildChannel, Member, Role};
+use crate::models::{Channel, ClientUser, Guild, GuildChannel, Member, PartialGuild, Role};
 
 /// Extra information about member removal.
 #[derive(Debug, Serialize)]
@@ -11,6 +11,8 @@ use crate::models::{Channel, ClientUser, Guild, GuildChannel, Member, Role};
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type")]
 pub enum MemberRemoveInfo {
+    /// The guild was deleted. Note that this is never sent in `member_remove` events.
+    Delete,
     /// The member left on their own.
     Leave,
     /// The member was kicked.
@@ -54,15 +56,19 @@ pub enum OutboundMessage {
         /// The guild that was joined or created.
         guild: Guild,
     },
+    /// Sent by harmony when information about a guild is updated.
+    GuildUpdate {
+        /// The updated guild before modifications
+        before: PartialGuild,
+        /// The updated guild after modifications
+        after: PartialGuild,
+    },
     /// Sent by harmony when the client leaves or deletes a guild.
-    GuildDelete {
+    GuildRemove {
         /// The ID of the guild that was left or deleted.
         guild_id: u64,
-        /// Whether this event was sent due to the guild being deleted.
-        ///
-        /// If `true`, the guild was deleted by the guild's owner.
-        /// Otherwise, it is likely that the user was kicked or left the guild.
-        deleted: bool,
+        /// Extra information about the guild deletion.
+        info: MemberRemoveInfo,
     },
     /// Sent by harmony when a channel is created within a guild.
     GuildChannelCreate {
