@@ -2,7 +2,29 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::models::{ClientUser, Guild, GuildChannel};
+use crate::models::invite::Invite;
+use crate::models::{Channel, ClientUser, Guild, GuildChannel, Member, Role};
+
+/// Extra information about member removal.
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[serde(tag = "type")]
+pub enum MemberRemoveInfo {
+    /// The member left on their own.
+    Leave,
+    /// The member was kicked.
+    Kick {
+        /// The ID of the moderator that kicked the member.
+        moderator_id: u64,
+    },
+    // TODO: Ban should include ban info
+    /// The member was banned.
+    Ban {
+        /// The ID of the moderator that banned the member.
+        moderator_id: u64,
+    },
+}
 
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
@@ -47,16 +69,60 @@ pub enum OutboundMessage {
         /// The channel that was created.
         channel: GuildChannel,
     },
-    /// Sent by harmony when a channel is modified within a guild.
-    GuildChannelUpdate {
+    /// Sent by harmony when a channel is modified.
+    ChannelUpdate {
         /// The channel before it was modified.
-        before: GuildChannel,
+        before: Channel,
         /// The channel after modifications.
-        after: GuildChannel,
+        after: Channel,
     },
     /// Sent by harmony when a channel is deleted.
-    GuildChannelDelete {
+    ChannelDelete {
         /// The ID of the channel that was deleted.
         channel_id: u64,
+    },
+    /// Sent by harmony when a role is created within a guild.
+    RoleCreate {
+        /// The role that was created.
+        role: Role,
+    },
+    /// Sent by harmony when a role is updated.
+    RoleUpdate {
+        /// The role before it was modified.
+        before: Role,
+        /// The role after it was modified.
+        after: Role,
+    },
+    /// Sent by harmny when a role is deleted.
+    RoleDelete {
+        /// The ID of the role that was deleted.
+        role_id: u64,
+    },
+    /// Sent by harmony when a member joins a guild. The guild ID can be retrieved from
+    /// accessing `member.guild_id`.
+    MemberJoin {
+        /// Information about the member that joined the guild.
+        member: Member,
+        /// The invite used to join the guild, if any.
+        invite: Option<Invite>,
+    },
+    /// Sent by harmony when a member in a guild is updated. The guild ID can be retrieved from
+    /// accessing `before.guild_id` or `after.guild_id`.
+    MemberUpdate {
+        /// The member before it was modified.
+        before: Member,
+        /// The member after it was modified.
+        after: Member,
+    },
+    /// Sent by harmony when a member is removed from a guild. This can be due to a member leaving,
+    /// being kicked, or being banned.
+    MemberRemove {
+        /// The ID of the guild that the member was removed from.
+        guild_id: u64,
+        /// The ID of the member that was removed.
+        user_id: u64,
+        /// Extra information about the removal.
+        #[serde(flatten)]
+        info: MemberRemoveInfo,
     },
 }

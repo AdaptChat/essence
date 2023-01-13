@@ -240,6 +240,7 @@ fn tuple_u64_u64() -> Array {
 /// Represents extra information associated with DM channels.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 pub enum DmChannelInfo {
@@ -280,6 +281,7 @@ impl DmChannelInfo {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct DmChannel {
     /// The ID of the channel.
     pub id: u64,
@@ -292,6 +294,7 @@ pub struct DmChannel {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(untagged)]
 pub enum Channel {
     /// A guild channel.

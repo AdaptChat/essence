@@ -571,6 +571,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     }
 
     /// Edits a channel from a payload. Payload must be validated prior to updating the channel.
+    /// Returns a tuple ``(old_channel, new_channel)``.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -583,7 +584,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         &mut self,
         channel_id: u64,
         payload: EditChannelPayload,
-    ) -> crate::Result<Channel> {
+    ) -> crate::Result<(Channel, Channel)> {
         let mut channel = get_pool()
             .fetch_channel(channel_id)
             .await?
@@ -591,6 +592,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                 "channel",
                 format!("Channel with ID {channel_id} not found."),
             )?;
+        let old = channel.clone();
 
         if let Some(name) = payload.name {
             channel.set_name(name);
@@ -634,7 +636,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        Ok(channel)
+        Ok((old, channel))
     }
 
     /// Deletes the channel with the given ID.
