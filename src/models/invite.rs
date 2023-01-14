@@ -6,7 +6,8 @@ use utoipa::ToSchema;
 #[cfg(feature = "client")]
 use serde::Deserialize;
 
-/// A model representing an invite to a guild.
+/// A model representing an invite to a guild. All invites are **immutable**; they cannot be
+/// modified once changed.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]

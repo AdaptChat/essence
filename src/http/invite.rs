@@ -4,7 +4,8 @@ use serde::Serialize;
 #[cfg(feature = "openapi")]
 use utoipa::ToSchema;
 
-/// The payload sent to create a new invite in a guild.
+/// The payload sent to create a new invite in a guild. Note that invites are immutable, so after
+/// creation, they cannot be modified.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
