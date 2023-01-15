@@ -162,6 +162,38 @@
     },
     "query": "SELECT * FROM roles WHERE guild_id = $1 AND id = $2"
   },
+  "11a5fd22ccfb71922583b612936d529c2209a92d6319f70835803f9387741a6a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "guild_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "uses",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "max_uses",
+          "ordinal": 2,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE invites\n            SET uses = uses + 1\n            WHERE\n                code = $1\n                AND (max_age = 0 OR created_at + max_age * interval '1 second' > NOW())\n            RETURNING guild_id, uses, max_uses\n            "
+  },
   "12be787fd9a8ded7a277e77e97a5544cfecdd2c4125db7bb481568828824784b": {
     "describe": {
       "columns": [],
@@ -594,6 +626,27 @@
     },
     "query": "UPDATE\n                roles\n            SET\n                name = $1,\n                color = $2,\n                allowed_permissions = $3,\n                denied_permissions = $4,\n                flags = $5\n            WHERE\n                guild_id = $6\n            AND\n                id = $7\n            "
   },
+  "4000010fc286e6ce22cc622c737f5d15c6f56e1b1e012e4ceb59be90ed51cc3f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "joined_at",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO members (guild_id, id) VALUES ($1, $2)\n            ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at"
+  },
   "45a536b46a3654b06157d263f6722d44ca054a529c6e7f80f94b17c7c557d31b": {
     "describe": {
       "columns": [
@@ -687,6 +740,27 @@
       }
     },
     "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members m\n            CROSS JOIN LATERAL (\n                SELECT * FROM users u WHERE u.id = m.id\n            ) AS u\n            WHERE guild_id = $1"
+  },
+  "4a6436d4f88292cf7a475a1f45804089798d488e7770b998ac2d3f90fd1f0e04": {
+    "describe": {
+      "columns": [
+        {
+          "name": "joined_at",
+          "ordinal": 0,
+          "type_info": "Timestamptz"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT joined_at FROM members WHERE guild_id = $1 AND id = $2"
   },
   "50293c2e54af11d4c2a553e29b671cef087a159c6ee7182d8ca929ecb748f3b7": {
     "describe": {
