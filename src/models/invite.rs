@@ -1,6 +1,7 @@
 use crate::models::PartialGuild;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+#[cfg(feature = "openapi")]
 use utoipa::ToSchema;
 
 #[cfg(feature = "client")]
