@@ -1,7 +1,9 @@
-use crate::db::{DbExt, GuildDbExt};
-use crate::http::invite::CreateInvitePayload;
-use crate::models::invite::Invite;
-use crate::Error;
+use crate::{
+    db::{DbExt, GuildDbExt, MemberDbExt},
+    http::invite::CreateInvitePayload,
+    models::{invite::Invite, Member},
+    Error, NotFoundExt,
+};
 
 macro_rules! construct_invite {
     ($data:ident, $guild:expr) => {{
@@ -70,6 +72,44 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         Ok(invites)
     }
 
+    /// Uses an invite and increments the uses counter.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If no invite is found with the given invite code.
+    /// * If an error occurs with creating the invite.
+    async fn use_invite(
+        &mut self,
+        user_id: u64,
+        code: impl AsRef<str> + Send,
+    ) -> crate::Result<Member> {
+        let code = code.as_ref();
+        let invite = sqlx::query!(
+            r#"UPDATE invites
+            SET uses = uses + 1
+            WHERE
+                code = $1
+                AND (max_age = 0 OR created_at + max_age * interval '1 second' > NOW())
+            RETURNING guild_id, uses, max_uses
+            "#,
+            code,
+        )
+        .fetch_optional(self.transaction())
+        .await?
+        .ok_or_not_found("invite", format!("No invite with code {code} found"))?;
+
+        if invite.uses >= invite.max_uses {
+            self.delete_invite(code).await?;
+        }
+
+        self.create_member(invite.guild_id as _, user_id)
+            .await
+            .map_err(Into::into)
+    }
+
     /// Creates an invite for the given guild.
     ///
     /// # Note
@@ -133,7 +173,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
     /// * If the guild is not found.
     /// * If an error occurs with creating the invite.
     async fn delete_invite(&mut self, code: impl AsRef<str> + Send) -> crate::Result<()> {
-        sqlx::query!(r#"DELETE FROM invites WHERE code = $1"#, code.as_ref(),)
+        sqlx::query!(r#"DELETE FROM invites WHERE code = $1"#, code.as_ref())
             .execute(self.transaction())
             .await?;
 
