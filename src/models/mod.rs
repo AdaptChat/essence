@@ -10,6 +10,7 @@ pub mod user;
 
 pub use channel::*;
 pub use guild::*;
+pub use invite::*;
 pub use message::*;
 pub use permissions::*;
 pub use role::*;
