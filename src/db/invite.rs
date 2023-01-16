@@ -123,6 +123,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         &mut self,
         guild_id: u64,
         inviter_id: u64,
+        channel_id: Option<u64>,
         code: String,
         payload: CreateInvitePayload,
     ) -> crate::Result<Invite> {
@@ -137,7 +138,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
             code,
             inviter_id as i64,
             guild_id as i64,
-            payload.channel_id.map(|c| c as i64),
+            channel_id.map(|c| c as i64),
             payload.max_uses as i32,
             payload.max_age as i32,
         )
@@ -155,7 +156,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
             inviter_id,
             guild: None,
             guild_id,
-            channel_id: payload.channel_id,
+            channel_id,
             created_at,
             uses: 0,
             max_uses: payload.max_uses,
