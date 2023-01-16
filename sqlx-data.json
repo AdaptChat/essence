@@ -162,38 +162,6 @@
     },
     "query": "SELECT * FROM roles WHERE guild_id = $1 AND id = $2"
   },
-  "11a5fd22ccfb71922583b612936d529c2209a92d6319f70835803f9387741a6a": {
-    "describe": {
-      "columns": [
-        {
-          "name": "guild_id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "uses",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "max_uses",
-          "ordinal": 2,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE invites\n            SET uses = uses + 1\n            WHERE\n                code = $1\n                AND (max_age = 0 OR created_at + max_age * interval '1 second' > NOW())\n            RETURNING guild_id, uses, max_uses\n            "
-  },
   "12be787fd9a8ded7a277e77e97a5544cfecdd2c4125db7bb481568828824784b": {
     "describe": {
       "columns": [],
@@ -301,6 +269,62 @@
       }
     },
     "query": "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1)"
+  },
+  "1c244b204b6dc9ee0ed7c56673644cc66ac548872772c7eacdd7d7565c669de0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "code",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "inviter_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "created_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "uses",
+          "ordinal": 4,
+          "type_info": "Int4"
+        },
+        {
+          "name": "max_uses",
+          "ordinal": 5,
+          "type_info": "Int4"
+        },
+        {
+          "name": "max_age",
+          "ordinal": 6,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE invites\n            SET uses = uses + 1\n            WHERE\n                code = $1\n                AND (max_age = 0 OR created_at + max_age * interval '1 second' > NOW())\n            RETURNING *\n            "
   },
   "1fee245716c07941ac5dd77780673fabfbd5f8e51d7deef0273cdc41a072438b": {
     "describe": {
