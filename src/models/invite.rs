@@ -23,8 +23,6 @@ pub struct Invite {
     pub guild: Option<PartialGuild>,
     /// The ID of the guild this invite leads to.
     pub guild_id: u64,
-    /// The ID of the channel this invite leads to, or `None` if this invite leads to no channel.
-    pub channel_id: Option<u64>,
     /// A timestamp representing when this invite was created.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub created_at: DateTime<Utc>,

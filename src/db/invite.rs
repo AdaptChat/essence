@@ -11,7 +11,6 @@ macro_rules! construct_invite {
             code: $data.code,
             guild_id: $data.guild_id as _,
             guild: $guild,
-            channel_id: $data.channel_id.map(|c| c as _),
             inviter_id: $data.inviter_id as _,
             max_age: $data.max_age as _,
             max_uses: $data.max_uses as _,
@@ -123,22 +122,20 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         &mut self,
         guild_id: u64,
         inviter_id: u64,
-        channel_id: Option<u64>,
         code: String,
         payload: CreateInvitePayload,
     ) -> crate::Result<Invite> {
         let created_at = sqlx::query!(
             r#"INSERT INTO invites
-                (code, inviter_id, guild_id, channel_id, max_uses, max_age)
+                (code, inviter_id, guild_id, max_uses, max_age)
             VALUES
-                ($1, $2, $3, $4, $5, $6)
+                ($1, $2, $3, $4, $5)
             ON CONFLICT (code) DO NOTHING
             RETURNING created_at
             "#,
             code,
             inviter_id as i64,
             guild_id as i64,
-            channel_id.map(|c| c as i64),
             payload.max_uses as i32,
             payload.max_age as i32,
         )
@@ -156,7 +153,6 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
             inviter_id,
             guild: None,
             guild_id,
-            channel_id,
             created_at,
             uses: 0,
             max_uses: payload.max_uses,

@@ -99,7 +99,7 @@ bitflags::bitflags! {
         /// grant or deny any permissions they do not have themselves. They can also assign and
         /// remove any roles to other members, as long as the target role is below their top role.
         const MANAGE_ROLES = 1 << 16;
-        /// \*: People with this permission can create an invite which links to the channel.
+        /// \-: People with this permission can create invites to the guild.
         const CREATE_INVITES = 1 << 17;
         /// \-: People with this permission can revoke or pause invites of any channel in the guild.
         /// This does not take into account the `CREATE_INVITES` permission, meaning they can revoke
