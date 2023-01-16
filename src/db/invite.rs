@@ -84,7 +84,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         &mut self,
         user_id: u64,
         code: impl AsRef<str> + Send,
-    ) -> crate::Result<(Invite, Member)> {
+    ) -> crate::Result<Option<(Invite, Member)>> {
         let code = code.as_ref();
         let invite = sqlx::query!(
             r#"UPDATE invites
@@ -106,7 +106,10 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         }
 
         let guild_id = invite.guild_id;
-        Ok((invite, self.create_member(guild_id, user_id).await?))
+        Ok(self
+            .create_member(guild_id, user_id)
+            .await?
+            .map(|member| (invite, member)))
     }
 
     /// Creates an invite for the given guild.

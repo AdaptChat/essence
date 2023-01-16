@@ -230,7 +230,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     }
 
     /// Creates a member in the database with the given guild and user ID. If the user is already
-    /// in the guild, this returns that member.
+    /// in the guild, this returns `None`.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -238,7 +238,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with creating the member.
-    async fn create_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<Member> {
+    async fn create_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<Option<Member>> {
         let joined_at = if let Some(joined_at) = sqlx::query!(
             "INSERT INTO members (guild_id, id) VALUES ($1, $2)
             ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at",
@@ -251,23 +251,16 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         {
             joined_at
         } else {
-            sqlx::query!(
-                "SELECT joined_at FROM members WHERE guild_id = $1 AND id = $2",
-                guild_id as i64,
-                user_id as i64,
-            )
-            .fetch_one(get_pool())
-            .await?
-            .joined_at
+            return Ok(None);
         };
 
-        Ok(Member {
+        Ok(Some(Member {
             guild_id,
             user: MaybePartialUser::Partial { id: user_id },
             nick: None,
             joined_at,
             roles: None,
-        })
+        }))
     }
 
     /// Deletes a member from the database with the given guild and user ID.
