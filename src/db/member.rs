@@ -239,7 +239,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with creating the member.
     async fn create_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<Option<Member>> {
-        let joined_at = if let Some(joined_at) = sqlx::query!(
+        let member = sqlx::query!(
             "INSERT INTO members (guild_id, id) VALUES ($1, $2)
             ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at",
             guild_id as i64,
@@ -247,20 +247,15 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         )
         .fetch_optional(self.transaction())
         .await?
-        .map(|m| m.joined_at)
-        {
-            joined_at
-        } else {
-            return Ok(None);
-        };
-
-        Ok(Some(Member {
+        .map(|m| Member {
             guild_id,
             user: MaybePartialUser::Partial { id: user_id },
             nick: None,
-            joined_at,
+            joined_at: m.joined_at,
             roles: None,
-        }))
+        });
+
+        Ok(member)
     }
 
     /// Deletes a member from the database with the given guild and user ID.
