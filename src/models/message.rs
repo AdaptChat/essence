@@ -104,6 +104,7 @@ pub struct Embed {
     /// title.
     pub url: Option<String>,
     /// The timestamp of the embed.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub timestamp: Option<DateTime<Utc>>,
     /// The color of the embed, shown as a stripe on the left side of the embed.
     pub color: Option<u32>,
