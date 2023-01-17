@@ -66,7 +66,7 @@ pub struct DeleteGuildPayload {
 }
 
 /// The query parameters used to specify what information to return when fetching a guild.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "openapi", derive(IntoParams))]
 pub struct GetGuildQuery {
@@ -79,4 +79,24 @@ pub struct GetGuildQuery {
     /// Whether to resolve the guild's roles in the response.
     #[serde(default)]
     pub roles: bool,
+}
+
+impl GetGuildQuery {
+    /// Creates a new query with all fields set to `false`.
+    pub const fn new() -> Self {
+        Self {
+            channels: false,
+            members: false,
+            roles: false,
+        }
+    }
+
+    /// Creates a new query with all fields set to `true`.
+    pub const fn all() -> Self {
+        Self {
+            channels: true,
+            members: true,
+            roles: true,
+        }
+    }
 }
