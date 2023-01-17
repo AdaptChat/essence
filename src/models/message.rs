@@ -212,6 +212,7 @@ pub struct Message {
     /// A list of attachments included in this message.
     pub attachments: Vec<Attachment>,
     /// A bitmask of message flags to indicate special properties of the message.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: MessageFlags,
     /// The amount of stars this message has received.
     pub stars: u32,
