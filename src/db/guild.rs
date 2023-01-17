@@ -121,11 +121,11 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .await
     }
 
-    /// Asserts the given user is the owner of the given guild.
-    async fn assert_member_is_owner(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+    /// Returns `true` if the given user is the owner of the guild.
+    async fn is_guild_owner(&self, guild_id: u64, user_id: u64) -> crate::Result<bool> {
         self.assert_guild_exists(guild_id).await?;
 
-        if !sqlx::query!(
+        Ok(sqlx::query!(
             "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1 AND owner_id = $2)",
             guild_id as i64,
             user_id as i64,
@@ -133,8 +133,12 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .fetch_one(self.executor())
         .await?
         .exists
-        .unwrap_or(false)
-        {
+        .unwrap_or(false))
+    }
+
+    /// Asserts the given user is the owner of the given guild.
+    async fn assert_member_is_owner(&self, guild_id: u64, user_id: u64) -> crate::Result<()> {
+        if !self.is_guild_owner(guild_id, user_id).await? {
             return Err(Error::NotOwner {
                 guild_id,
                 message: String::from(

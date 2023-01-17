@@ -96,7 +96,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         let role_position = self.assert_role_exists(guild_id, role_id).await?;
         let (top_role_id, top_position) = self.fetch_top_role(guild_id, user_id).await?;
 
-        if role_position >= top_position {
+        if role_position >= top_position && !self.is_guild_owner(guild_id, user_id).await? {
             return Err(Error::RoleTooLow {
                 guild_id,
                 top_role_id,
@@ -123,7 +123,9 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             self.fetch_top_role(guild_id, invoker_id).await?;
         let (_, target_top_position) = self.fetch_top_role(guild_id, target_id).await?;
 
-        if invoker_top_position <= target_top_position {
+        if invoker_top_position <= target_top_position
+            && !self.is_guild_owner(guild_id, invoker_id).await?
+        {
             return Err(Error::RoleTooLow {
                 guild_id,
                 top_role_id: invoker_top_role_id,
