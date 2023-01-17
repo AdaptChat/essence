@@ -11,6 +11,7 @@ use utoipa::ToSchema;
 #[derive(Clone, Copy, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum EmbedType {
     /// A custom, rich embed that is manually constructed. This is the only type that is available
@@ -28,6 +29,7 @@ pub enum EmbedType {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct EmbedAuthor {
     /// The name of the author.
     pub name: String,
@@ -41,6 +43,7 @@ pub struct EmbedAuthor {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct EmbedFooter {
     /// The text of the footer.
     pub text: String,
@@ -52,6 +55,7 @@ pub struct EmbedFooter {
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum MessageEmbedFieldAlignment {
     /// The field is aligned to the left.
@@ -70,6 +74,7 @@ pub enum MessageEmbedFieldAlignment {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct EmbedField {
     /// The name of the field.
     pub name: String,
@@ -86,6 +91,7 @@ pub struct EmbedField {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Embed {
     /// The type of the embed.
     #[serde(rename = "type")]
@@ -120,6 +126,7 @@ pub struct Embed {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Attachment {
     /// The snowflake ID of the attachment.
     pub id: u64,
@@ -137,6 +144,7 @@ pub struct Attachment {
 #[derive(Clone, Copy, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type", content = "metadata")]
 #[serde(rename_all = "snake_case")]
 pub enum MessageInfo {
@@ -166,6 +174,7 @@ pub enum MessageInfo {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(untagged)]
 pub enum MemberOrUser {
     /// A member.
@@ -178,6 +187,7 @@ pub enum MemberOrUser {
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Message {
     /// The snowflake ID of the message.
     pub id: u64,
