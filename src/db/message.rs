@@ -37,6 +37,22 @@ macro_rules! construct_message {
 
 #[async_trait::async_trait]
 pub trait MessageDbExt<'t>: DbExt<'t> {
+    /// Fetches quick metadata about a message. Returns `author_id`.
+    ///
+    /// # Errors
+    /// * If an error occurs inspecting the message
+    async fn inspect_message(&self, message_id: u64) -> crate::Result<Option<Option<u64>>> {
+        let data = sqlx::query!(
+            "SELECT author_id FROM messages WHERE id = $1",
+            message_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|data| data.author_id.map(|id| id as _));
+
+        Ok(data)
+    }
+
     /// Fetches a message from the database with the given ID in the given channel.
     ///
     /// # Errors
