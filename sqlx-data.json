@@ -462,6 +462,26 @@
     },
     "query": "INSERT INTO\n                guilds (id, name, description, icon, banner, owner_id, flags)\n            VALUES\n                ($1, $2, $3, $4, $5, $6, $7)\n            "
   },
+  "16be74ae3c10e45fcfaa6f8cc7422758ff28d782da6929de21fd4d6560ac657c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "author_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT author_id FROM messages WHERE id = $1"
+  },
   "179f3babac19b2c6a4dde26dbadc37ea17e2ea34bf95a3f714841a8e0cac2f6f": {
     "describe": {
       "columns": [
