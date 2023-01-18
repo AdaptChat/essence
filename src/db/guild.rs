@@ -35,7 +35,7 @@ macro_rules! construct_partial_guild {
     }};
 }
 
-#[async_trait::async_trait]
+#[cfg_attr(not(feature = "async-trait"), async_trait::async_trait)]
 pub trait GuildDbExt<'t>: DbExt<'t> {
     /// Asserts a guild with the given ID exists.
     async fn assert_guild_exists(&self, guild_id: u64) -> crate::Result<()> {

@@ -35,7 +35,7 @@ macro_rules! construct_message {
     }};
 }
 
-#[async_trait::async_trait]
+#[cfg_attr(not(feature = "async-trait"), async_trait::async_trait)]
 pub trait MessageDbExt<'t>: DbExt<'t> {
     /// Fetches a message from the database with the given ID in the given channel.
     ///
