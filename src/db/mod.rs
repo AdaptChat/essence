@@ -3,6 +3,7 @@ mod channel;
 mod guild;
 mod invite;
 mod member;
+mod message;
 mod role;
 mod user;
 
@@ -11,6 +12,7 @@ pub use channel::ChannelDbExt;
 pub use guild::GuildDbExt;
 pub use invite::InviteDbExt;
 pub use member::MemberDbExt;
+pub use message::MessageDbExt;
 pub use role::RoleDbExt;
 pub use user::UserDbExt;
 

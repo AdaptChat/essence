@@ -1,15 +1,12 @@
 use super::{Member, User};
 use crate::serde_for_bitflags;
 use chrono::{DateTime, Utc};
-#[cfg(feature = "client")]
-use serde::Deserialize;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "openapi")]
 use utoipa::ToSchema;
 
 /// The type of a message embed.
-#[derive(Clone, Copy, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
@@ -26,8 +23,7 @@ pub enum EmbedType {
 }
 
 /// The author information of a message embed.
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct EmbedAuthor {
@@ -40,8 +36,7 @@ pub struct EmbedAuthor {
 }
 
 /// The footer information of a message embed.
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct EmbedFooter {
@@ -52,8 +47,7 @@ pub struct EmbedFooter {
 }
 
 /// The alignment type of a message embed field.
-#[derive(Clone, Copy, Debug, Default, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
@@ -71,8 +65,7 @@ pub enum MessageEmbedFieldAlignment {
 }
 
 /// Information about an embed's field.
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct EmbedField {
@@ -88,8 +81,7 @@ pub struct EmbedField {
 /// Represents a special card shown in the UI for various purposes, embedding extra information
 /// to the user in a more visually appealing way. These are known as embeds and are used in
 /// messages.
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Embed {
@@ -196,9 +188,8 @@ pub struct Message {
     pub revision_id: Option<u64>,
     /// The snowflake ID of the channel this message was sent in.
     pub channel_id: u64,
-    /// The snowflake ID of the guild this message was sent in, if any.
-    pub guild_id: Option<u64>,
-    /// The snowflake ID of the author of this message, or `None` if this is a system message.
+    /// The snowflake ID of the author of this message, or `None` if this is a system message, or if
+    /// the user has been deleted.
     pub author_id: Option<u64>,
     /// Resolved data about the user or member that sent this message.
     /// This is only present for new messages that are received.

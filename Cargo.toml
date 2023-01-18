@@ -21,10 +21,11 @@ chrono = { version = "0.4.23", features = ["serde"] }
 itertools = { version = "0.10", optional = true }
 ring = { version = "0.16.20", optional = true }
 serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
 
 [dependencies.sqlx]
 version = "0.6"
-features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "chrono"]
+features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "chrono", "json"]
 optional = true
 
 [dependencies.utoipa]
@@ -37,7 +38,7 @@ optional = true
 default = ["snowflakes"]
 auth = ["snowflakes", "dep:argon2-async", "dep:ring", "token-parsing"]
 client = []
-db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "snowflakes"]
+db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "snowflakes", "serde_json"]
 openapi = ["dep:utoipa"]
 token-parsing = ["dep:base64", "snowflakes"]
 snowflakes = []

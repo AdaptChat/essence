@@ -16,10 +16,9 @@ macro_rules! query_member {
                 u.bio AS bio,
                 u.flags AS flags
             FROM
-                members m
-            CROSS JOIN LATERAL (
-                SELECT * FROM users u WHERE u.id = m.id
-            ) AS u
+                members AS m
+            INNER JOIN
+                users AS u ON u.id = m.id
             "# + $where,
             $($arg),*
         )
