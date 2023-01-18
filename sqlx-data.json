@@ -232,6 +232,100 @@
     },
     "query": "DELETE FROM channels WHERE id = $1"
   },
+  "0c9f645069caa860ec011099ea9a17dc29398d44d92ad75fcdaa2b445b8cd5d0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "embeds",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "stars",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "metadata_user_id",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_message_id",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_by",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+          "ordinal": 12,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n                UPDATE messages SET revision_id = $1\n                WHERE id = $2 AND channel_id = $3 AND revision_id = 0\n                RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n            "
+  },
   "0cb2f6d718186651a08820321b47dbdcf574f8f20dc8b7d84597bdfde61b0f7b": {
     "describe": {
       "columns": [
@@ -2423,6 +2517,19 @@
       }
     },
     "query": "DELETE FROM role_data WHERE guild_id = $1 AND user_id = $2 AND role_id != $3"
+  },
+  "f097718cce3349d88d5d8c01966697788131591ac244df768b8b37042547775f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM messages WHERE id = $1 AND channel_id = $2"
   },
   "f3f58600e971f1be6cbe206bba24f77769f54c6230e28f5b3dc719b869d9cb3f": {
     "describe": {
