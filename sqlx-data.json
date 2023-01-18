@@ -1,5 +1,175 @@
 {
   "db": "PostgreSQL",
+  "008c913f7382dcae152cd5e31ceb2c077f1596cabc77bbfc2d78692071ece694": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nick",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "joined_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 9,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members AS m\n            INNER JOIN\n                users AS u ON u.id = m.id\n            WHERE guild_id = $1"
+  },
+  "0134a963f2e04f3ec2febcd0bf47242dc180aa41deb347319394bafbde879354": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "embeds",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "stars",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "metadata_user_id",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_message_id",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_by",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+          "ordinal": 12,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                        messages.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages\n                    WHERE\n                        channel_id = $1\n                    AND\n                        revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR author_id = $4)\n                    ORDER BY id ASC LIMIT $5"
+  },
   "08352cdccaa069d3bd25e783dd19b6e290dc2399f1f826e687a1422fdfed4c8e": {
     "describe": {
       "columns": [
@@ -472,6 +642,22 @@
     },
     "query": "SELECT \n                guilds.*,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds \n            WHERE \n                id IN (SELECT guild_id FROM members WHERE id = $1)\n            "
   },
+  "2b72dc65f84de2c96fe943fb2fc90c181f10da5e6063c5497e973e344ec32797": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Text",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "INSERT INTO messages (id, channel_id, author_id, content, embeds)\n             VALUES ($1, $2, $3, $4, $5::JSONB)"
+  },
   "2bb472caf08d980deb946359f3d68dd0295fa710d12580dfe9711dedaa1a6aaa": {
     "describe": {
       "columns": [
@@ -685,80 +871,6 @@
     },
     "query": "SELECT token FROM tokens WHERE user_id = $1"
   },
-  "486ac13b159d08c4e8243c0d5923ba930bf20b41ee94465a360f7d5b166b6400": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "guild_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "nick",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "joined_at",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "username",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "discriminator",
-          "ordinal": 5,
-          "type_info": "Int2"
-        },
-        {
-          "name": "avatar",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "banner",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "bio",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "flags",
-          "ordinal": 9,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members m\n            CROSS JOIN LATERAL (\n                SELECT * FROM users u WHERE u.id = m.id\n            ) AS u\n            WHERE guild_id = $1"
-  },
   "50293c2e54af11d4c2a553e29b671cef087a159c6ee7182d8ca929ecb748f3b7": {
     "describe": {
       "columns": [],
@@ -791,6 +903,99 @@
       }
     },
     "query": "INSERT INTO members (id, guild_id) VALUES ($1, $2) RETURNING joined_at"
+  },
+  "5b06fca807465ebbf0adb25fb0bb6adbc282c70d96b72afbf01c2821e9249634": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "embeds",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "stars",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "metadata_user_id",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_message_id",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_by",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+          "ordinal": 12,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                messages.*,\n                embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n            FROM\n                messages\n            WHERE\n                channel_id = $1\n            AND\n                id = $2\n            AND\n                revision_id = 0\n            "
   },
   "60d9eee901af4add73b42e09909165b45e85639c8e6ba564725cd0ba8c0b833e": {
     "describe": {
@@ -1295,81 +1500,6 @@
     },
     "query": "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2)"
   },
-  "96e239cd603f7da0d7e80a96009137b820aa4236d5c50a77b6ccd01aeb085478": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "guild_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "nick",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "joined_at",
-          "ordinal": 3,
-          "type_info": "Timestamptz"
-        },
-        {
-          "name": "username",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "discriminator",
-          "ordinal": 5,
-          "type_info": "Int2"
-        },
-        {
-          "name": "avatar",
-          "ordinal": 6,
-          "type_info": "Text"
-        },
-        {
-          "name": "banner",
-          "ordinal": 7,
-          "type_info": "Text"
-        },
-        {
-          "name": "bio",
-          "ordinal": 8,
-          "type_info": "Text"
-        },
-        {
-          "name": "flags",
-          "ordinal": 9,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members m\n            CROSS JOIN LATERAL (\n                SELECT * FROM users u WHERE u.id = m.id\n            ) AS u\n            WHERE guild_id = $1 AND m.id = $2"
-  },
   "9917d85ed925023644e6d359b3efffa5e65c7e3cb1a720ed608ed0c83c4f7572": {
     "describe": {
       "columns": [
@@ -1552,6 +1682,177 @@
       }
     },
     "query": "SELECT flags FROM roles WHERE guild_id = $1 AND id = $2"
+  },
+  "bed6e0bc072164cefe0f62e2433290c6b2601d5e85e013d84de4ee360b8a484d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "embeds",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "stars",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "metadata_user_id",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_message_id",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_by",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+          "ordinal": 12,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                        messages.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages\n                    WHERE\n                        channel_id = $1\n                    AND\n                        revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR author_id = $4)\n                    ORDER BY id DESC LIMIT $5"
+  },
+  "c0e8c822329cf7f119412c93753f3cd476d8d426e27a456d7257ee1dd3192e0a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "nick",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "joined_at",
+          "ordinal": 3,
+          "type_info": "Timestamptz"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 5,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 8,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 9,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members AS m\n            INNER JOIN\n                users AS u ON u.id = m.id\n            WHERE guild_id = $1 AND m.id = $2"
   },
   "c2d79cd2ee7e2ca0694dc47e7cf50f21da605bad0e1dc5575b2d7845747bf733": {
     "describe": {
