@@ -138,16 +138,16 @@ pub enum OutboundMessage {
         /// The message that was sent by a user.
         message: Message,
     },
-    /// Sent by harmony when a message was deleted.
-    MessageEdit {
-        /// The message before it was edited.
-        old: Message,
-        /// The message after it was edited.
-        new: Message,
+    /// Sent by harmony when a message is updated.
+    MessageUpdate {
+        /// The message before it was modified.
+        before: Message,
+        /// The message after it was modified.
+        after: Message,
     },
-    /// Sent by harmony when a message was deleted.
+    /// Sent by harmony when a message is deleted.
     MessageDelete {
-        /// The message that was deleted.
-        message: Message,
+        /// The ID of the message that was deleted.
+        message_id: u64,
     },
 }

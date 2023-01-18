@@ -187,7 +187,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         message_id: u64,
         revision_id: u64,
         payload: EditMessagePayload,
-    ) -> crate::Result<Message> {
+    ) -> crate::Result<(Message, Message)> {
         let message = sqlx::query!(
             r#"
                 UPDATE messages SET revision_id = $1
@@ -201,18 +201,22 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .fetch_one(self.transaction())
         .await?;
 
-        let message = construct_message!(message);
+        let old = construct_message!(message);
         let payload = CreateMessagePayload {
-            content: payload.content.into_option_or_if_absent(message.content),
+            content: payload
+                .content
+                .into_option_or_if_absent_then(|| old.content.clone()),
             embeds: payload
                 .embeds
-                .into_option_or_if_absent(Some(message.embeds))
+                .into_option_or_if_absent_then(|| Some(old.embeds.clone()))
                 .unwrap_or_default(),
             nonce: None,
         };
 
-        self.create_message(channel_id, message_id, message.author_id.unwrap(), payload)
-            .await
+        let new = self
+            .create_message(channel_id, message_id, old.author_id.unwrap(), payload)
+            .await?;
+        Ok((old, new))
     }
 
     /// Deletes a message with the given channel and message ID.
