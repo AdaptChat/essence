@@ -171,6 +171,68 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             nonce: None,
         })
     }
+
+    /// Edits a message in the given channel. This turns the current message into a revision of the
+    /// message, and creates a new message with the new data.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the message.
+    async fn edit_message(
+        &mut self,
+        channel_id: u64,
+        message_id: u64,
+        revision_id: u64,
+        payload: EditMessagePayload,
+    ) -> crate::Result<Message> {
+        let message = sqlx::query!(
+            r#"
+                UPDATE messages SET revision_id = $1
+                WHERE id = $2 AND channel_id = $3 AND revision_id = 0
+                RETURNING *, embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+            "#,
+            revision_id as i64,
+            message_id as i64,
+            channel_id as i64,
+        )
+        .fetch_one(self.transaction())
+        .await?;
+
+        let message = construct_message!(message);
+        let payload = CreateMessagePayload {
+            content: payload.content.into_option_or_if_absent(message.content),
+            embeds: payload
+                .embeds
+                .into_option_or_if_absent(Some(message.embeds))
+                .unwrap_or_default(),
+            nonce: None,
+        };
+
+        self.create_message(channel_id, message_id, message.author_id.unwrap(), payload)
+            .await
+    }
+
+    /// Deletes a message with the given channel and message ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the message.
+    async fn delete_message(&self, channel_id: u64, message_id: u64) -> crate::Result<()> {
+        sqlx::query!(
+            "DELETE FROM messages WHERE id = $1 AND channel_id = $2",
+            message_id as i64,
+            channel_id as i64,
+        )
+        .execute(self.executor())
+        .await?;
+
+        Ok(())
+    }
 }
 
 impl<'t, T> MessageDbExt<'t> for T where T: DbExt<'t> {}
