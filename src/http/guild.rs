@@ -83,6 +83,7 @@ pub struct GetGuildQuery {
 
 impl GetGuildQuery {
     /// Creates a new query with all fields set to `false`.
+    #[inline]
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -93,6 +94,7 @@ impl GetGuildQuery {
     }
 
     /// Creates a new query with all fields set to `true`.
+    #[inline]
     #[must_use]
     pub const fn all() -> Self {
         Self {
