@@ -36,7 +36,6 @@ optional = true
 
 [features]
 default = ["snowflakes"]
-async-trait = []
 auth = ["snowflakes", "dep:argon2-async", "dep:ring", "token-parsing"]
 client = []
 db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "snowflakes", "serde_json"]

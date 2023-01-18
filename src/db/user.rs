@@ -47,7 +47,7 @@ macro_rules! fetch_client_user {
     }};
 }
 
-#[cfg_attr(not(feature = "async-trait"), async_trait::async_trait)]
+#[async_trait::async_trait]
 pub trait UserDbExt<'t>: DbExt<'t> {
     /// Fetches a user from the database with the given ID.
     ///

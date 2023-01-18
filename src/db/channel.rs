@@ -95,7 +95,7 @@ use crate::http::channel::{CreateGuildChannelInfo, CreateGuildChannelPayload, Ed
 #[allow(clippy::redundant_pub_crate)] // false positive
 pub(crate) use {construct_guild_channel, query_guild_channels};
 
-#[cfg_attr(not(feature = "async-trait"), async_trait::async_trait)]
+#[async_trait::async_trait]
 pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// Asserts the given channel ID exists in the given guild.
     async fn assert_channel_in_guild(&self, guild_id: u64, channel_id: u64) -> crate::Result<()> {

@@ -20,7 +20,7 @@ macro_rules! construct_invite {
     }};
 }
 
-#[cfg_attr(not(feature = "async-trait"), async_trait::async_trait)]
+#[async_trait::async_trait]
 pub trait InviteDbExt<'t>: DbExt<'t> {
     /// Fetches an invite from the database with the given code. Returns `None` if the invite is not
     /// found. Since this is fetching a single invite, this will include guild information.
