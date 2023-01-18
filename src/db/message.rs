@@ -168,7 +168,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             attachments: Vec::new(),
             flags: MessageFlags::empty(),
             stars: 0,
-            nonce: None,
+            nonce: payload.nonce,
         })
     }
 
