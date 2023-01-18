@@ -29,11 +29,17 @@ pub struct CreateMessagePayload {
 #[cfg_attr(feature = "openapi", derive(ToSchema))]
 pub struct EditMessagePayload {
     /// The new content of the message, if any. Explicitly specify `null` to remove the content.
+    #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
     pub content: Maybe<String>,
     /// A list of rich embeds to send with the message.
     ///
     /// This will overwrite any existing embeds if specified.
     /// This wlil remove all embeds if set to either an empty list or explicitly set to `null`.
+    #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
+    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Vec<Embed>))]
     pub embeds: Maybe<Vec<Embed>>,
 }
 
