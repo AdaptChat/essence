@@ -167,7 +167,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             return Ok(Permissions::all());
         }
 
-        let mut roles = self.fetch_all_roles_in_guild(guild_id).await?;
+        let mut roles = self.fetch_all_roles_for_member(guild_id, user_id).await?;
         let overwrites = match channel_id {
             Some(channel_id) => Some(self.fetch_channel_overwrites(channel_id).await?),
             None => None,
@@ -498,18 +498,20 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .joined_at;
 
         let role_flags = RoleFlags::DEFAULT;
-        let perms = sqlx::query!(
+        let allowed_permissions = Permissions::DEFAULT;
+        let denied_permissions = Permissions::empty();
+
+        sqlx::query!(
             r#"INSERT INTO roles
-                (id, guild_id, name, flags, position)
+                (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)
             VALUES
-                ($1, $2, 'Default', $3, 0)
-            RETURNING
-                allowed_permissions AS "allowed_permissions!",
-                denied_permissions AS "denied_permissions!"
+                ($1, $2, 'Default', $3, 0, $4, $5)
             "#,
             role_id as i64,
             guild_id as i64,
             role_flags.bits() as i32,
+            allowed_permissions.bits(),
+            denied_permissions.bits(),
         )
         .fetch_one(self.transaction())
         .await?;
@@ -518,8 +520,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         // are implied to all members.
 
         let permissions = PermissionPair {
-            allow: Permissions::from_bits_truncate(perms.allowed_permissions),
-            deny: Permissions::from_bits_truncate(perms.denied_permissions),
+            allow: allowed_permissions,
+            deny: denied_permissions,
         };
 
         sqlx::query!(

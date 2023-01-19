@@ -232,6 +232,39 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         Ok(roles)
     }
 
+    /// Fetches all roles from the databased in the given guild assigned to the given member.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the roles.
+    /// * If the guild does not exist.
+    async fn fetch_all_roles_for_member(
+        &self,
+        guild_id: u64,
+        member_id: u64,
+    ) -> sqlx::Result<Vec<Role>> {
+        let roles = sqlx::query!(
+            r#"SELECT
+                *
+            FROM
+                roles
+            WHERE
+                guild_id = $1
+            AND
+                id IN (SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2)
+            ORDER BY position ASC
+            "#,
+            guild_id as i64,
+            member_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| construct_role!(r))
+        .collect();
+
+        Ok(roles)
+    }
+
     /// Creates a new role in the given guild ID with the given query. Payload must be validated
     /// before using this method.
     ///
