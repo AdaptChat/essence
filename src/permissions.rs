@@ -17,7 +17,7 @@ pub fn calculate_permissions(
     mut roles: impl AsMut<[Role]>,
     overwrites: Option<&[PermissionOverwrite]>,
 ) -> Permissions {
-    let mut roles = roles.as_mut();
+    let roles = roles.as_mut();
     roles.sort_by_key(|r| r.position);
 
     calculate_permissions_sorted(user_id, roles, overwrites)
