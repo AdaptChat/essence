@@ -242,6 +242,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         guild_id: u64,
         member_id: u64,
     ) -> sqlx::Result<Vec<Role>> {
+        let default_role_id = with_model_type(guild_id, ModelType::Role);
         let roles = sqlx::query!(
             r#"SELECT
                 *
@@ -249,12 +250,15 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
                 roles
             WHERE
                 guild_id = $1
-            AND
-                id IN (SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2)
+            AND (
+                id = $3
+                OR id IN (SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2)
+            )
             ORDER BY position ASC
             "#,
             guild_id as i64,
             member_id as i64,
+            default_role_id as i64,
         )
         .fetch_all(self.executor())
         .await?
