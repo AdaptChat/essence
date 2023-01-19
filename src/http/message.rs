@@ -70,5 +70,6 @@ pub struct MessageHistoryQuery {
     ///
     /// If ``true``, messages will be sorted from oldest to newest. If ``false``, messages will be
     /// sorted from newest to oldest.
+    #[serde(default)]
     pub oldest_first: bool,
 }
