@@ -28,7 +28,7 @@ pub mod ws;
 
 pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
-pub use permissions::calculate_permissions;
+pub use permissions::{calculate_permissions, calculate_permissions_sorted};
 
 #[macro_export]
 macro_rules! serde_for_bitflags {
