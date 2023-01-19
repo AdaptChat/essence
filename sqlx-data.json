@@ -191,6 +191,76 @@
     },
     "query": "SELECT\n                COALESCE(MAX(position) + 1, 0) AS \"position!\"\n            FROM\n                channels\n            WHERE\n                guild_id = $1\n            AND\n                (parent_id = $2 OR parent_id IS NULL AND $2 IS NULL)\n            AND type = 'category'"
   },
+  "0853c25e61ce8aa02de29a7ee0a93ea125a61c216ba9141b849ca7f9ca958420": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "color",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gradient",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "allowed_permissions",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                *\n            FROM\n                roles\n            WHERE\n                guild_id = $1\n            AND (\n                id = $3\n                OR id IN (SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2)\n            )\n            ORDER BY position ASC\n            "
+  },
   "0879cd2d80bc104b7ffaddbbe03f35ca1edd5b9f25834e8384c99b73951208b2": {
     "describe": {
       "columns": [],
@@ -1763,75 +1833,6 @@
       }
     },
     "query": "INSERT INTO tokens (user_id, token) VALUES ($1, $2)"
-  },
-  "bcc8dcfc3e7a78a429d7d0ec1d890f031077cbf5052838fed3e16ea8604ba71b": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "guild_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "color",
-          "ordinal": 3,
-          "type_info": "Int4"
-        },
-        {
-          "name": "position",
-          "ordinal": 4,
-          "type_info": "Int2"
-        },
-        {
-          "name": "gradient",
-          "ordinal": 5,
-          "type_info": "Bool"
-        },
-        {
-          "name": "allowed_permissions",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "denied_permissions",
-          "ordinal": 7,
-          "type_info": "Int8"
-        },
-        {
-          "name": "flags",
-          "ordinal": 8,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT\n                *\n            FROM\n                roles\n            WHERE\n                guild_id = $1\n            AND\n                id IN (SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2)\n            ORDER BY position ASC\n            "
   },
   "bce0bcb7008ef10358d1184400dea05d757c69f1b64e4c3216d82ae7af749572": {
     "describe": {
