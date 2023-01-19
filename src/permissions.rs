@@ -14,11 +14,34 @@ use crate::models::{PermissionOverwrite, Permissions, Role};
 #[must_use]
 pub fn calculate_permissions(
     user_id: u64,
-    roles: &mut [Role],
+    mut roles: impl AsMut<[Role]>,
+    overwrites: Option<&[PermissionOverwrite]>,
+) -> Permissions {
+    let mut roles = roles.as_mut();
+    roles.sort_by_key(|r| r.position);
+
+    calculate_permissions_sorted(user_id, roles, overwrites)
+}
+
+/// Calculates the permissions after applying all role permissions and channel overwrites.
+/// This assumes `roles` is sorted by position.
+///
+/// # Note
+/// This does not account for guild owners (they should have all permissions), this should be
+/// handled by the caller.
+///
+/// # Parameters
+/// * `user_id` - The ID of the user to calculate permissions for.
+/// * `roles` - The roles the user has.
+/// * `overwrites` - The channel overwrites, or `None` to apply no overwrites.
+#[must_use]
+pub fn calculate_permissions_sorted(
+    user_id: u64,
+    roles: impl AsRef<[Role]>,
     overwrites: Option<&[PermissionOverwrite]>,
 ) -> Permissions {
     let base = Permissions::empty();
-    roles.sort_by_key(|r| r.position);
+    let roles = roles.as_ref();
 
     let mut perms = roles
         .iter()
