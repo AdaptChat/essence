@@ -1135,6 +1135,22 @@
     },
     "query": "INSERT INTO invites\n                (code, inviter_id, guild_id, max_uses, max_age)\n            VALUES\n                ($1, $2, $3, $4, $5)\n            ON CONFLICT (code) DO NOTHING\n            RETURNING created_at\n            "
   },
+  "636aeac73dfe5f5de9ea8213feae1d316b1bb2ef0f1127263c5d1bb5ca343849": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int4",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)\n            VALUES\n                ($1, $2, 'Default', $3, 0, $4, $5)\n            "
+  },
   "6ead10a4ea43d6e21372f6bd5092ef344faa928d3b2a3cfd73b0be1bbf75eac2": {
     "describe": {
       "columns": [
@@ -1281,34 +1297,6 @@
       }
     },
     "query": "SELECT role_id FROM role_data WHERE guild_id = $1"
-  },
-  "7cfdc2708f37e063bf22d6b8353907cf228ed3e8afce3d5b3887beda24d74b00": {
-    "describe": {
-      "columns": [
-        {
-          "name": "allowed_permissions!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "denied_permissions!",
-          "ordinal": 1,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Int4"
-        ]
-      }
-    },
-    "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position)\n            VALUES\n                ($1, $2, 'Default', $3, 0)\n            RETURNING\n                allowed_permissions AS \"allowed_permissions!\",\n                denied_permissions AS \"denied_permissions!\"\n            "
   },
   "7d5b0df20f033a397c1fa0b3f533e4abaf6a1aa48812cf83903094b8d09e1058": {
     "describe": {
@@ -1775,6 +1763,75 @@
       }
     },
     "query": "INSERT INTO tokens (user_id, token) VALUES ($1, $2)"
+  },
+  "bcc8dcfc3e7a78a429d7d0ec1d890f031077cbf5052838fed3e16ea8604ba71b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "color",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gradient",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "allowed_permissions",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                *\n            FROM\n                roles\n            WHERE\n                guild_id = $1\n            AND\n                id IN (SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2)\n            ORDER BY position ASC\n            "
   },
   "bce0bcb7008ef10358d1184400dea05d757c69f1b64e4c3216d82ae7af749572": {
     "describe": {
