@@ -1,4 +1,5 @@
 use crate::{
+    cache,
     db::{
         channel::{construct_guild_channel, query_guild_channels},
         get_pool,
@@ -14,7 +15,7 @@ use crate::{
     Error, NotFoundExt,
 };
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 macro_rules! construct_partial_guild {
     ($data:ident) => {{
@@ -37,22 +38,63 @@ macro_rules! construct_partial_guild {
 
 #[async_trait::async_trait]
 pub trait GuildDbExt<'t>: DbExt<'t> {
+    /// Builds a cache of all known guild IDs.
+    async fn build_guild_cache(&self) -> crate::Result<()> {
+        let mut guild_ids = HashSet::new();
+
+        for guild_id in sqlx::query!("SELECT id FROM guilds")
+            .fetch_all(self.executor())
+            .await?
+        {
+            guild_ids.insert(guild_id.id as u64);
+        }
+
+        cache::write().await.existing_guild_ids = Some(guild_ids);
+        Ok(())
+    }
+
     /// Asserts a guild with the given ID exists.
     async fn assert_guild_exists(&self, guild_id: u64) -> crate::Result<()> {
-        if !sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1)",
-            guild_id as i64
-        )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or(false)
-        {
+        if !if let Some(ref guild_ids) = cache::read().await.existing_guild_ids {
+            guild_ids.contains(&guild_id)
+        } else {
+            self.build_guild_cache().await?;
+            cache::read()
+                .await
+                .existing_guild_ids
+                .as_ref()
+                .unwrap()
+                .contains(&guild_id)
+        } {
             return Err(Error::NotFound {
                 entity: "guild".to_string(),
                 message: format!("Guild with ID {guild_id} does not exist"),
             });
         }
+
+        Ok(())
+    }
+
+    /// Builds a cache of all known member IDs for the given guild ID.
+    async fn build_member_cache(&self, guild_id: u64) -> crate::Result<()> {
+        let mut member_ids = HashSet::new();
+
+        for member_id in sqlx::query!(
+            "SELECT id FROM members WHERE guild_id = $1",
+            guild_id as i64
+        )
+        .fetch_all(self.executor())
+        .await?
+        {
+            member_ids.insert(member_id.id as u64);
+        }
+
+        let mut cache = cache::write().await;
+        let cache = cache
+            .guilds
+            .entry(guild_id)
+            .or_insert_with(Default::default);
+        cache.members = Some(member_ids);
 
         Ok(())
     }
@@ -69,16 +111,21 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     ) -> crate::Result<()> {
         self.assert_guild_exists(guild_id).await?;
 
-        if !sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM members WHERE guild_id = $1 AND id = $2)",
-            guild_id as i64,
-            user_id as i64,
-        )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or(false)
+        if !if let Some(member_ids) = cache::read()
+            .await
+            .guild(guild_id)
+            .and_then(|g| g.members.as_ref())
         {
+            member_ids.contains(&user_id)
+        } else {
+            self.build_member_cache(guild_id).await?;
+            cache::read()
+                .await
+                .guild(guild_id)
+                .and_then(|g| g.members.as_ref())
+                .unwrap()
+                .contains(&user_id)
+        } {
             return Err(error);
         }
 
@@ -125,15 +172,23 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     async fn is_guild_owner(&self, guild_id: u64, user_id: u64) -> crate::Result<bool> {
         self.assert_guild_exists(guild_id).await?;
 
-        Ok(sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1 AND owner_id = $2)",
-            guild_id as i64,
-            user_id as i64,
+        Ok(
+            if let Some(owner_id) = cache::read().await.guild(guild_id).and_then(|g| g.owner_id) {
+                owner_id == user_id
+            } else {
+                let owner_id =
+                    sqlx::query!("SELECT owner_id FROM guilds WHERE id = $1", guild_id as i64)
+                        .fetch_one(self.executor())
+                        .await?
+                        .owner_id as u64;
+
+                if let Some(cache) = cache::write().await.guild_mut(guild_id) {
+                    cache.owner_id = Some(owner_id);
+                }
+
+                owner_id == user_id
+            },
         )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or(false))
     }
 
     /// Asserts the given user is the owner of the given guild.
@@ -150,20 +205,14 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
-    /// Fetches the calculated permissions value for the given member in the given guild. A channel
-    /// ID may be provided to calculate the permissions for a specific channel, otherwise the
-    /// permissions for the guild will be calculated.
-    ///
-    /// # Errors
-    /// * If an error occurs with the database.
-    async fn fetch_member_permissions(
+    async fn fetch_member_permissions_prefer_db(
         &self,
         guild_id: u64,
         user_id: u64,
         channel_id: Option<u64>,
     ) -> crate::Result<Permissions> {
         self.assert_invoker_in_guild(guild_id, user_id).await?;
-        if self.fetch_partial_guild(guild_id).await?.unwrap().owner_id == user_id {
+        if self.is_guild_owner(guild_id, user_id).await? {
             return Ok(Permissions::all());
         }
 
@@ -178,6 +227,45 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             &mut roles,
             overwrites.as_ref().map(AsRef::as_ref),
         ))
+    }
+
+    /// Fetches the calculated permissions value for the given member in the given guild. A channel
+    /// ID may be provided to calculate the permissions for a specific channel, otherwise the
+    /// permissions for the guild will be calculated.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn fetch_member_permissions(
+        &self,
+        guild_id: u64,
+        user_id: u64,
+        channel_id: Option<u64>,
+    ) -> crate::Result<Permissions> {
+        if let Some(permissions) = cache::read()
+            .await
+            .guild(guild_id)
+            .and_then(|g| g.member_permissions.get(&user_id))
+            .and_then(|p| p.get(&channel_id))
+        {
+            Ok(*permissions)
+        } else {
+            let perms = self
+                .fetch_member_permissions_prefer_db(guild_id, user_id, channel_id)
+                .await?;
+
+            let mut cache = cache::write().await;
+            let guild = cache
+                .guilds
+                .entry(guild_id)
+                .or_insert_with(Default::default);
+            let member_perms = guild
+                .member_permissions
+                .entry(user_id)
+                .or_insert_with(Default::default);
+            member_perms.insert(channel_id, perms);
+
+            Ok(perms)
+        }
     }
 
     /// Internally used, see [`Self::assert_member_has_permissions`] instead.
@@ -458,6 +546,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with creating the guild.
+    #[allow(clippy::too_many_lines)]
     async fn create_guild(
         &mut self,
         guild_id: u64,
@@ -573,6 +662,17 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             joined_at,
         };
 
+        let mut cache = cache::write().await;
+        let guild_cache = cache
+            .guilds
+            .entry(guild_id)
+            .or_insert_with(Default::default);
+
+        guild_cache.owner_id = Some(owner_id);
+        if let Some(ref mut guild_ids) = cache::write().await.existing_guild_ids {
+            guild_ids.remove(&guild_id);
+        }
+
         Ok(Guild {
             partial,
             members: Some(vec![member]),
@@ -652,6 +752,9 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             .execute(self.transaction())
             .await?;
 
+        if let Some(ref mut guild_ids) = cache::write().await.existing_guild_ids {
+            guild_ids.remove(&guild_id);
+        }
         Ok(())
     }
 }

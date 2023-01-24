@@ -1,4 +1,5 @@
 use crate::{
+    cache,
     db::DbExt,
     models::{
         Channel, ChannelInfo, ChannelType, DmChannel, DmChannelInfo, GuildChannel,
@@ -90,6 +91,7 @@ macro_rules! construct_guild_channel {
     }};
 }
 
+use crate::cache::ChannelInspection;
 use crate::db::get_pool;
 use crate::http::channel::{CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload};
 #[allow(clippy::redundant_pub_crate)] // false positive
@@ -203,10 +205,11 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
     /// returned.
-    async fn inspect_channel(
-        &self,
-        channel_id: u64,
-    ) -> crate::Result<Option<(Option<u64>, Option<u64>, ChannelType)>> {
+    async fn inspect_channel(&self, channel_id: u64) -> crate::Result<Option<ChannelInspection>> {
+        if let Some(inspection) = cache::read().await.channels.get(&channel_id) {
+            return Ok(Some(*inspection));
+        }
+
         let channel = if let Some(r) = sqlx::query!(
             "SELECT guild_id, owner_id, type AS kind FROM channels WHERE id = $1",
             channel_id as i64,
@@ -214,11 +217,14 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .fetch_optional(self.executor())
         .await?
         {
-            (
+            let inspection = (
                 r.guild_id.map(|id| id as _),
                 r.owner_id.map(|id| id as _),
                 ChannelType::from_str(&r.kind)?,
-            )
+            );
+
+            cache::write().await.channels.insert(channel_id, inspection);
+            inspection
         } else {
             return Ok(None);
         };
@@ -636,6 +642,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        cache::write().await.channels.remove(&channel_id);
         Ok((old, channel))
     }
 
@@ -685,6 +692,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .execute(self.transaction())
             .await?;
 
+        cache::write().await.channels.remove(&channel_id);
         Ok(())
     }
 }

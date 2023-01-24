@@ -1,3 +1,4 @@
+use crate::cache;
 use crate::db::DbExt;
 use crate::models::UserFlags;
 
@@ -48,13 +49,25 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
         &self,
         token: impl AsRef<str> + Send,
     ) -> sqlx::Result<Option<(u64, UserFlags)>> {
-        sqlx::query!(
+        if let Some(cached) = cache::read().await.user_info_for_token(token.as_ref()) {
+            return Ok(Some(cached));
+        }
+
+        if let Some(out @ (user_id, flags)) = sqlx::query!(
             "SELECT id, flags FROM users WHERE id = (SELECT user_id FROM tokens WHERE token = $1)",
             token.as_ref(),
         )
         .fetch_optional(self.executor())
-        .await
-        .map(|r| r.map(|r| (r.id as u64, UserFlags::from_bits_truncate(r.flags as u32))))
+        .await?
+        .map(|r| (r.id as u64, UserFlags::from_bits_truncate(r.flags as u32)))
+        {
+            cache::write()
+                .await
+                .cache_token(token.as_ref().to_string(), user_id, flags);
+            Ok(Some(out))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Creates a new token for the given user ID.
@@ -91,8 +104,10 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     async fn delete_all_tokens(&mut self, user_id: u64) -> sqlx::Result<()> {
         sqlx::query!("DELETE FROM tokens WHERE user_id = $1", user_id as i64)
             .execute(self.transaction())
-            .await
-            .map(|_| ())
+            .await?;
+
+        cache::write().await.invalidate_tokens_for(user_id);
+        Ok(())
     }
 }
 

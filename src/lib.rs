@@ -16,6 +16,8 @@
 #[cfg(any(feature = "auth", feature = "token-parsing"))]
 pub mod auth;
 #[cfg(feature = "db")]
+pub mod cache;
+#[cfg(feature = "db")]
 pub mod db;
 pub mod error;
 pub mod http;

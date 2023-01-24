@@ -1,4 +1,4 @@
-use crate::{db::DbExt, models::Member, snowflake::with_model_type, NotFoundExt};
+use crate::{cache, db::DbExt, models::Member, snowflake::with_model_type, NotFoundExt};
 use itertools::Itertools;
 
 macro_rules! query_member {
@@ -274,6 +274,10 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        cache::write()
+            .await
+            .guild_mut(guild_id)
+            .map(|g| g.members.as_mut().map(|m| m.remove(&user_id)));
         Ok(())
     }
 }
