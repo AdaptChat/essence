@@ -254,6 +254,12 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             roles: None,
         });
 
+        if let Some(guild_cache) = cache::write().await.guild_mut(guild_id) {
+            if let Some(ref mut members) = guild_cache.members {
+                members.insert(user_id);
+            }
+        }
+
         Ok(member)
     }
 
