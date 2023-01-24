@@ -1,9 +1,4 @@
-use crate::{
-    db::DbExt,
-    http::role::CreateRolePayload,
-    models::{Role, RoleFlags},
-    Error, NotFoundExt,
-};
+use crate::{db::DbExt, http::role::CreateRolePayload, models::{Role, RoleFlags}, Error, NotFoundExt, cache};
 
 macro_rules! construct_role {
     ($data:ident) => {{
@@ -384,6 +379,9 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        if let Some(guild_cache) = cache::write().await.guild_mut(guild_id) {
+            guild_cache.member_permissions.clear();
+        }
         Ok(role)
     }
 
@@ -413,6 +411,9 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        if let Some(guild_cache) = cache::write().await.guild_mut(guild_id) {
+            guild_cache.member_permissions.clear();
+        }
         Ok(())
     }
 }
