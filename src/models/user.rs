@@ -1,4 +1,4 @@
-use crate::{builder_methods, serde_for_bitflags};
+use crate::{builder_methods, serde_for_bitflags, user::PresenceStatus};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "openapi")]
 use utoipa::ToSchema;
@@ -27,6 +27,8 @@ pub struct User {
     /// A bitmask of extra information associated with this user.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: UserFlags,
+    /// The user's presence model.
+    pub status: PresenceStatus,
 }
 
 bitflags::bitflags! {

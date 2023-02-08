@@ -16,4 +16,9 @@ pub enum InboundMessage {
     Ping,
     /// Pong, used to respond to harmony's ping event.
     Pong,
+    /// Used to change the client's current presence status
+    PresenceChange {
+        /// The presence status to change to.
+        presence: PresenceStatus
+    }
 }
