@@ -101,7 +101,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         .ok_or_not_found("invite", format!("No invite with code {code} found"))?;
 
         let invite = construct_invite!(invite, None);
-        if invite.uses >= invite.max_uses {
+        if invite.max_uses != 0 && invite.uses >= invite.max_uses {
             self.delete_invite(code).await?;
         }
 
