@@ -604,26 +604,6 @@
     },
     "query": "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
   },
-  "1909c5820bb8b1deebf1e7aea99c09ef6b91133641f274a632292ec4cfe0724c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "exists",
-          "ordinal": 0,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1)"
-  },
   "1c244b204b6dc9ee0ed7c56673644cc66ac548872772c7eacdd7d7565c669de0": {
     "describe": {
       "columns": [
@@ -1035,6 +1015,26 @@
     },
     "query": "INSERT INTO members (guild_id, id) VALUES ($1, $2)\n            ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at"
   },
+  "439dd9d64a9e84ae6dc29b53429af8e4332bce61df9e730dba64e1348b98bdd2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT id FROM members WHERE guild_id = $1"
+  },
   "45a536b46a3654b06157d263f6722d44ca054a529c6e7f80f94b17c7c557d31b": {
     "describe": {
       "columns": [
@@ -1054,6 +1054,26 @@
       }
     },
     "query": "SELECT token FROM tokens WHERE user_id = $1"
+  },
+  "480c1f1c02ccadd33b7a9594af90b0a04813253445f5469ea4d287cbc3ea256f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "owner_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT owner_id FROM guilds WHERE id = $1"
   },
   "50293c2e54af11d4c2a553e29b671cef087a159c6ee7182d8ca929ecb748f3b7": {
     "describe": {
@@ -1326,27 +1346,6 @@
       }
     },
     "query": "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5"
-  },
-  "7aa04aeb7282bfc143d29a7f340984e228163cdb347391cef68943d9689ecb1a": {
-    "describe": {
-      "columns": [
-        {
-          "name": "exists",
-          "ordinal": 0,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT EXISTS(SELECT 1 FROM guilds WHERE id = $1 AND owner_id = $2)"
   },
   "7ca2668d2402b8702ed588885790c4c6657be36f0850d3df2cf0e11998b88001": {
     "describe": {
@@ -1693,27 +1692,6 @@
     },
     "query": "SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2"
   },
-  "9c8cf8e637809e6f9503919f6fa307743f339414bde04132cb938632a38f75f4": {
-    "describe": {
-      "columns": [
-        {
-          "name": "exists",
-          "ordinal": 0,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT EXISTS(SELECT 1 FROM members WHERE guild_id = $1 AND id = $2)"
-  },
   "9d2c649ff158908f95226af761c8b96f3e79fb760b1be0335ef2e58a3b2dd831": {
     "describe": {
       "columns": [
@@ -2025,6 +2003,24 @@
       }
     },
     "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members AS m\n            INNER JOIN\n                users AS u ON u.id = m.id\n            WHERE guild_id = $1 AND m.id = $2"
+  },
+  "c10a5abdb5e73df596ed91990e70a7472e055d72505a45fcc59964f9d1c53f7b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "SELECT id FROM guilds"
   },
   "c2d79cd2ee7e2ca0694dc47e7cf50f21da605bad0e1dc5575b2d7845747bf733": {
     "describe": {
