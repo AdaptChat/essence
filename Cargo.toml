@@ -30,7 +30,7 @@ features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "chrono", "
 optional = true
 
 [dependencies.utoipa]
-git = "https://github.com/juhaku/utoipa"
+# git = "https://github.com/juhaku/utoipa"
 version = "3"
 features = ["axum_extras", "chrono"]
 optional = true

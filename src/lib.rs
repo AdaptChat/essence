@@ -36,16 +36,19 @@ pub use permissions::{calculate_permissions, calculate_permissions_sorted};
 macro_rules! serde_for_bitflags {
     (@openapi for $t:ty => $format:ident) => {
         #[cfg(feature = "openapi")]
-        impl utoipa::ToSchema for $t {
-            fn schema() -> utoipa::openapi::RefOr<utoipa::openapi::Schema> {
-                utoipa::openapi::RefOr::T(
-                    utoipa::openapi::ObjectBuilder::new()
-                        .schema_type(utoipa::openapi::SchemaType::Integer)
-                        .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
-                            utoipa::openapi::KnownFormat::$format,
-                        )))
-                        .build()
-                        .into(),
+        impl utoipa::ToSchema<'static> for $t {
+            fn schema() -> (&'static str, utoipa::openapi::RefOr<utoipa::openapi::Schema>) {
+                (
+                    "bitflags",
+                    utoipa::openapi::RefOr::T(
+                        utoipa::openapi::ObjectBuilder::new()
+                            .schema_type(utoipa::openapi::SchemaType::Integer)
+                            .format(Some(utoipa::openapi::SchemaFormat::KnownFormat(
+                                utoipa::openapi::KnownFormat::$format,
+                            )))
+                            .build()
+                            .into(),
+                    )
                 )
             }
         }

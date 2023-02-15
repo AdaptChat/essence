@@ -1,4 +1,10 @@
-use crate::{db::DbExt, http::role::CreateRolePayload, models::{Role, RoleFlags}, Error, NotFoundExt, cache};
+use crate::{
+    cache,
+    db::DbExt,
+    http::role::CreateRolePayload,
+    models::{Role, RoleFlags},
+    Error, NotFoundExt,
+};
 
 macro_rules! construct_role {
     ($data:ident) => {{

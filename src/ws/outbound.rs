@@ -2,9 +2,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::models::invite::Invite;
 use crate::models::{
-    Channel, ClientUser, Guild, GuildChannel, Member, Message, PartialGuild, Role,
+    Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence, Role,
 };
 
 /// Extra information about member removal.
@@ -149,5 +148,12 @@ pub enum OutboundMessage {
     MessageDelete {
         /// The ID of the message that was deleted.
         message_id: u64,
+    },
+    /// Sent by harmony when a user updates their presence.
+    PresenceUpdate {
+        /// The ID of the user that updated their presence.
+        user_id: u64,
+        /// The presence after it was updaetd.
+        presence: Presence,
     },
 }

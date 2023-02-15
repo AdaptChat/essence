@@ -5,6 +5,7 @@ pub mod guild;
 pub mod invite;
 pub mod message;
 pub mod permissions;
+pub mod presence;
 pub mod role;
 pub mod user;
 
@@ -13,6 +14,7 @@ pub use guild::*;
 pub use invite::*;
 pub use message::*;
 pub use permissions::*;
+pub use presence::*;
 pub use role::*;
 use std::fmt;
 pub use user::*;
