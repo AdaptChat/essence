@@ -1225,22 +1225,6 @@
     },
     "query": "INSERT INTO invites\n                (code, inviter_id, guild_id, max_uses, max_age)\n            VALUES\n                ($1, $2, $3, $4, $5)\n            ON CONFLICT (code) DO NOTHING\n            RETURNING created_at\n            "
   },
-  "636aeac73dfe5f5de9ea8213feae1d316b1bb2ef0f1127263c5d1bb5ca343849": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Int4",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)\n            VALUES\n                ($1, $2, 'Default', $3, 0, $4, $5)\n            "
-  },
   "6ead10a4ea43d6e21372f6bd5092ef344faa928d3b2a3cfd73b0be1bbf75eac2": {
     "describe": {
       "columns": [
@@ -2435,6 +2419,78 @@
       }
     },
     "query": "SELECT target_id, allow, deny FROM channel_overwrites WHERE channel_id = $1"
+  },
+  "e4032056b32aac097433582f89cef16b408185055cc1610d574cad7c9cbe8122": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "color",
+          "ordinal": 3,
+          "type_info": "Int4"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "gradient",
+          "ordinal": 5,
+          "type_info": "Bool"
+        },
+        {
+          "name": "allowed_permissions",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "denied_permissions",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "flags",
+          "ordinal": 8,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int4",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)\n            VALUES\n                ($1, $2, 'Default', $3, 0, $4, $5)\n            RETURNING *;\n            "
   },
   "e62d4c1c884643c8de3bece9cdcdf975c87030ac185903f266b144727b90df1e": {
     "describe": {
