@@ -692,7 +692,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
 
         guild_cache.owner_id = Some(owner_id);
         if let Some(ref mut guild_ids) = cache.existing_guild_ids {
-            guild_ids.remove(&guild_id);
+            guild_ids.insert(guild_id);
         }
 
         Ok(Guild {
