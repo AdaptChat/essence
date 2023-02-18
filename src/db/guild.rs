@@ -616,6 +616,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)
             VALUES
                 ($1, $2, 'Default', $3, 0, $4, $5)
+            RETURNING *;
             "#,
             role_id as i64,
             guild_id as i64,
