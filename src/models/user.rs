@@ -1,6 +1,6 @@
 use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 /// Represents a user account.
@@ -9,7 +9,7 @@ use utoipa::ToSchema;
 /// account.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct User {
     /// The snowflake ID of the user.
@@ -55,7 +55,7 @@ impl User {
 /// Represents information such as the name and color of a guild folder.
 /// This is only shown in the client's UI.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct GuildFolderInfo {
     /// The name of the folder.
     pub name: String,
@@ -65,7 +65,7 @@ pub struct GuildFolderInfo {
 
 /// Represents a folder that contains a collection of guilds. This is only shown in the client's UI.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct GuildFolder {
     /// The path of the folder, with the top-level folder first.
     ///
@@ -81,7 +81,7 @@ pub struct GuildFolder {
 /// public, such as emails, guilds, and relationships (friends and blocked users).
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct ClientUser {
     /// The public user info about the client.
@@ -90,7 +90,7 @@ pub struct ClientUser {
     /// The associated email of the client's account.
     ///
     /// If the client is a bot, this is `None`.
-    #[cfg_attr(feature = "openapi", schema(format = "email"))]
+    #[cfg_attr(feature = "utoipa", schema(format = "email"))]
     pub email: Option<String>,
     /// (Used internally) The hashed password of the client's account.
     ///
@@ -137,7 +137,7 @@ impl ClientUser {
 
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum RelationshipType {
@@ -151,7 +151,7 @@ pub enum RelationshipType {
 /// Represents a relationship that a user has with another user.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Relationship {
     /// The ID of the user that this relationship is with.

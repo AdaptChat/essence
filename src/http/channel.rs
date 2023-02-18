@@ -5,13 +5,13 @@ use crate::{
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 /// The type and other information sent to create a new guild channel.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CreateGuildChannelInfo {
     /// A text channel.
@@ -61,7 +61,7 @@ impl CreateGuildChannelInfo {
 /// The request body sent to create a new channel in a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CreateGuildChannelPayload {
     /// The name of the text channel.
     pub name: String,
@@ -79,7 +79,7 @@ pub struct CreateGuildChannelPayload {
 /// The request body sent to modify a channel.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditChannelPayload {
     /// The new name of the channel. If left blank, the name will not be changed. Takes effect for
     /// all channels except for user DMs.
@@ -88,7 +88,7 @@ pub struct EditChannelPayload {
     /// the topic. Only takes effect for text-based channels in guilds, or group chats.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
     pub topic: Maybe<String>,
     /// The new icon of the channel. Explicitly setting this to `None` will clear the icon.
     /// Takes effect for all channels except for user DMs.
@@ -96,7 +96,7 @@ pub struct EditChannelPayload {
     /// This should be a [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>, format = "byte"))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>, format = "byte"))]
     pub icon: Maybe<String>,
     /// The new user limit of the voice channel. Explicitly setting this to `0` will remove the
     /// current limit, if there is any. Only takes effect for guild voice channels.
@@ -106,7 +106,7 @@ pub struct EditChannelPayload {
 /// The payload used per channel to specify its new position data.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditChannelPositionPayload {
     /// The ID of the channel to modify.
     pub id: u64,
@@ -116,14 +116,14 @@ pub struct EditChannelPositionPayload {
     /// `Null`, the channel will be moved to the root of the channel list.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<u64>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<u64>))]
     pub scope: Maybe<u64>,
 }
 
 /// The request body sent to modify channel positions.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(transparent)]
 pub struct EditChannelPositionsPayload {
     /// A list of channel positions to modify.

@@ -3,13 +3,13 @@ use crate::Maybe;
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::{IntoParams, ToSchema};
 
 /// Payload sent to send a message.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CreateMessagePayload {
     /// The content of the message, if any. If specified, this should be a string with a size of at
     /// most 4 KB.
@@ -26,12 +26,12 @@ pub struct CreateMessagePayload {
 /// Payload sent to edit a message.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditMessagePayload {
     /// The new content of the message, if any. Explicitly specify `null` to remove the content.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
     pub content: Maybe<String>,
     /// A list of rich embeds to send with the message.
     ///
@@ -39,7 +39,7 @@ pub struct EditMessagePayload {
     /// This wlil remove all embeds if set to either an empty list or explicitly set to `null`.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Vec<Embed>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Vec<Embed>))]
     pub embeds: Maybe<Vec<Embed>>,
 }
 
@@ -51,7 +51,7 @@ const fn default_limit() -> u8 {
 /// Query to fetch message history.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(IntoParams))]
+#[cfg_attr(feature = "utoipa", derive(IntoParams))]
 pub struct MessageHistoryQuery {
     /// If specified, only messages before this message will be returned. If any messages exactly
     /// match this ID, they will **not** be returned.

@@ -1,12 +1,12 @@
 use crate::serde_for_bitflags;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 /// The status of a user's presence.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum PresenceStatus {
@@ -22,7 +22,7 @@ pub enum PresenceStatus {
 
 /// Represents the presence state (status and activity) of a user.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Presence {
     /// The status of the user.

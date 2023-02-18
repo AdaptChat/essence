@@ -1,7 +1,7 @@
 use crate::models::PartialGuild;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 #[cfg(feature = "client")]
@@ -11,7 +11,7 @@ use serde::Deserialize;
 /// modified once changed.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Invite {
     /// The code of the invite.

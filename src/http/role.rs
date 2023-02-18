@@ -3,13 +3,13 @@ use crate::Maybe;
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 /// Payload sent to create a new role in a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CreateRolePayload {
     /// The name of the role.
     pub name: String,
@@ -29,7 +29,7 @@ pub struct CreateRolePayload {
 /// Payload sent to edit a role.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditRolePayload {
     /// The new name of the role, if any.
     pub name: Option<String>,
@@ -37,7 +37,7 @@ pub struct EditRolePayload {
     /// to leave it alone
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<u32>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<u32>))]
     pub color: Maybe<u32>,
     /// The permissions users with this role will have. Both `allow` and `deny` should be specified
     /// if this field is specified.

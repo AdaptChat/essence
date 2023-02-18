@@ -2,32 +2,32 @@ use crate::Maybe;
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 /// The payload send to edit the authenticated user as a member.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditClientMemberPayload {
     /// The new nickname of the member. Leave empty to keep the current nickname, and set to `null`
     /// to remove the nickname.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
     pub nick: Maybe<String>,
 }
 
 /// The payload sent to edit a member.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditMemberPayload {
     /// The new nickname of the member. Leave empty to keep the current nickname, and set to `null`
     /// to remove the nickname.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "openapi", schema(nullable, value_type = Option<String>))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
     pub nick: Maybe<String>,
     /// If provided, this is a bulk overwrite of the member's roles. Any roles not in this list
     /// will be removed from the member, and any roles in this list that are managable by the

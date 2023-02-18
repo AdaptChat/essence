@@ -30,9 +30,8 @@ features = ["postgres", "macros", "offline", "runtime-tokio-rustls", "chrono", "
 optional = true
 
 [dependencies.utoipa]
-# git = "https://github.com/juhaku/utoipa"
 version = "3"
-features = ["axum_extras", "chrono"]
+features = ["chrono"]
 optional = true
 
 [features]
@@ -40,6 +39,6 @@ default = ["snowflakes"]
 auth = ["snowflakes", "dep:argon2-async", "dep:ring", "token-parsing"]
 client = []
 db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "dep:tokio", "snowflakes", "serde_json"]
-openapi = ["dep:utoipa"]
-token-parsing = ["dep:base64", "snowflakes"]
 snowflakes = []
+token-parsing = ["dep:base64", "snowflakes"]
+webserver = ["auth", "bincode", "db", "utoipa", "utoipa/axum_extras", "utoipa/yaml"]

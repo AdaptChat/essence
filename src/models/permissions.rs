@@ -1,6 +1,6 @@
 use crate::serde_for_bitflags;
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 bitflags::bitflags! {
@@ -171,7 +171,7 @@ impl Default for Permissions {
 /// "neutral" where it is neither allowed or denied remains easily overwritten by lower
 /// roles or members.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct PermissionPair {
     /// The allowed permissions.
     pub allow: Permissions,

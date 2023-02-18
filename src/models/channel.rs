@@ -1,7 +1,7 @@
 use crate::{models::PermissionPair, Error};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::{
     openapi::{Array, ArrayBuilder, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
     ToSchema,
@@ -10,7 +10,7 @@ use utoipa::{
 /// Represents common information found in text-based guild channels.
 #[derive(Clone, Debug, Default, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct TextBasedGuildChannelInfo {
     /// The topic of the channel, if any.
@@ -29,7 +29,7 @@ pub struct TextBasedGuildChannelInfo {
 /// to help deserialization.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "client", derive(Serialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum ChannelType {
     /// A text channel.
@@ -116,7 +116,7 @@ impl ChannelType {
 /// Represents the type along with type-specific info of a guild channel.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
@@ -152,7 +152,7 @@ impl GuildChannelInfo {
 
 /// Represents a permission overwrite.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct PermissionOverwrite {
     /// The ID of the role or user this overwrite applies to. The model type can be extracted from
@@ -167,7 +167,7 @@ pub struct PermissionOverwrite {
 /// Represents a channel in a guild.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct GuildChannel {
     /// The ID of the channel.
@@ -224,7 +224,7 @@ impl Default for GuildChannel {
     }
 }
 
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 fn tuple_u64_u64() -> Array {
     ArrayBuilder::new()
         .items(
@@ -239,7 +239,7 @@ fn tuple_u64_u64() -> Array {
 
 /// Represents extra information associated with DM channels.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
@@ -247,7 +247,7 @@ pub enum DmChannelInfo {
     /// A normal DM channel.
     Dm {
         /// The two IDs of the recipients of the DM.
-        #[cfg_attr(feature = "openapi", schema(schema_with = tuple_u64_u64))]
+        #[cfg_attr(feature = "utoipa", schema(schema_with = tuple_u64_u64))]
         recipient_ids: (u64, u64),
     },
     /// A group chat consisting of multiple users.
@@ -280,7 +280,7 @@ impl DmChannelInfo {
 /// Represents a direct-message-like channel that does not belong in a guild.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct DmChannel {
     /// The ID of the channel.
@@ -293,7 +293,7 @@ pub struct DmChannel {
 /// Represents any channel.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(untagged)]
 pub enum Channel {

@@ -31,11 +31,13 @@ pub mod ws;
 pub use error::{Error, NotFoundExt, Result};
 pub use maybe::Maybe;
 pub use permissions::{calculate_permissions, calculate_permissions_sorted};
+#[cfg(feature = "utoipa")]
+pub use utoipa;
 
 #[macro_export]
 macro_rules! serde_for_bitflags {
     (@openapi for $t:ty => $format:ident) => {
-        #[cfg(feature = "openapi")]
+        #[cfg(feature = "utoipa")]
         impl utoipa::ToSchema<'static> for $t {
             fn schema() -> (&'static str, utoipa::openapi::RefOr<utoipa::openapi::Schema>) {
                 (

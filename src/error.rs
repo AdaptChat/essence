@@ -2,7 +2,7 @@ use crate::models::Permissions;
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
-#[cfg(feature = "openapi")]
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 /// A type alias for a [`Result`] with the error type [`Error`].
@@ -10,7 +10,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Copy, Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "snake_case")]
 pub enum MalformedBodyErrorType {
     /// Invalid content type.
@@ -24,7 +24,7 @@ pub enum MalformedBodyErrorType {
 /// An error that occurs within Adapt.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "openapi", derive(ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Error {
     /// Received a malformed JSON or MsgPack body.
