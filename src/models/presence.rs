@@ -5,12 +5,13 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 /// The status of a user's presence.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum PresenceStatus {
     /// The user is online and can receive notifications.
+    #[default]
     Online,
     /// The user is connected but is not actively interacting with Adapt.
     Idle,
@@ -25,6 +26,8 @@ pub enum PresenceStatus {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Presence {
+    /// The ID of the user whose presence this is.
+    pub user_id: u64,
     /// The status of the user.
     pub status: PresenceStatus,
     /// The custom status of the user, if any.
@@ -37,8 +40,23 @@ pub struct Presence {
     pub online_since: DateTime<Utc>,
 }
 
+/// Represents a device a user could be present on. This is provided once during the `identify`
+/// payload.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[serde(rename_all = "snake_case")]
+pub enum Device {
+    /// The user is present on a desktop client.
+    Desktop,
+    /// The user is present on a mobile client.
+    Mobile,
+    /// The user is present on a web client.
+    Web,
+}
+
 bitflags::bitflags! {
-    /// Represents the devices a user is present on.
+    /// Represents all of the devices a user is present on.
     #[derive(Default)]
     pub struct Devices: u32 {
         /// The user is present on a desktop client.

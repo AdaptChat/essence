@@ -50,6 +50,8 @@ pub enum OutboundMessage {
         user: ClientUser,
         /// A list of guilds that the session's user is a member of.
         guilds: Vec<Guild>,
+        /// An initial array of all presences observed by the user.
+        presences: Vec<Presence>,
     },
     /// Sent by harmony when the client joins or creates a guild. Note that this does not include
     /// guilds received from the `Ready` event, those must be accounted for separately.
@@ -151,9 +153,8 @@ pub enum OutboundMessage {
     },
     /// Sent by harmony when a user updates their presence.
     PresenceUpdate {
-        /// The ID of the user that updated their presence.
-        user_id: u64,
-        /// The presence after it was updaetd.
+        /// The presence after it was updated. The user ID can be retrieved from accessing
+        /// `presence.user_id`.
         presence: Presence,
     },
 }
