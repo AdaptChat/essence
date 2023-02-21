@@ -407,15 +407,12 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the guilds.
     async fn fetch_all_guild_ids_for_user(&self, user_id: u64) -> crate::Result<Vec<u64>> {
-        let guild_ids = sqlx::query!(
-            r#"SELECT guild_id FROM members WHERE id = $1"#,
-            user_id as i64,
-        )
-        .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .map(|r| r.guild_id as u64)
-        .collect();
+        let guild_ids = sqlx::query!("SELECT guild_id FROM members WHERE id = $1", user_id as i64)
+            .fetch_all(self.executor())
+            .await?
+            .into_iter()
+            .map(|r| r.guild_id as u64)
+            .collect();
 
         Ok(guild_ids)
     }
