@@ -401,6 +401,25 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         }))
     }
 
+    /// Fetches the IDs of all guilds that a user is a member of. This is a much more efficient
+    /// method than [`Self::fetch_all_guilds_for_user`] if you only need the IDs.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the guilds.
+    async fn fetch_all_guild_ids_for_user(&self, user_id: u64) -> crate::Result<Vec<u64>> {
+        let guild_ids = sqlx::query!(
+            r#"SELECT guild_id FROM members WHERE id = $1"#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| r.guild_id as u64)
+        .collect();
+
+        Ok(guild_ids)
+    }
+
     /// Fetches all guilds that a user is a member of, abiding by the query.
     ///
     /// # Errors
