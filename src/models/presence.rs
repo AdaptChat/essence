@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 /// The status of a user's presence.
-#[derive(Clone, Copy, Debug, Default, Hash, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
@@ -22,7 +22,7 @@ pub enum PresenceStatus {
 }
 
 /// Represents the presence state (status and activity) of a user.
-#[derive(Clone, Debug, Hash, Deserialize, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash, Deserialize, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Presence {
