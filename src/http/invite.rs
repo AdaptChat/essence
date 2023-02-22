@@ -2,7 +2,7 @@ use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
 #[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
+use utoipa::{IntoParams, ToSchema};
 
 /// The payload sent to create a new invite in a guild. Note that invites are immutable, so after
 /// creation, they cannot be modified.
@@ -18,4 +18,13 @@ pub struct CreateInvitePayload {
     /// empty for an invite that never expires.
     #[serde(default)]
     pub max_age: u32,
+}
+
+/// Query used to provided a guild nonce when using an invite.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(IntoParams))]
+pub struct UseInviteQuery {
+    /// The nonce to provide to the guild.
+    pub nonce: Option<String>,
 }
