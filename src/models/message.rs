@@ -208,11 +208,6 @@ pub struct Message {
     pub flags: MessageFlags,
     /// The amount of stars this message has received.
     pub stars: u32,
-    /// A custom nonce for this message. This is a random string that if used, a message with the
-    /// same nonce will be dispatched by the websocket, indicating that the message was sent.
-    ///
-    /// This is only used once and it is not stored.
-    pub nonce: Option<String>,
 }
 
 bitflags::bitflags! {

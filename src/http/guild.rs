@@ -23,6 +23,9 @@ pub struct CreateGuildPayload {
     /// Whether the guild should be public or not. Defaults to `false`.
     #[serde(default)]
     pub public: bool,
+    /// A nonce to include with the guild. This is not stored and can be used to identify the
+    /// guild later on (it is relayed through the websocket).
+    pub nonce: Option<String>,
 }
 
 /// The payload sent to edit a guild.

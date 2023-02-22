@@ -30,7 +30,6 @@ macro_rules! construct_message {
             attachments: Vec::with_capacity(0),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
             stars: $data.stars as _,
-            nonce: None,
         }
     }};
 }
@@ -184,7 +183,6 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             attachments: Vec::new(),
             flags: MessageFlags::empty(),
             stars: 0,
-            nonce: payload.nonce,
         })
     }
 

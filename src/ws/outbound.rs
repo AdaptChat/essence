@@ -58,6 +58,11 @@ pub enum OutboundMessage {
     GuildCreate {
         /// The guild that was joined or created.
         guild: Guild,
+        /// A custom nonce for this guild. This is a random string that if used, a message with the
+        /// same nonce will be dispatched by the websocket, indicating that the guild was created.
+        ///
+        /// This is only used once and it is not stored.
+        nonce: Option<String>,
     },
     /// Sent by harmony when information about a guild is updated.
     GuildUpdate {
@@ -138,6 +143,11 @@ pub enum OutboundMessage {
     MessageCreate {
         /// The message that was sent by a user.
         message: Message,
+        /// A custom nonce for this message. This is a random string that if used, a message with the
+        /// same nonce will be dispatched by the websocket, indicating that the message was sent.
+        ///
+        /// This is only used once and it is not stored.
+        nonce: Option<String>,
     },
     /// Sent by harmony when a message is updated.
     MessageUpdate {
