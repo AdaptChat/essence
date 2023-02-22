@@ -1634,6 +1634,26 @@
     },
     "query": "SELECT * FROM roles WHERE guild_id = $1 ORDER BY position ASC"
   },
+  "92942b5a993dbd832c27fcd6674d72d494f7545382a569e8c0aac613a551e323": {
+    "describe": {
+      "columns": [
+        {
+          "name": "guild_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT guild_id FROM members WHERE id = $1"
+  },
   "962f4ae79bf3e10d96a5b5c0b7a3e66bf56087581455f113527aa8fd22c83422": {
     "describe": {
       "columns": [
