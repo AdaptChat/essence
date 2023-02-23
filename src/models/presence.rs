@@ -35,9 +35,9 @@ pub struct Presence {
     /// The devices the user is present on.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub devices: Devices,
-    /// User first online timestamp.
+    /// The time the user initially went online. This is only provided if the user is online.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
-    pub online_since: DateTime<Utc>,
+    pub online_since: Option<DateTime<Utc>>,
 }
 
 /// Represents a device a user could be present on. This is provided once during the `identify`
