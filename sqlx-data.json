@@ -2210,6 +2210,26 @@
     },
     "query": "SELECT EXISTS(SELECT 1 FROM channel_recipients WHERE channel_id = $1 AND user_id = $2)"
   },
+  "d500e48c5138991ca0657436b55eb308c13999c2cbaf2f4abfdf1a029ae258a6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT DISTINCT\n                id\n            FROM\n                members\n            WHERE guild_id IN (SELECT guild_id FROM members WHERE id = $1);\n            "
+  },
   "d59fa440c1c209176b8a9c6779321964b1efc6b2aa6289c5d40cf5c07db30e53": {
     "describe": {
       "columns": [
