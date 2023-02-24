@@ -47,7 +47,7 @@ macro_rules! construct_member {
     }};
 }
 
-use crate::db::get_pool;
+use crate::db::{get_pool, UserDbExt};
 use crate::http::member::{EditClientMemberPayload, EditMemberPayload};
 use crate::models::{MaybePartialUser, ModelType};
 pub(crate) use construct_member;
@@ -238,6 +238,10 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with creating the member.
     async fn create_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<Option<Member>> {
+        let user = get_pool().fetch_user_by_id(user_id).await?.map_or(
+            MaybePartialUser::Partial { id: user_id },
+            MaybePartialUser::Full,
+        );
         let member = sqlx::query!(
             "INSERT INTO members (guild_id, id) VALUES ($1, $2)
             ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at",
@@ -248,7 +252,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         .await?
         .map(|m| Member {
             guild_id,
-            user: MaybePartialUser::Partial { id: user_id },
+            user,
             nick: None,
             joined_at: m.joined_at,
             roles: None,
