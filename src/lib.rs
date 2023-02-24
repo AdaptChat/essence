@@ -15,6 +15,7 @@
 
 #[cfg(any(feature = "auth", feature = "token-parsing"))]
 pub mod auth;
+pub mod bincode_impl;
 #[cfg(feature = "db")]
 pub mod cache;
 #[cfg(feature = "db")]
@@ -24,6 +25,7 @@ pub mod http;
 mod maybe;
 pub mod models;
 mod permissions;
+pub mod redis_cache;
 #[cfg(feature = "snowflakes")]
 pub mod snowflake;
 pub mod ws;
@@ -34,6 +36,36 @@ pub use permissions::{calculate_permissions, calculate_permissions_sorted};
 #[cfg(feature = "utoipa")]
 pub use utoipa;
 
+#[macro_export]
+macro_rules! bincode_for_bitflags {
+    ($ty: ty) => {
+        #[cfg(feature = "db")]
+        impl bincode::Encode for $ty {
+            fn encode<E: bincode::enc::Encoder>(
+                &self,
+                encoder: &mut E,
+            ) -> Result<(), bincode::error::EncodeError> {
+                bincode::Encode::encode(&self.bits(), encoder)
+            }
+        }
+
+        #[cfg(feature = "db")]
+        impl bincode::Decode for $ty {
+            fn decode<D: bincode::de::Decoder>(
+                decoder: &mut D,
+            ) -> Result<Self, bincode::error::DecodeError> {
+                Ok(
+                    Self::from_bits(bincode::Decode::decode(decoder)?).ok_or_else(|| {
+                        bincode::error::DecodeError::OtherString(
+                            "representation contains bits that do not correspond to a flag"
+                                .to_string(),
+                        )
+                    })?,
+                )
+            }
+        }
+    };
+}
 #[macro_export]
 macro_rules! serde_for_bitflags {
     (@openapi for $t:ty => $format:ident) => {

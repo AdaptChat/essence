@@ -198,7 +198,51 @@ impl Error {
 impl From<sqlx::Error> for Error {
     fn from(e: sqlx::Error) -> Self {
         Self::InternalError {
-            what: Some("database".into()),
+            what: Some("database".to_string()),
+            message: e.to_string(),
+            debug: Some(format!("{e:?}")),
+        }
+    }
+}
+
+#[cfg(feature = "db")]
+impl From<deadpool_redis::redis::RedisError> for Error {
+    fn from(e: deadpool_redis::redis::RedisError) -> Self {
+        Self::InternalError {
+            what: Some("cache".to_string()),
+            message: e.to_string(),
+            debug: Some(format!("{e:?}")),
+        }
+    }
+}
+
+#[cfg(feature = "db")]
+impl From<deadpool_redis::PoolError> for Error {
+    fn from(e: deadpool_redis::PoolError) -> Self {
+        Self::InternalError {
+            what: Some("cache".to_string()),
+            message: e.to_string(),
+            debug: Some(format!("{e:?}")),
+        }
+    }
+}
+
+#[cfg(feature = "db")]
+impl From<bincode::error::EncodeError> for Error {
+    fn from(e: bincode::error::EncodeError) -> Self {
+        Self::InternalError {
+            what: Some("bincode_encode".to_string()),
+            message: e.to_string(),
+            debug: Some(format!("{e:?}")),
+        }
+    }
+}
+
+#[cfg(feature = "db")]
+impl From<bincode::error::DecodeError> for Error {
+    fn from(e: bincode::error::DecodeError) -> Self {
+        Self::InternalError {
+            what: Some("bincode_decode".to_string()),
             message: e.to_string(),
             debug: Some(format!("{e:?}")),
         }
@@ -209,7 +253,7 @@ impl From<sqlx::Error> for Error {
 impl From<argon2_async::Error> for Error {
     fn from(e: argon2_async::Error) -> Self {
         Self::InternalError {
-            what: Some("hasher".into()),
+            what: Some("hasher".to_string()),
             message: e.to_string(),
             debug: Some(format!("{e:?}")),
         }

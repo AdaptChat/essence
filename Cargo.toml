@@ -23,6 +23,7 @@ ring = { version = "0.16.20", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
 tokio = { version = "1", features = ["sync"], default-features = false, optional = true }
+deadpool-redis = { version = "0.11", optional = true }
 
 [dependencies.sqlx]
 version = "0.6"
@@ -38,7 +39,7 @@ optional = true
 default = ["snowflakes"]
 auth = ["snowflakes", "dep:argon2-async", "dep:ring", "token-parsing"]
 client = []
-db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "dep:tokio", "snowflakes", "serde_json"]
+db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "dep:tokio", "snowflakes", "serde_json", "dep:deadpool-redis", "dep:bincode"]
 snowflakes = []
 token-parsing = ["dep:base64", "snowflakes"]
-webserver = ["auth", "bincode", "db", "utoipa", "utoipa/axum_extras", "utoipa/yaml"]
+webserver = ["auth", "dep:bincode", "db", "utoipa", "utoipa/axum_extras", "utoipa/yaml"]
