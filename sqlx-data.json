@@ -1803,6 +1803,50 @@
     },
     "query": "DELETE FROM members WHERE guild_id = $1 AND id = $2"
   },
+  "b94ba22ce8fffce3294b47d2587e98063a4a7850a16d02651294977525bee948": {
+    "describe": {
+      "columns": [
+        {
+          "name": "is_older!",
+          "ordinal": 0,
+          "type_info": "Bool"
+        },
+        {
+          "name": "target_id!",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "kind: _",
+          "ordinal": 2,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "pending_otn",
+                  "pending_nto"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        null,
+        null,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT\n                user_id < $1 OR other_id < $1 AS \"is_older!\",\n                CASE\n                    WHEN user_id = $1 THEN other_id\n                    ELSE user_id\n                END AS \"target_id!\",\n                type AS \"kind: _\"\n            FROM\n                relationships\n            WHERE\n                user_id = $1\n            OR\n                other_id = $1\n            "
+  },
   "bbfc76e3af9ea14f7db905a60a55ee902e6fd91abc1637767c9d65cf54d16d01": {
     "describe": {
       "columns": [],
@@ -1932,6 +1976,32 @@
       }
     },
     "query": "SELECT\n                        messages.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages\n                    WHERE\n                        channel_id = $1\n                    AND\n                        revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR author_id = $4)\n                    ORDER BY id DESC LIMIT $5"
+  },
+  "bfab1bf202ce14b7cda95a222112740ebc6137a58ab0956050a426f066f432ce": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "pending_otn",
+                  "pending_nto"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
+        ]
+      }
+    },
+    "query": "INSERT INTO relationships (user_id, other_id, type)\n            VALUES ($1, $2, $3)\n            ON CONFLICT (user_id, other_id) DO UPDATE SET type = $3"
   },
   "c0e8c822329cf7f119412c93753f3cd476d8d426e27a456d7257ee1dd3192e0a": {
     "describe": {
