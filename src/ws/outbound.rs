@@ -77,6 +77,7 @@ pub enum OutboundMessage {
         /// The ID of the guild that was left or deleted.
         guild_id: u64,
         /// Extra information about the guild deletion.
+        #[serde(flatten)]
         info: MemberRemoveInfo,
     },
     /// Sent by harmony when a channel is created within a guild.

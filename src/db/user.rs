@@ -358,6 +358,33 @@ pub trait UserDbExt<'t>: DbExt<'t> {
 
         Ok(Relationship { target_id, kind })
     }
+
+    /// Deletes a relationship between two users.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the relationship.
+    /// * If the relationship doesn't exist.
+    async fn delete_relationship(&mut self, user_id: u64, target_id: u64) -> crate::Result<()> {
+        sqlx::query!(
+            r#"DELETE FROM 
+                relationships 
+            WHERE 
+                user_id = $1 AND other_id = $2 
+            OR
+                user_id = $2 AND other_id = $1
+            "#,
+            user_id as i64,
+            target_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
 }
 
 impl<'t, T> UserDbExt<'t> for T where T: DbExt<'t> {}
