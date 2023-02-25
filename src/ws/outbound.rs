@@ -11,7 +11,7 @@ use crate::models::{
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum MemberRemoveInfo {
     /// The guild was deleted. Note that this is never sent in `member_remove` events.
     Delete,
