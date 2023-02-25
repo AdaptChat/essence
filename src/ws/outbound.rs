@@ -3,7 +3,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::models::{
-    Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence, Role,
+    Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence,
+    Relationship, Role, User,
 };
 
 /// Extra information about member removal.
@@ -161,10 +162,30 @@ pub enum OutboundMessage {
         /// The ID of the message that was deleted.
         message_id: u64,
     },
+    /// Sent by harmony when a user starts typing.
+    TypingStart {
+        /// The ID of the channel that the user is typing in.
+        channel_id: u64,
+        /// The ID of the user that is typing.
+        user_id: u64,
+    },
     /// Sent by harmony when a user updates their presence.
     PresenceUpdate {
         /// The presence after it was updated. The user ID can be retrieved from accessing
         /// `presence.user_id`.
         presence: Presence,
+    },
+    /// Sent by harmony when a relationship is created. If a relationship already exists, this
+    /// should be treated as an update and replace it.
+    RelationshipCreate {
+        /// The relationship that was created.
+        relationship: Relationship,
+        /// Resolved data of the other user.
+        user: User,
+    },
+    /// Sent by harmony when a relationship is removed.
+    RelationshipRemove {
+        /// The ID of the user that the relationship was removed with.
+        user_id: u64,
     },
 }

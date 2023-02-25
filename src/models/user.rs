@@ -101,13 +101,6 @@ pub struct ClientUser {
     #[serde(skip)]
     #[cfg(feature = "db")]
     pub password: Option<String>,
-    // /// A list of DM channels that the client has open.
-    // pub dm_channels: Vec<DmChannel<u64>>,
-    // /// A list of guilds that the client is a member of. This is a list of partial guilds that
-    // /// include information such as the guild's ID, name, icon, and owner.
-    // pub guilds: Vec<PartialGuild<u64>>,
-    /// A list of relationships that the client has with other users.
-    pub relationships: Vec<Relationship>,
 }
 
 impl std::ops::Deref for ClientUser {
@@ -127,35 +120,33 @@ impl std::ops::DerefMut for ClientUser {
 impl ClientUser {
     builder_methods! {
         email: String => set_email + Some,
-        // guilds: Vec<PartialGuild<u64>> => set_guilds,
-        relationships: Vec<Relationship> => set_relationships,
-        // dm_channels: Vec<DmChannel<u64>> => set_dm_channels,
     }
 }
 
-/// Represents a client user with addition to their password.
-
 /// Represents the type of relationship a user has with another user.
-#[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum RelationshipType {
-    /// The user is added as a friend.
-    #[default]
+    /// The other user is added as a friend.
     Friend,
-    /// The user is blocked.
+    /// The client user has sent a friend request to the other user which is still pending.
+    OutgoingRequest,
+    /// The other user has sent a friend request to the client user which is still pending.
+    IncomingRequest,
+    /// The other user is blocked.
     Blocked,
 }
 
 /// Represents a relationship that a user has with another user.
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Relationship {
     /// The ID of the user that this relationship is with.
-    pub id: u64,
+    pub target_id: u64,
     /// The type of relationship this is.
     #[serde(rename = "type")]
     pub kind: RelationshipType,

@@ -1,4 +1,5 @@
 use super::DbExt;
+use crate::models::{Relationship, RelationshipType};
 use crate::{
     db::get_pool,
     http::user::EditUserPayload,
@@ -40,11 +41,20 @@ macro_rules! fetch_client_user {
                 user: construct_user!(r),
                 email: r.email,
                 password: r.password,
-                relationships: vec![],
             });
 
         Ok(result)
     }};
+}
+
+#[derive(sqlx::Type)]
+#[sqlx(type_name = "relationship_type")] // only for PostgreSQL to match a type definition
+#[sqlx(rename_all = "snake_case")]
+enum DbRelationshipType {
+    Friend,
+    PendingOtn,
+    PendingNto,
+    Blocked,
 }
 
 #[async_trait::async_trait]
@@ -241,6 +251,112 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             .await?;
 
         Ok(())
+    }
+
+    /// Fetches all relationships for the given user.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the relationships.
+    async fn fetch_relationships(&self, user_id: u64) -> sqlx::Result<Vec<Relationship>> {
+        struct DbRelationship {
+            is_older: bool,
+            target_id: i64,
+            kind: DbRelationshipType,
+        }
+
+        let relationships = sqlx::query_as!(
+            DbRelationship,
+            r#"
+            SELECT
+                user_id < $1 OR other_id < $1 AS "is_older!",
+                CASE
+                    WHEN user_id = $1 THEN other_id
+                    ELSE user_id
+                END AS "target_id!",
+                type AS "kind: _"
+            FROM
+                relationships
+            WHERE
+                user_id = $1
+            OR
+                other_id = $1
+            "#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|mut r| {
+            if matches!(r.kind, DbRelationshipType::PendingOtn) {
+                r.is_older = !r.is_older;
+            }
+            Relationship {
+                target_id: r.target_id as _,
+                kind: match r.kind {
+                    DbRelationshipType::Friend => RelationshipType::Friend,
+                    DbRelationshipType::Blocked => RelationshipType::Blocked,
+                    _ => {
+                        if r.is_older {
+                            RelationshipType::IncomingRequest
+                        } else {
+                            RelationshipType::OutgoingRequest
+                        }
+                    }
+                },
+            }
+        })
+        .collect::<Vec<_>>();
+
+        Ok(relationships)
+    }
+
+    /// Creates a relationship between two users, and updates it if it already exists.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If the relationship is trying to be created with a user that doesn't exist.
+    /// * If an error occurs with creating the relationship.
+    async fn create_relationship(
+        &mut self,
+        user_id: u64,
+        target_id: u64,
+        kind: RelationshipType,
+    ) -> crate::Result<Relationship> {
+        let user_is_older = user_id < target_id;
+        let kind_db = match kind {
+            RelationshipType::Friend => DbRelationshipType::Friend,
+            RelationshipType::IncomingRequest => {
+                if user_is_older {
+                    DbRelationshipType::PendingNto
+                } else {
+                    DbRelationshipType::PendingOtn
+                }
+            }
+            RelationshipType::OutgoingRequest => {
+                if user_is_older {
+                    DbRelationshipType::PendingOtn
+                } else {
+                    DbRelationshipType::PendingNto
+                }
+            }
+            RelationshipType::Blocked => DbRelationshipType::Blocked,
+        };
+
+        sqlx::query!(
+            r#"INSERT INTO relationships (user_id, other_id, type)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, other_id) DO UPDATE SET type = $3"#,
+            user_id as i64,
+            target_id as i64,
+            kind_db as _,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(Relationship { target_id, kind })
     }
 }
 
