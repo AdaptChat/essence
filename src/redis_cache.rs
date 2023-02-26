@@ -6,10 +6,16 @@ use deadpool_redis::{
     Config, Connection, Pool, Runtime,
 };
 
-use crate::{bincode_impl::BincodeType, error::Result, models::UserFlags};
+use crate::{
+    bincode_impl::BincodeType,
+    error::Result,
+    models::{Permissions, UserFlags},
+};
 
 static POOL: OnceLock<Pool> = OnceLock::new();
 const CONFIG: bincode::config::Configuration = bincode::config::standard();
+
+type ResultOption<T> = Result<Option<T>>;
 
 fn setup() {
     POOL.set(
@@ -24,7 +30,7 @@ async fn get_con() -> Result<Connection> {
     unsafe { Ok(POOL.get().unwrap_unchecked().get().await?) }
 }
 
-async fn user_info_for_token(token: String) -> Result<Option<(u64, UserFlags)>> {
+async fn user_info_for_token(token: String) -> ResultOption<(u64, UserFlags)> {
     Ok(get_con()
         .await?
         .hget::<_, _, Option<BincodeType<(u64, UserFlags)>>>("essence-tokens", token)
@@ -78,46 +84,100 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
     Ok(())
 }
 
-pub async fn is_member_of_guild(guild_id: u64, user_id: u64) -> Result<bool> {
+pub async fn remove_guild(guild_id: u64) -> Result<()> {
+    let mut con = get_con().await?;
+
+    let keys = con.keys::<_, Vec<String>>(format!("{guild_id}-*")).await?;
+    con.del(keys).await?;
+
+    Ok(())
+}
+
+pub async fn is_member_of_guild(guild_id: u64, user_id: u64) -> ResultOption<bool> {
     Ok(get_con()
         .await?
         .sismember::<_, _, bool>(format!("{guild_id}-members"), user_id)
         .await?
-    )
+        .then_some(true))
 }
 
 pub async fn remove_member_from_guild(guild_id: u64, user_id: u64) -> Result<()> {
-    Ok(
-        get_con()
-            .await?
-            .srem(format!("{guild_id}-members"), user_id)
-            .await?
-    )
+    Ok(get_con()
+        .await?
+        .srem(format!("{guild_id}-members"), user_id)
+        .await?)
 }
 
 pub async fn insert_member_to_guild(guild_id: u64, user_id: u64) -> Result<()> {
-    Ok(
-        get_con()
-            .await?
-            .sadd(format!("{guild_id}-members"), user_id)
-            .await?
-    )
+    Ok(get_con()
+        .await?
+        .sadd(format!("{guild_id}-members"), user_id)
+        .await?)
 }
 
 pub async fn insert_members_to_guild(guild_id: u64, user_ids: impl AsRef<[u64]>) -> Result<()> {
-    Ok(
-        get_con()
-            .await?
-            .sadd(format!("{guild_id}-members"), user_ids.as_ref())
-            .await?
-    )
+    Ok(get_con()
+        .await?
+        .sadd(format!("{guild_id}-members"), user_ids.as_ref())
+        .await?)
 }
 
-pub async fn remove_guild(guild_id: u64) -> Result<()> {
-    Ok(
-        get_con()
-            .await?
-            .del(format!("{guild_id}-members"))
-            .await?
-    )
+pub async fn update_owner_of_guild(guild_id: u64, user_id: u64) -> Result<()> {
+    Ok(get_con()
+        .await?
+        .set(format!("{guild_id}-owner"), user_id)
+        .await?)
+}
+
+pub async fn owner_of_guild(guild_id: u64) -> Result<u64> {
+    Ok(get_con().await?.get(format!("{guild_id}-owner")).await?)
+}
+
+pub async fn update_permissions_for(
+    guild_id: u64,
+    user_id: u64,
+    channel_id: Option<u64>,
+    permissions: Permissions,
+) -> Result<()> {
+    Ok(get_con()
+        .await?
+        .hset(
+            format!("{guild_id}-{user_id}-perm"),
+            channel_id.unwrap_or(0),
+            permissions.bits(),
+        )
+        .await?)
+}
+
+pub async fn permissions_for(
+    guild_id: u64,
+    user_id: u64,
+    channel_id: Option<u64>,
+) -> ResultOption<Permissions> {
+    Ok(get_con()
+        .await?
+        .hget::<_, _, Option<i64>>(
+            format!("{guild_id}-{user_id}-perm"),
+            channel_id.unwrap_or(0),
+        )
+        .await?
+        .map(|bits| Permissions::from_bits_truncate(bits)))
+}
+
+pub async fn delete_permissions_for_user(guild_id: u64, user_id: u64) -> Result<()> {
+    Ok(get_con()
+        .await?
+        .del(format!("{guild_id}-{user_id}"))
+        .await?)
+}
+
+pub async fn delete_permissions_for_user_in_channel(
+    guild_id: u64,
+    user_id: u64,
+    channel_id: Option<u64>,
+) -> Result<()> {
+    Ok(get_con()
+        .await?
+        .hdel(format!("{guild_id}-{user_id}"), channel_id.unwrap_or(0))
+        .await?)
 }
