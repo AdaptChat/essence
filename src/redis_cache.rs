@@ -2,18 +2,17 @@ use std::sync::OnceLock;
 
 use bincode::encode_to_vec;
 use deadpool_redis::{
-    redis::{cmd, AsyncCommands},
+    redis::AsyncCommands,
     Config, Connection, Pool, Runtime,
 };
 
 use crate::{
     bincode_impl::BincodeType,
     error::Result,
-    models::{Permissions, UserFlags},
+    models::{Permissions, UserFlags, User},
 };
 
 static POOL: OnceLock<Pool> = OnceLock::new();
-const CONFIG: bincode::config::Configuration = bincode::config::standard();
 
 type ResultOption<T> = Result<Option<T>>;
 
@@ -23,7 +22,7 @@ fn setup() {
             .create_pool(Some(Runtime::Tokio1))
             .unwrap(),
     )
-    .unwrap_or_else(|_| panic!("Failed to set `POOL`"))
+    .unwrap_or_else(|_| panic!("Failed to set `POOL`"));
 }
 
 async fn get_con() -> Result<Connection> {
@@ -44,7 +43,7 @@ pub async fn cache_token(token: String, user_id: u64, flags: UserFlags) -> Resul
         .hset(
             "essence-tokens",
             token,
-            encode_to_vec((user_id, flags), CONFIG)?,
+            BincodeType((user_id, flags)),
         )
         .await?;
 
@@ -59,7 +58,6 @@ pub async fn invalidate_token(token: String) -> Result<()> {
 
 pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
     let mut con = get_con().await?;
-
     let mut pipe = deadpool_redis::redis::pipe();
 
     for token in con
@@ -82,6 +80,13 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
     pipe.query_async(&mut con).await?;
 
     Ok(())
+}
+
+pub async fn update_user(user: User) -> Result<()> {
+    Ok(get_con()
+            .await?
+            .hset("essence-users", user.id, BincodeType(user))
+            .await?)
 }
 
 pub async fn remove_guild(guild_id: u64) -> Result<()> {
