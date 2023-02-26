@@ -371,14 +371,18 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         kind: RelationshipType,
     ) -> crate::Result<(Relationship, Option<Relationship>)> {
         let (user_kind, target_kind) = match kind {
-            RelationshipType::Friend => (DbRelationshipType::Friend, DbRelationshipType::Friend),
-            RelationshipType::IncomingRequest => {
-                (DbRelationshipType::Incoming, DbRelationshipType::Outgoing)
+            RelationshipType::Friend => {
+                (DbRelationshipType::Friend, Some(DbRelationshipType::Friend))
             }
-            RelationshipType::OutgoingRequest => {
-                (DbRelationshipType::Outgoing, DbRelationshipType::Incoming)
-            }
-            RelationshipType::Blocked => (DbRelationshipType::Blocked, DbRelationshipType::Blocked),
+            RelationshipType::IncomingRequest => (
+                DbRelationshipType::Incoming,
+                Some(DbRelationshipType::Outgoing),
+            ),
+            RelationshipType::OutgoingRequest => (
+                DbRelationshipType::Outgoing,
+                Some(DbRelationshipType::Incoming),
+            ),
+            RelationshipType::Blocked => (DbRelationshipType::Blocked, None),
         };
 
         let relationship = self
@@ -387,7 +391,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             // TODO: Should this really panic?
             .expect("relationship should have been upserted");
         let external_relationship = self
-            .register_one_way_relationship(target_id, user_id, Some(target_kind))
+            .register_one_way_relationship(target_id, user_id, target_kind)
             .await?;
 
         Ok((relationship, external_relationship))
