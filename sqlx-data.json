@@ -854,19 +854,6 @@
     },
     "query": "SELECT guild_id, owner_id, type AS kind FROM channels WHERE id = $1"
   },
-  "30fbb23926c4707be91df828debb45df3ad01a91091a8006ae54645926bb1a08": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "DELETE FROM \n                relationships \n            WHERE \n                user_id = $1 AND other_id = $2 \n            OR\n                user_id = $2 AND other_id = $1\n            "
-  },
   "366e65997d0ed6a92d40d9031f6b76e77638472532a1c2a8f9e617704a62ce2a": {
     "describe": {
       "columns": [
