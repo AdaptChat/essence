@@ -47,14 +47,49 @@ macro_rules! fetch_client_user {
     }};
 }
 
-#[derive(sqlx::Type)]
+macro_rules! query_relationships {
+    ($where:literal, $($arg:expr),* $(,)?) => {{
+        sqlx::query_as!(
+            DbRelationship,
+            r#"
+            SELECT
+                r.target_id,
+                u.username AS username,
+                u.discriminator AS discriminator,
+                u.avatar AS avatar,
+                u.banner AS banner,
+                u.bio AS bio,
+                u.flags AS flags,
+                r.type AS "kind: _"
+            FROM
+                relationships AS r
+            INNER JOIN
+                users AS u ON u.id = r.target_id
+            WHERE "# + $where,
+            $($arg),*
+        )
+    }};
+}
+
+#[derive(Copy, Clone, sqlx::Type)]
 #[sqlx(type_name = "relationship_type")] // only for PostgreSQL to match a type definition
 #[sqlx(rename_all = "snake_case")]
-enum DbRelationshipType {
+pub enum DbRelationshipType {
     Friend,
-    PendingOtn,
-    PendingNto,
+    Incoming,
+    Outgoing,
     Blocked,
+}
+
+pub struct DbRelationship {
+    pub target_id: i64,
+    pub username: String,
+    pub discriminator: i16,
+    pub avatar: Option<String>,
+    pub banner: Option<String>,
+    pub bio: Option<String>,
+    pub flags: i32,
+    pub kind: DbRelationshipType,
 }
 
 #[async_trait::async_trait]
@@ -258,59 +293,69 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the relationships.
     async fn fetch_relationships(&self, user_id: u64) -> sqlx::Result<Vec<Relationship>> {
-        struct DbRelationship {
-            is_older: bool,
-            target_id: i64,
-            kind: DbRelationshipType,
-        }
-
-        let relationships = sqlx::query_as!(
-            DbRelationship,
-            r#"
-            SELECT
-                user_id < $1 OR other_id < $1 AS "is_older!",
-                CASE
-                    WHEN user_id = $1 THEN other_id
-                    ELSE user_id
-                END AS "target_id!",
-                type AS "kind: _"
-            FROM
-                relationships
-            WHERE
-                user_id = $1
-            OR
-                other_id = $1
-            "#,
-            user_id as i64,
-        )
-        .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .map(|mut r| {
-            if matches!(r.kind, DbRelationshipType::PendingOtn) {
-                r.is_older = !r.is_older;
-            }
-            Relationship {
-                target_id: r.target_id as _,
-                kind: match r.kind {
-                    DbRelationshipType::Friend => RelationshipType::Friend,
-                    DbRelationshipType::Blocked => RelationshipType::Blocked,
-                    _ => {
-                        if r.is_older {
-                            RelationshipType::IncomingRequest
-                        } else {
-                            RelationshipType::OutgoingRequest
-                        }
-                    }
-                },
-            }
-        })
-        .collect::<Vec<_>>();
+        let relationships = query_relationships!("user_id = $1", user_id as i64)
+            .fetch_all(self.executor())
+            .await?
+            .into_iter()
+            .map(Relationship::from_db_relationship)
+            .collect::<Vec<_>>();
 
         Ok(relationships)
     }
 
+    /// Registers a one-way relationship between two users. This is used internally.
+    async fn register_one_way_relationship(
+        &mut self,
+        user_id: u64,
+        target_id: u64,
+        kind: Option<DbRelationshipType>,
+    ) -> sqlx::Result<Option<Relationship>> {
+        let Some(kind) = kind else {
+            return Ok(
+                query_relationships!("user_id = $1 AND target_id = $2", user_id as i64, target_id as i64)
+                    .fetch_optional(get_pool())
+                    .await?
+                    .map(Relationship::from_db_relationship)
+            )
+        };
+
+        let db_relationship = sqlx::query_as!(
+            DbRelationship,
+            r#"WITH updated AS (
+                INSERT INTO relationships
+                    (user_id, target_id, type)
+                VALUES
+                    ($1, $2, $3)
+                ON CONFLICT (user_id, target_id)
+                DO UPDATE SET type = $3
+                RETURNING target_id, type
+            )
+            SELECT
+                u.id AS target_id,
+                u.username AS username,
+                u.discriminator AS discriminator,
+                u.avatar AS avatar,
+                u.banner AS banner,
+                u.bio AS bio,
+                u.flags AS flags,
+                updated.type AS "kind: _"
+            FROM
+                updated
+            INNER JOIN
+                users AS u ON u.id = updated.target_id
+            "#,
+            user_id as i64,
+            target_id as i64,
+            kind as _,
+        )
+        .fetch_one(self.transaction())
+        .await?;
+
+        Ok(Some(Relationship::from_db_relationship(db_relationship)))
+    }
+
     /// Creates a relationship between two users, and updates it if it already exists.
+    /// Returns (user_to_target, target_to_user?).
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -324,39 +369,28 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         user_id: u64,
         target_id: u64,
         kind: RelationshipType,
-    ) -> crate::Result<Relationship> {
-        let user_is_older = user_id < target_id;
-        let kind_db = match kind {
-            RelationshipType::Friend => DbRelationshipType::Friend,
+    ) -> crate::Result<(Relationship, Option<Relationship>)> {
+        let (user_kind, target_kind) = match kind {
+            RelationshipType::Friend => (DbRelationshipType::Friend, DbRelationshipType::Friend),
             RelationshipType::IncomingRequest => {
-                if user_is_older {
-                    DbRelationshipType::PendingNto
-                } else {
-                    DbRelationshipType::PendingOtn
-                }
+                (DbRelationshipType::Incoming, DbRelationshipType::Outgoing)
             }
             RelationshipType::OutgoingRequest => {
-                if user_is_older {
-                    DbRelationshipType::PendingOtn
-                } else {
-                    DbRelationshipType::PendingNto
-                }
+                (DbRelationshipType::Outgoing, DbRelationshipType::Incoming)
             }
-            RelationshipType::Blocked => DbRelationshipType::Blocked,
+            RelationshipType::Blocked => (DbRelationshipType::Blocked, DbRelationshipType::Blocked),
         };
 
-        sqlx::query!(
-            r#"INSERT INTO relationships (user_id, other_id, type)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id, other_id) DO UPDATE SET type = $3"#,
-            user_id as i64,
-            target_id as i64,
-            kind_db as _,
-        )
-        .execute(self.transaction())
-        .await?;
+        let relationship = self
+            .register_one_way_relationship(user_id, target_id, Some(user_kind))
+            .await?
+            // TODO: Should this really panic?
+            .expect("relationship should have been upserted");
+        let external_relationship = self
+            .register_one_way_relationship(target_id, user_id, Some(target_kind))
+            .await?;
 
-        Ok(Relationship { target_id, kind })
+        Ok((relationship, external_relationship))
     }
 
     /// Deletes a relationship between two users.
@@ -369,14 +403,10 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with deleting the relationship.
     /// * If the relationship doesn't exist.
     async fn delete_relationship(&mut self, user_id: u64, target_id: u64) -> crate::Result<()> {
+        // TODO: this should delete both relationships, not only one, but only if the other
+        //       relationship is a "blocked" relationship
         sqlx::query!(
-            r#"DELETE FROM 
-                relationships 
-            WHERE 
-                user_id = $1 AND other_id = $2 
-            OR
-                user_id = $2 AND other_id = $1
-            "#,
+            "DELETE FROM relationships WHERE user_id = $1 AND target_id = $2",
             user_id as i64,
             target_id as i64,
         )

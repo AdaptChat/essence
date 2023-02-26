@@ -53,6 +53,8 @@ pub enum OutboundMessage {
         guilds: Vec<Guild>,
         /// An initial array of all presences observed by the user.
         presences: Vec<Presence>,
+        /// A list of relationships associated with the user.
+        relationships: Vec<Relationship>,
     },
     /// Sent by harmony when the client joins or creates a guild. Note that this does not include
     /// guilds received from the `Ready` event, those must be accounted for separately.

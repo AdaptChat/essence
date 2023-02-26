@@ -135,7 +135,7 @@ pub enum RelationshipType {
     OutgoingRequest,
     /// The other user has sent a friend request to the client user which is still pending.
     IncomingRequest,
-    /// The other user is blocked.
+    /// The client user has blocked the other user.
     Blocked,
 }
 
@@ -145,9 +145,38 @@ pub enum RelationshipType {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Relationship {
-    /// The ID of the user that this relationship is with.
-    pub target_id: u64,
+    /// The user that this relationship is with.
+    pub user: User,
     /// The type of relationship this is.
     #[serde(rename = "type")]
     pub kind: RelationshipType,
+}
+
+#[cfg(feature = "db")]
+impl Relationship {
+    /// Creates a new relationship from a database row.
+    /// This is used internally by the database module.
+    #[inline]
+    #[allow(clippy::missing_const_for_fn)] // false positive
+    pub(crate) fn from_db_relationship(data: crate::db::DbRelationship) -> Self {
+        use crate::db::DbRelationshipType;
+
+        Self {
+            user: User {
+                id: data.target_id as _,
+                username: data.username,
+                discriminator: data.discriminator as _,
+                avatar: data.avatar,
+                banner: data.banner,
+                bio: data.bio,
+                flags: UserFlags::from_bits_truncate(data.flags as _),
+            },
+            kind: match data.kind {
+                DbRelationshipType::Friend => RelationshipType::Friend,
+                DbRelationshipType::Incoming => RelationshipType::IncomingRequest,
+                DbRelationshipType::Outgoing => RelationshipType::OutgoingRequest,
+                DbRelationshipType::Blocked => RelationshipType::Blocked,
+            },
+        }
+    }
 }
