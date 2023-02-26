@@ -1493,6 +1493,19 @@
     },
     "query": "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5"
   },
+  "79882605db255c14711a09b7c13a2bedc357e0272685820172a6451b6bac6364": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM\n                relationships\n            WHERE\n                user_id = $1 AND target_id = $2\n            OR\n                target_id = $1 AND user_id = $2 AND type != 'blocked'\n            "
+  },
   "7ca2668d2402b8702ed588885790c4c6657be36f0850d3df2cf0e11998b88001": {
     "describe": {
       "columns": [
@@ -1639,19 +1652,6 @@
       }
     },
     "query": "SELECT * FROM users WHERE id = $1"
-  },
-  "86b3be09775f2623a5744704e2493ae3997f82a845dbe0c3eefe50adda7ccdb3": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "DELETE FROM relationships WHERE user_id = $1 AND target_id = $2"
   },
   "87742854ab3161409d6fb266f96c1d251b75dc157e95dbeb9b13b915b8fee9af": {
     "describe": {
