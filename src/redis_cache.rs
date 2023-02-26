@@ -161,7 +161,7 @@ pub async fn permissions_for(
             channel_id.unwrap_or(0),
         )
         .await?
-        .map(|bits| Permissions::from_bits_truncate(bits)))
+        .map(Permissions::from_bits_truncate))
 }
 
 pub async fn delete_permissions_for_user(guild_id: u64, user_id: u64) -> Result<()> {
