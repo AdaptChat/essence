@@ -403,10 +403,14 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with deleting the relationship.
     /// * If the relationship doesn't exist.
     async fn delete_relationship(&mut self, user_id: u64, target_id: u64) -> crate::Result<()> {
-        // TODO: this should delete both relationships, not only one, but only if the other
-        //       relationship is a "blocked" relationship
         sqlx::query!(
-            "DELETE FROM relationships WHERE user_id = $1 AND target_id = $2",
+            r#"DELETE FROM
+                relationships
+            WHERE
+                user_id = $1 AND target_id = $2
+            OR
+                target_id = $1 AND user_id = $2 AND type != 'blocked'
+            "#,
             user_id as i64,
             target_id as i64,
         )
