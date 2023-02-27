@@ -1871,6 +1871,39 @@
     },
     "query": "SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2"
   },
+  "9b2a479ebc2d6066b96dad7aaeaf9144f28ed99afd95e6e7b394e6e6c327e7ca": {
+    "describe": {
+      "columns": [
+        {
+          "name": "kind: _",
+          "ordinal": 0,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "incoming",
+                  "outgoing"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT type AS \"kind: _\" FROM relationships WHERE user_id = $1 AND target_id = $2"
+  },
   "9d2c649ff158908f95226af761c8b96f3e79fb760b1be0335ef2e58a3b2dd831": {
     "describe": {
       "columns": [
