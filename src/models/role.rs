@@ -1,5 +1,5 @@
 use crate::models::PermissionPair;
-use crate::serde_for_bitflags;
+use crate::{bincode_for_bitflags, serde_for_bitflags};
 #[cfg(feature = "client")]
 use serde::Deserialize;
 use serde::Serialize;
@@ -51,3 +51,4 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(u32: RoleFlags);
+bincode_for_bitflags!(RoleFlags);

@@ -1,4 +1,5 @@
 use crate::{
+    bincode_for_bitflags,
     models::{GuildChannel, Role, User},
     serde_for_bitflags,
 };
@@ -160,3 +161,4 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(u32: GuildFlags);
+bincode_for_bitflags!(GuildFlags);

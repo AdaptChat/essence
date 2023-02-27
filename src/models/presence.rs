@@ -1,4 +1,4 @@
-use crate::serde_for_bitflags;
+use crate::{bincode_for_bitflags, serde_for_bitflags};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
@@ -69,3 +69,4 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(u32: Devices);
+bincode_for_bitflags!(Devices);

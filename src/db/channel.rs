@@ -239,13 +239,10 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// returned.
     #[allow(clippy::too_many_lines)]
     async fn fetch_channel(&self, channel_id: u64) -> crate::Result<Option<Channel>> {
-        let channel = if let Some(c) =
+        let Some(channel) =
             sqlx::query!("SELECT * FROM channels WHERE id = $1", channel_id as i64)
                 .fetch_optional(self.executor())
-                .await?
-        {
-            c
-        } else {
+                .await? else {
             return Ok(None);
         };
 

@@ -1,4 +1,4 @@
-use crate::serde_for_bitflags;
+use crate::{bincode_for_bitflags, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -158,6 +158,7 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(i64: Permissions);
+bincode_for_bitflags!(Permissions);
 
 impl Default for Permissions {
     #[inline]
