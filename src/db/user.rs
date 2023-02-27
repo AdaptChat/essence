@@ -288,6 +288,54 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
+    /// Fetches the relationship between two users.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the relationship.
+    async fn fetch_relationship(
+        &self,
+        user_id: u64,
+        target_id: u64,
+    ) -> sqlx::Result<Option<Relationship>> {
+        let relationship = query_relationships!(
+            "user_id = $1 AND target_id = $2",
+            user_id as i64,
+            target_id as i64
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(Relationship::from_db_relationship);
+
+        Ok(relationship)
+    }
+
+    /// Fetches the relationship type between two users. This is used internally since it is more
+    /// efficient than ``fetch_relationship``.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the relationship.
+    async fn fetch_relationship_type(
+        &self,
+        user_id: u64,
+        target_id: u64,
+    ) -> sqlx::Result<Option<RelationshipType>> {
+        struct WrappedDbRelationshipType {
+            kind: DbRelationshipType,
+        }
+
+        let relationship = sqlx::query_as!(
+            WrappedDbRelationshipType,
+            r#"SELECT type AS "kind: _" FROM relationships WHERE user_id = $1 AND target_id = $2"#,
+            user_id as i64,
+            target_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|r| r.kind.into());
+
+        Ok(relationship)
+    }
+
     /// Fetches all relationships for the given user.
     ///
     /// # Errors
@@ -397,7 +445,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok((relationship, external_relationship))
     }
 
-    /// Deletes a relationship between two users.
+    /// Deletes a relationship between two users. Returns the number of rows affected.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -406,8 +454,8 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with deleting the relationship.
     /// * If the relationship doesn't exist.
-    async fn delete_relationship(&mut self, user_id: u64, target_id: u64) -> crate::Result<()> {
-        sqlx::query!(
+    async fn delete_relationship(&mut self, user_id: u64, target_id: u64) -> crate::Result<u64> {
+        Ok(sqlx::query!(
             r#"DELETE FROM
                 relationships
             WHERE
@@ -419,9 +467,8 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             target_id as i64,
         )
         .execute(self.transaction())
-        .await?;
-
-        Ok(())
+        .await?
+        .rows_affected())
     }
 }
 

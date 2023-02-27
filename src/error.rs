@@ -140,9 +140,28 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// You cannot perform the requested action on yourself.
+    CannotActOnSelf {
+        /// The error message.
+        message: String,
+    },
+    /// You cannot add bots as friends.
+    CannotFriendBots {
+        /// The ID of the bot you are trying to friend.
+        target_id: u64,
+        /// The error message.
+        message: String,
+    },
     /// Something was already taken, e.g. a username or email.
     AlreadyTaken {
         /// What was already taken.
+        what: String,
+        /// The error message.
+        message: String,
+    },
+    /// Something already exists, e.g. a relationship.
+    AlreadyExists {
+        /// What already exists.
         what: String,
         /// The error message.
         message: String,
@@ -178,7 +197,9 @@ impl Error {
             | Self::InvalidField { .. }
             | Self::MissingField { .. }
             | Self::MalformedIp { .. }
-            | Self::UnsupportedAuthMethod { .. } => 400,
+            | Self::UnsupportedAuthMethod { .. }
+            | Self::CannotActOnSelf { .. }
+            | Self::CannotFriendBots { .. } => 400,
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
             Self::NotMember { .. }
             | Self::NotOwner { .. }
@@ -187,7 +208,7 @@ impl Error {
             | Self::RoleIsManaged { .. }
             | Self::CannotLeaveAsOwner { .. } => 403,
             Self::NotFound { .. } => 404,
-            Self::AlreadyTaken { .. } => 409,
+            Self::AlreadyTaken { .. } | Self::AlreadyExists { .. } => 409,
             Self::Ratelimited { .. } => 429,
             Self::InternalError { .. } => 500,
         })

@@ -1,3 +1,5 @@
+#[cfg(feature = "db")]
+use crate::db::{DbRelationship, DbRelationshipType};
 use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
@@ -139,6 +141,19 @@ pub enum RelationshipType {
     Blocked,
 }
 
+#[cfg(feature = "db")]
+impl From<DbRelationshipType> for RelationshipType {
+    #[inline]
+    fn from(kind: DbRelationshipType) -> Self {
+        match kind {
+            DbRelationshipType::Friend => RelationshipType::Friend,
+            DbRelationshipType::Incoming => RelationshipType::IncomingRequest,
+            DbRelationshipType::Outgoing => RelationshipType::OutgoingRequest,
+            DbRelationshipType::Blocked => RelationshipType::Blocked,
+        }
+    }
+}
+
 /// Represents a relationship that a user has with another user.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
@@ -158,9 +173,7 @@ impl Relationship {
     /// This is used internally by the database module.
     #[inline]
     #[allow(clippy::missing_const_for_fn)] // false positive
-    pub(crate) fn from_db_relationship(data: crate::db::DbRelationship) -> Self {
-        use crate::db::DbRelationshipType;
-
+    pub(crate) fn from_db_relationship(data: DbRelationship) -> Self {
         Self {
             user: User {
                 id: data.target_id as _,
@@ -171,12 +184,7 @@ impl Relationship {
                 bio: data.bio,
                 flags: UserFlags::from_bits_truncate(data.flags as _),
             },
-            kind: match data.kind {
-                DbRelationshipType::Friend => RelationshipType::Friend,
-                DbRelationshipType::Incoming => RelationshipType::IncomingRequest,
-                DbRelationshipType::Outgoing => RelationshipType::OutgoingRequest,
-                DbRelationshipType::Blocked => RelationshipType::Blocked,
-            },
+            kind: RelationshipType::from(data.kind),
         }
     }
 }

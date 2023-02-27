@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::models::{
     Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence,
-    Relationship, Role, User,
+    Relationship, Role,
 };
 
 /// Extra information about member removal.
@@ -183,8 +183,6 @@ pub enum OutboundMessage {
     RelationshipCreate {
         /// The relationship that was created.
         relationship: Relationship,
-        /// Resolved data of the other user.
-        user: User,
     },
     /// Sent by harmony when a relationship is removed.
     RelationshipRemove {
