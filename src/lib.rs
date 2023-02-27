@@ -56,8 +56,7 @@ macro_rules! bincode_for_bitflags {
             ) -> Result<Self, bincode::error::DecodeError> {
                 Self::from_bits(bincode::Decode::decode(decoder)?).ok_or_else(|| {
                     bincode::error::DecodeError::OtherString(
-                        "representation contains bits that do not correspond to a flag"
-                            .to_string(),
+                        "representation contains bits that do not correspond to a flag".to_string(),
                     )
                 })
             }

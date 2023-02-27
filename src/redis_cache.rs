@@ -1,15 +1,11 @@
 use std::sync::OnceLock;
 
-use bincode::encode_to_vec;
-use deadpool_redis::{
-    redis::AsyncCommands,
-    Config, Connection, Pool, Runtime,
-};
+use deadpool_redis::{redis::AsyncCommands, Config, Connection, Pool, Runtime};
 
 use crate::{
     bincode_impl::BincodeType,
     error::Result,
-    models::{Permissions, UserFlags, User},
+    models::{Permissions, User, UserFlags},
 };
 
 static POOL: OnceLock<Pool> = OnceLock::new();
@@ -40,11 +36,7 @@ async fn user_info_for_token(token: String) -> ResultOption<(u64, UserFlags)> {
 pub async fn cache_token(token: String, user_id: u64, flags: UserFlags) -> Result<()> {
     get_con()
         .await?
-        .hset(
-            "essence-tokens",
-            token,
-            BincodeType((user_id, flags)),
-        )
+        .hset("essence-tokens", token, BincodeType((user_id, flags)))
         .await?;
 
     Ok(())
@@ -58,9 +50,8 @@ pub async fn invalidate_token(token: String) -> Result<()> {
 
 pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
     let mut con = get_con().await?;
-    let mut pipe = deadpool_redis::redis::pipe();
 
-    for token in con
+    let tokens = con
         .hgetall::<_, Vec<(String, BincodeType<(u64, UserFlags)>)>>("essence-tokens")
         .await?
         .into_iter()
@@ -73,20 +64,28 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
                 None
             }
         })
-    {
-        pipe.hdel("essence-tokens", token);
-    }
+        .collect::<Vec<String>>();
 
-    pipe.query_async(&mut con).await?;
-
-    Ok(())
+    Ok(con.hdel("essence-tokens", tokens).await?)
 }
 
 pub async fn update_user(user: User) -> Result<()> {
     Ok(get_con()
-            .await?
-            .hset("essence-users", user.id, BincodeType(user))
-            .await?)
+        .await?
+        .hset("essence-users", user.id, BincodeType(user))
+        .await?)
+}
+
+pub async fn user(user_id: u64) -> Result<Option<User>> {
+    Ok(get_con()
+        .await?
+        .hget::<_, _, Option<BincodeType<User>>>("essence-users", user_id)
+        .await?
+        .map(|u| u.0))
+}
+
+pub async fn remove_user(user_id: u64) -> Result<()> {
+    Ok(get_con().await?.hdel("essence-users", user_id).await?)
 }
 
 pub async fn remove_guild(guild_id: u64) -> Result<()> {
@@ -113,14 +112,14 @@ pub async fn remove_member_from_guild(guild_id: u64, user_id: u64) -> Result<()>
         .await?)
 }
 
-pub async fn insert_member_to_guild(guild_id: u64, user_id: u64) -> Result<()> {
+pub async fn update_member_of_guild(guild_id: u64, user_id: u64) -> Result<()> {
     Ok(get_con()
         .await?
         .sadd(format!("{guild_id}-members"), user_id)
         .await?)
 }
 
-pub async fn insert_members_to_guild(guild_id: u64, user_ids: impl AsRef<[u64]>) -> Result<()> {
+pub async fn update_members_of_guild(guild_id: u64, user_ids: impl AsRef<[u64]>) -> Result<()> {
     Ok(get_con()
         .await?
         .sadd(format!("{guild_id}-members"), user_ids.as_ref())
@@ -134,7 +133,7 @@ pub async fn update_owner_of_guild(guild_id: u64, user_id: u64) -> Result<()> {
         .await?)
 }
 
-pub async fn owner_of_guild(guild_id: u64) -> Result<u64> {
+pub async fn owner_of_guild(guild_id: u64) -> Result<Option<u64>> {
     Ok(get_con().await?.get(format!("{guild_id}-owner")).await?)
 }
 

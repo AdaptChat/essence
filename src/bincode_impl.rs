@@ -1,5 +1,5 @@
 use bincode::{Decode, Encode};
-use deadpool_redis::redis::{ErrorKind, FromRedisValue, RedisError, Value, ToRedisArgs};
+use deadpool_redis::redis::{ErrorKind, FromRedisValue, RedisError, ToRedisArgs, Value};
 
 const CONFIG: bincode::config::Configuration = bincode::config::standard();
 
@@ -8,7 +8,7 @@ pub struct BincodeType<T>(pub T);
 impl<T: Encode> ToRedisArgs for BincodeType<T> {
     fn write_redis_args<W>(&self, out: &mut W)
     where
-        W: ?Sized + deadpool_redis::redis::RedisWrite 
+        W: ?Sized + deadpool_redis::redis::RedisWrite,
     {
         let v = bincode::encode_to_vec(&self.0, CONFIG).expect("failed to serialize item");
 
