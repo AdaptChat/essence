@@ -146,10 +146,10 @@ impl From<DbRelationshipType> for RelationshipType {
     #[inline]
     fn from(kind: DbRelationshipType) -> Self {
         match kind {
-            DbRelationshipType::Friend => RelationshipType::Friend,
-            DbRelationshipType::Incoming => RelationshipType::IncomingRequest,
-            DbRelationshipType::Outgoing => RelationshipType::OutgoingRequest,
-            DbRelationshipType::Blocked => RelationshipType::Blocked,
+            DbRelationshipType::Friend => Self::Friend,
+            DbRelationshipType::Incoming => Self::IncomingRequest,
+            DbRelationshipType::Outgoing => Self::OutgoingRequest,
+            DbRelationshipType::Blocked => Self::Blocked,
         }
     }
 }

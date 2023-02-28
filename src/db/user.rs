@@ -288,6 +288,36 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
+    /// Fetches the IDs of all observable users of the user with the given ID. This returns an
+    /// iterator.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the observable users.
+    async fn fetch_observable_user_ids_for_user(&self, user_id: u64) -> crate::Result<Vec<u64>> {
+        let user_ids = sqlx::query!(
+            r#"SELECT DISTINCT
+                id AS "id!"
+            FROM members
+            WHERE
+                guild_id IN (SELECT guild_id FROM members WHERE id = $1)
+            UNION SELECT
+                target_id AS "id!"
+            FROM
+                relationships
+            WHERE
+                user_id = $1
+            "#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| r.id as u64)
+        .collect();
+
+        Ok(user_ids)
+    }
+
     /// Fetches the relationship between two users.
     ///
     /// # Errors
