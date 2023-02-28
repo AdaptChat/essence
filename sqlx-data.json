@@ -1477,6 +1477,26 @@
     },
     "query": "SELECT * FROM users WHERE username = $1 AND discriminator = $2"
   },
+  "74d4d53953380f35ab3ec4c63e5754f2d4d9bca0b01be2e1095acf52d196e08b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT DISTINCT\n                id AS \"id!\"\n            FROM members\n            WHERE\n                guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n            UNION SELECT\n                target_id AS \"id!\"\n            FROM\n                relationships\n            WHERE\n                user_id = $1\n            "
+  },
   "76555742b5d31d1feada4e02caae4da134494976267f1234ceb601a50318829a": {
     "describe": {
       "columns": [],
@@ -2417,26 +2437,6 @@
       }
     },
     "query": "SELECT EXISTS(SELECT 1 FROM channel_recipients WHERE channel_id = $1 AND user_id = $2)"
-  },
-  "d500e48c5138991ca0657436b55eb308c13999c2cbaf2f4abfdf1a029ae258a6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT DISTINCT\n                id\n            FROM\n                members\n            WHERE guild_id IN (SELECT guild_id FROM members WHERE id = $1);\n            "
   },
   "d59fa440c1c209176b8a9c6779321964b1efc6b2aa6289c5d40cf5c07db30e53": {
     "describe": {
