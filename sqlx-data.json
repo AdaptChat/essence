@@ -604,6 +604,26 @@
     },
     "query": "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
   },
+  "1b1c4aff0145e49d057a401ea0d53e928e92fd637633c6eab12fe5b36be917c2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT DISTINCT\n                id AS \"id!\"\n            FROM members\n            WHERE\n                guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n            UNION SELECT\n                target_id AS \"id!\"\n            FROM\n                relationships\n            WHERE\n                user_id = $1\n            UNION SELECT $1 AS \"id!\"\n            "
+  },
   "1c244b204b6dc9ee0ed7c56673644cc66ac548872772c7eacdd7d7565c669de0": {
     "describe": {
       "columns": [
@@ -1476,26 +1496,6 @@
       }
     },
     "query": "SELECT * FROM users WHERE username = $1 AND discriminator = $2"
-  },
-  "74d4d53953380f35ab3ec4c63e5754f2d4d9bca0b01be2e1095acf52d196e08b": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id!",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT DISTINCT\n                id AS \"id!\"\n            FROM members\n            WHERE\n                guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n            UNION SELECT\n                target_id AS \"id!\"\n            FROM\n                relationships\n            WHERE\n                user_id = $1\n            "
   },
   "76555742b5d31d1feada4e02caae4da134494976267f1234ceb601a50318829a": {
     "describe": {
