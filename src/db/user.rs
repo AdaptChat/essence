@@ -306,6 +306,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
                 relationships
             WHERE
                 user_id = $1
+            UNION SELECT $1 AS "id!"
             "#,
             user_id as i64,
         )
