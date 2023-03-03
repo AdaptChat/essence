@@ -172,6 +172,13 @@ pub enum OutboundMessage {
         /// The ID of the user that is typing.
         user_id: u64,
     },
+    /// Send by harmony when a user stops typing. This is not always sent.
+    TypingStop {
+        /// The ID of the channel that the user stopped typing in.
+        channel_id: u64,
+        /// The ID of the user that stopped typing.
+        user_id: u64,
+    },
     /// Sent by harmony when a user updates their presence.
     PresenceUpdate {
         /// The presence after it was updated. The user ID can be retrieved from accessing
