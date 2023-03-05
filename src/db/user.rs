@@ -226,7 +226,8 @@ pub trait UserDbExt<'t>: DbExt<'t> {
 
         if let Some(username) = payload.username {
             let discriminator = if sqlx::query!(
-                "SELECT discriminator FROM users WHERE username = $1 AND discriminator = $2",
+                "SELECT discriminator FROM users WHERE id != $1 AND username = $2 AND discriminator = $3",
+                id as i64,
                 username,
                 user.discriminator as i16,
             )
