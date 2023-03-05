@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::models::{
     Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence,
-    Relationship, Role,
+    Relationship, Role, User,
 };
 
 /// Extra information about member removal.
@@ -55,6 +55,18 @@ pub enum OutboundMessage {
         presences: Vec<Presence>,
         /// A list of relationships associated with the user.
         relationships: Vec<Relationship>,
+    },
+    /// Sent by harmony when an observable user is updated.
+    UserUpdate {
+        /// The user before it was updated.
+        before: User,
+        /// The user after it was updated.
+        after: User,
+    },
+    /// Sent by harmony when an observable user is deleted.
+    UserDelete {
+        /// The ID of the user that was deleted.
+        user_id: u64,
     },
     /// Sent by harmony when the client joins or creates a guild. Note that this does not include
     /// guilds received from the `Ready` event, those must be accounted for separately.

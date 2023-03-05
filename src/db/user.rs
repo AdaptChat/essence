@@ -203,7 +203,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     }
 
     /// Edits a user in the database with the given payload. No validation is done, they must
-    /// be done before calling this method.
+    /// be done before calling this method. Returns `(old_user, new_user)`.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -213,11 +213,16 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with editing the user.
     /// * If the user is not found.
     /// * If the user is trying to change their username to one that is already taken.
-    async fn edit_user(&mut self, id: u64, payload: EditUserPayload) -> crate::Result<User> {
+    async fn edit_user(
+        &mut self,
+        id: u64,
+        payload: EditUserPayload,
+    ) -> crate::Result<(User, User)> {
         let mut user = get_pool()
             .fetch_user_by_id(id)
             .await?
             .ok_or_not_found("user", "user not found")?;
+        let old = user.clone();
 
         if let Some(username) = payload.username {
             let discriminator = if sqlx::query!(
@@ -270,7 +275,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        Ok(user)
+        Ok((old, user))
     }
 
     /// Deletes a user from the database.
