@@ -996,6 +996,28 @@
     },
     "query": "INSERT INTO channels\n                (id, guild_id, type, name, position, slowmode, nsfw, locked)\n            VALUES\n                ($1, $2, 'text', 'general', 0, 0, false, false)"
   },
+  "3e6ef98691c8a18749fe68817ca6032cba24a84bdd951e00c086d0c7aa0ad2ec": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discriminator",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Int2"
+        ]
+      }
+    },
+    "query": "SELECT discriminator FROM users WHERE id != $1 AND username = $2 AND discriminator = $3"
+  },
   "3f85b7625724dd4efc25e1d5ecdcc6a8dcac87a5f8a34ae64c449812ef3cf7a4": {
     "describe": {
       "columns": [],
@@ -1406,27 +1428,6 @@
       }
     },
     "query": "\n            SELECT\n                r.target_id,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags,\n                r.type AS \"kind: _\"\n            FROM\n                relationships AS r\n            INNER JOIN\n                users AS u ON u.id = r.target_id\n            WHERE user_id = $1"
-  },
-  "6ead10a4ea43d6e21372f6bd5092ef344faa928d3b2a3cfd73b0be1bbf75eac2": {
-    "describe": {
-      "columns": [
-        {
-          "name": "discriminator",
-          "ordinal": 0,
-          "type_info": "Int2"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Int2"
-        ]
-      }
-    },
-    "query": "SELECT discriminator FROM users WHERE username = $1 AND discriminator = $2"
   },
   "7132360ca9b4dcbe19bbbe046033fba320ff4fc21e9368c1e7a81e0487e936b6": {
     "describe": {
