@@ -93,7 +93,9 @@ macro_rules! construct_guild_channel {
 
 use crate::cache::ChannelInspection;
 use crate::db::get_pool;
-use crate::http::channel::{CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload};
+use crate::http::channel::{
+    CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload,
+};
 #[allow(clippy::redundant_pub_crate)] // false positive
 pub(crate) use {construct_guild_channel, query_guild_channels};
 
@@ -573,6 +575,85 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             position,
             parent_id: payload.parent_id,
             overwrites: payload.overwrites.unwrap_or_default(),
+        })
+    }
+
+    /// Creates a new DM-type channel from a payload. Payload must be validated prior to creating
+    /// the channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with creating the channel.
+    async fn create_dm_channel(
+        &mut self,
+        user_id: u64,
+        channel_id: u64,
+        payload: CreateDmChannelPayload,
+    ) -> crate::Result<DmChannel> {
+        let kind = payload.channel_type();
+        let (name, owner_id, recipient_ids) = match payload.clone() {
+            CreateDmChannelPayload::Dm { recipient_id } => {
+                if recipient_id == user_id {
+                    return Err(Error::InvalidField {
+                        field: "recipient_id".to_string(),
+                        message: "Recipient ID cannot be the same as the user ID".to_string(),
+                    });
+                }
+                (None, None, vec![user_id, recipient_id])
+            }
+            CreateDmChannelPayload::Group {
+                name,
+                mut recipient_ids,
+            } => {
+                if !recipient_ids.contains(&user_id) {
+                    recipient_ids.push(user_id);
+                }
+                (Some(name), Some(user_id), recipient_ids)
+            }
+        };
+
+        sqlx::query!(
+            "INSERT INTO channels (id, name, type, owner_id) VALUES ($1, $2, $3, $4)",
+            channel_id as i64,
+            name,
+            kind.name(),
+            owner_id.map(|id| id as i64),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        sqlx::query(
+            "INSERT INTO channel_recipients
+            SELECT $1, $2, out.* FROM UNNEST($3) AS out(recipient_id)",
+        )
+        .bind(channel_id as i64)
+        .bind(user_id as i64)
+        .bind(
+            recipient_ids
+                .iter()
+                .map(|&id| id as i64)
+                .collect::<Vec<_>>(),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(DmChannel {
+            id: channel_id,
+            info: match payload {
+                CreateDmChannelPayload::Dm { recipient_id } => DmChannelInfo::Dm {
+                    recipient_ids: (user_id, recipient_id),
+                },
+                CreateDmChannelPayload::Group { name, .. } => DmChannelInfo::Group {
+                    name,
+                    topic: None,
+                    icon: None,
+                    owner_id: user_id,
+                    recipient_ids,
+                },
+            },
         })
     }
 

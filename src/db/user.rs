@@ -1,9 +1,8 @@
 use super::DbExt;
-use crate::models::{Relationship, RelationshipType};
 use crate::{
     db::get_pool,
     http::user::EditUserPayload,
-    models::user::{ClientUser, User, UserFlags},
+    models::{ClientUser, Relationship, RelationshipType, User, UserFlags},
     Error, NotFoundExt,
 };
 
