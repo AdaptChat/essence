@@ -99,6 +99,22 @@ use crate::http::channel::{
 #[allow(clippy::redundant_pub_crate)] // false positive
 pub(crate) use {construct_guild_channel, query_guild_channels};
 
+pub struct ChannelRecord {
+    id: i64,
+    guild_id: Option<i64>,
+    r#type: String,
+    name: Option<String>,
+    position: Option<i16>,
+    parent_id: Option<i64>,
+    topic: Option<String>,
+    icon: Option<String>,
+    slowmode: Option<i32>,
+    nsfw: Option<bool>,
+    locked: Option<bool>,
+    user_limit: Option<i16>,
+    owner_id: Option<i64>,
+}
+
 #[async_trait::async_trait]
 pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// Asserts the given channel ID exists in the given guild.
@@ -234,23 +250,36 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         Ok(Some(channel))
     }
 
-    /// Fetches a channel from the database with the given ID.
+    /// Fetches a channel from the database.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
+    /// returned.
+    async fn fetch_channel(&self, channel_id: u64) -> crate::Result<Option<Channel>> {
+        let Some(channel) = sqlx::query_as!(
+            ChannelRecord,
+            "SELECT * FROM channels WHERE id = $1",
+            channel_id as i64
+        )
+        .fetch_optional(self.executor())
+        .await? else {
+            return Ok(None);
+        };
+
+        self.construct_channel_with_record(channel).await.map(Some)
+    }
+
+    /// Constructs a channel from the database with the given information.
     ///
     /// # Errors
     /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
     /// returned.
     #[allow(clippy::too_many_lines)]
-    async fn fetch_channel(&self, channel_id: u64) -> crate::Result<Option<Channel>> {
-        let channel = if let Some(c) =
-            sqlx::query!("SELECT * FROM channels WHERE id = $1", channel_id as i64)
-                .fetch_optional(self.executor())
-                .await?
-        {
-            c
-        } else {
-            return Ok(None);
-        };
-
+    async fn construct_channel_with_record(
+        &self,
+        channel: ChannelRecord,
+    ) -> crate::Result<Channel> {
+        let channel_id = channel.id as u64;
         let kind = ChannelType::from_str(&channel.r#type)?;
         let info = match kind {
             _ if kind.is_guild_text_based() => {
@@ -274,7 +303,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             _ if kind.is_dm() => {
                 let recipients: Vec<u64> = sqlx::query!(
                     "SELECT user_id FROM channel_recipients WHERE channel_id = $1",
-                    channel_id as i64,
+                    channel.id,
                 )
                 .fetch_all(self.executor())
                 .await?
@@ -334,7 +363,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             }),
         };
 
-        Ok(Some(channel))
+        Ok(channel)
     }
 
     /// Fetches channel overwrites in bulk with a custom WHERE clause.
@@ -602,6 +631,33 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                         message: "Recipient ID cannot be the same as the user ID".to_string(),
                     });
                 }
+
+                let db_immut = get_pool();
+                if let Some(channel) = sqlx::query_as!(
+                    ChannelRecord,
+                    r#"SELECT * FROM channels WHERE type = 'dm' AND id IN (
+                        SELECT channel_id
+                        FROM channel_recipients
+                        WHERE user_id = $1
+                        AND channel_id IN (
+                            SELECT channel_id
+                            FROM channel_recipients
+                            WHERE user_id = $2
+                        )
+                    )"#,
+                    user_id as i64,
+                    recipient_id as i64,
+                )
+                .fetch_optional(db_immut)
+                .await?
+                {
+                    if let Channel::Dm(channel) =
+                        db_immut.construct_channel_with_record(channel).await?
+                    {
+                        return Ok(channel);
+                    }
+                }
+
                 (None, None, vec![user_id, recipient_id])
             }
             CreateDmChannelPayload::Group {
