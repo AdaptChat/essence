@@ -2019,6 +2019,21 @@
     },
     "query": "DELETE FROM guilds WHERE id = $1"
   },
+  "afa5f85b96f6cbeae8c7218db551a2f3ddca5267421b63853fecb1d002021015": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO channels (id, name, type, owner_id) VALUES ($1, $2, $3, $4)"
+  },
   "b0aeda436354e29cb909c13db36333af8772a732bec6d5e64a6efa0290f1d293": {
     "describe": {
       "columns": [],
