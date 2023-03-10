@@ -2,7 +2,7 @@ use super::DbExt;
 use crate::{
     db::get_pool,
     http::user::EditUserPayload,
-    models::{ClientUser, Relationship, RelationshipType, User, UserFlags},
+    models::{ClientUser, PrivacyConfiguration, Relationship, RelationshipType, User, UserFlags},
     Error, NotFoundExt,
 };
 
@@ -40,6 +40,11 @@ macro_rules! fetch_client_user {
                 user: construct_user!(r),
                 email: r.email,
                 password: r.password,
+                dm_privacy: PrivacyConfiguration::from_bits_truncate(r.dm_privacy),
+                group_dm_privacy: PrivacyConfiguration::from_bits_truncate(r.group_dm_privacy),
+                friend_request_privacy: PrivacyConfiguration::from_bits_truncate(
+                    r.friend_request_privacy,
+                ),
             });
 
         Ok(result)
@@ -322,6 +327,31 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         .collect();
 
         Ok(user_ids)
+    }
+
+    /// Asserts that the user with the given ID has not blocked the user with the given ID. This
+    /// returns an error if the is blocked by the user.
+    ///
+    /// This returns the fetched relationship type used during assertion as a side effect.
+    ///
+    /// # Errors
+    /// * If the user cannot observe the user.
+    async fn assert_user_is_not_blocked_by(
+        &self,
+        user_id: u64,
+        target_id: u64,
+    ) -> crate::Result<Option<RelationshipType>> {
+        let relationship = self.fetch_relationship_type(user_id, target_id).await?;
+        if let Some(relationship) = relationship
+            && relationship == RelationshipType::Blocked
+        {
+            return Err(Error::BlockedByUser {
+                target_id,
+                message: "This user has blocked you, so you cannot interact with them.".to_string(),
+            });
+        }
+
+        Ok(relationship)
     }
 
     /// Fetches the relationship between two users.

@@ -369,9 +369,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         guild_id: u64,
         query: GetGuildQuery,
     ) -> crate::Result<Option<Guild>> {
-        let partial = if let Some(partial) = self.fetch_partial_guild(guild_id).await? {
-            partial
-        } else {
+        let Some(partial) = self.fetch_partial_guild(guild_id).await? else {
             return Ok(None);
         };
 

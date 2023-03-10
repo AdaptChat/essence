@@ -103,6 +103,15 @@ pub struct ClientUser {
     #[serde(skip)]
     #[cfg(feature = "db")]
     pub password: Option<String>,
+    /// Controls who can open and/or send direct messages to the client.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub dm_privacy: PrivacyConfiguration,
+    /// Controls who can add the client to group DMs.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub group_dm_privacy: PrivacyConfiguration,
+    /// Controls who can request to add the client as a friend.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub friend_request_privacy: PrivacyConfiguration,
 }
 
 impl std::ops::Deref for ClientUser {
@@ -124,6 +133,33 @@ impl ClientUser {
         email: String => set_email + Some,
     }
 }
+
+bitflags::bitflags! {
+    /// Represents a privacy configuration.
+    #[derive(Default)]
+    pub struct PrivacyConfiguration: i16 {
+        /// This configuration is public for friends.
+        const FRIENDS = 1 << 0;
+        /// This configuration is public for mutual friends (friends of friends).
+        const MUTUAL_FRIENDS = 1 << 1;
+        /// This configuration is public for users who share a guild with you.
+        const GUILD_MEMBERS = 1 << 2;
+        /// This configuration is public for everyone. This overwrites all other configurations.
+        const EVERYONE = 1 << 3;
+
+        // Aliases
+        /// Default configuration for ``dm_privacy``.
+        const DEFAULT_DM_PRIVACY = Self::FRIENDS.bits
+            | Self::MUTUAL_FRIENDS.bits
+            | Self::GUILD_MEMBERS.bits;
+        /// Default configuration for ``group_dm_privacy``.
+        const DEFAULT_GROUP_DM_PRIVACY = Self::FRIENDS.bits;
+        /// Default configuration for ``friend_request_privacy``.
+        const DEFAULT_FRIEND_REQUEST_PRIVACY = Self::EVERYONE.bits;
+    }
+}
+
+serde_for_bitflags!(i16: PrivacyConfiguration);
 
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
