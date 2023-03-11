@@ -302,6 +302,98 @@
     },
     "query": "DELETE FROM channels WHERE id = $1"
   },
+  "0bb53c5e92b068f4222863cae6384e9e5b2bf5f4b6dbdd21a6b07ed387c0e254": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "topic",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM channels\n            WHERE (type = 'dm' OR type = 'group')\n            AND id IN (\n                SELECT channel_id FROM channel_recipients WHERE user_id = $1\n            )"
+  },
   "0c9f645069caa860ec011099ea9a17dc29398d44d92ad75fcdaa2b445b8cd5d0": {
     "describe": {
       "columns": [
@@ -680,6 +772,26 @@
     },
     "query": "UPDATE invites\n            SET uses = uses + 1\n            WHERE\n                code = $1\n                AND (max_age = 0 OR created_at + max_age * interval '1 second' > NOW())\n            RETURNING *\n            "
   },
+  "1eefbfc231b8aa692244c44df4fb874b600d9c0d380308e055bfb607eee5876c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "col",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT dm_privacy AS col FROM users WHERE id = $1"
+  },
   "1fee245716c07941ac5dd77780673fabfbd5f8e51d7deef0273cdc41a072438b": {
     "describe": {
       "columns": [
@@ -826,6 +938,27 @@
     },
     "query": "SELECT \n                guilds.*,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds \n            WHERE \n                id IN (SELECT guild_id FROM members WHERE id = $1)\n            "
   },
+  "252c0461d3d4a1ae0dd9b073b9b7933609a5ef549cef29fe7f3675b9c3580ea7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists!",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(\n                        SELECT 1 FROM relationships\n                        WHERE user_id = $1 AND target_id IN (\n                            SELECT target_id FROM relationships\n                            WHERE user_id = $2 AND type = 'friend'\n                        ) AND type = 'friend'\n                    ) AS \"exists!\""
+  },
   "2b72dc65f84de2c96fe943fb2fc90c181f10da5e6063c5497e973e344ec32797": {
     "describe": {
       "columns": [],
@@ -873,6 +1006,26 @@
       }
     },
     "query": "SELECT guild_id, owner_id, type AS kind FROM channels WHERE id = $1"
+  },
+  "2c605c02e92b4d22e9c11cf6c490b8dec9775e40de5b43210caa67cf7a5dab48": {
+    "describe": {
+      "columns": [
+        {
+          "name": "col",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT group_dm_privacy AS col FROM users WHERE id = $1"
   },
   "366e65997d0ed6a92d40d9031f6b76e77638472532a1c2a8f9e617704a62ce2a": {
     "describe": {
@@ -1476,6 +1629,21 @@
           "name": "flags",
           "ordinal": 8,
           "type_info": "Int4"
+        },
+        {
+          "name": "dm_privacy",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "group_dm_privacy",
+          "ordinal": 10,
+          "type_info": "Int2"
+        },
+        {
+          "name": "friend_request_privacy",
+          "ordinal": 11,
+          "type_info": "Int2"
         }
       ],
       "nullable": [
@@ -1487,6 +1655,9 @@
         true,
         true,
         true,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
@@ -1513,6 +1684,27 @@
       }
     },
     "query": "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5"
+  },
+  "78c23da7fcfff2a5ffc2c8f57b92a1b708323747e4b5adc10a066cfd8db2f52c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists!",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(\n                        SELECT 1 FROM members\n                        WHERE id = $1 AND guild_id IN (\n                            SELECT guild_id FROM members WHERE id = $2\n                        )\n                    ) AS \"exists!\""
   },
   "79882605db255c14711a09b7c13a2bedc357e0272685820172a6451b6bac6364": {
     "describe": {
@@ -1594,6 +1786,26 @@
     },
     "query": "SELECT owner_id FROM channels WHERE id = $1"
   },
+  "81e0be5bd705712872e208757d971d444070cb9945c066a29d0721c72cc4d956": {
+    "describe": {
+      "columns": [
+        {
+          "name": "col",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT friend_request_privacy AS col FROM users WHERE id = $1"
+  },
   "82656124ef41560bc2fe44a9e64c26c52399c0b3410f5eef6a609823a599e93d": {
     "describe": {
       "columns": [],
@@ -1653,6 +1865,21 @@
           "name": "flags",
           "ordinal": 8,
           "type_info": "Int4"
+        },
+        {
+          "name": "dm_privacy",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "group_dm_privacy",
+          "ordinal": 10,
+          "type_info": "Int2"
+        },
+        {
+          "name": "friend_request_privacy",
+          "ordinal": 11,
+          "type_info": "Int2"
         }
       ],
       "nullable": [
@@ -1664,6 +1891,9 @@
         true,
         true,
         true,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
@@ -2554,6 +2784,99 @@
     },
     "query": "UPDATE users SET username = $1, discriminator = $2 WHERE id = $3"
   },
+  "da69495fa5ce33f429e8f4fba93208a326f17dba42952fd7d49ccaeed3046502": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "topic",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM channels WHERE type = 'dm' AND id IN (\n                        SELECT channel_id\n                        FROM channel_recipients\n                        WHERE user_id = $1\n                        AND channel_id IN (\n                            SELECT channel_id\n                            FROM channel_recipients\n                            WHERE user_id = $2\n                        )\n                    )"
+  },
   "dd8628efdc56d427db7b0ca21125fd36e7dd31513ee81815649c080b6304dab5": {
     "describe": {
       "columns": [
@@ -2972,6 +3295,21 @@
           "name": "flags",
           "ordinal": 8,
           "type_info": "Int4"
+        },
+        {
+          "name": "dm_privacy",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "group_dm_privacy",
+          "ordinal": 10,
+          "type_info": "Int2"
+        },
+        {
+          "name": "friend_request_privacy",
+          "ordinal": 11,
+          "type_info": "Int2"
         }
       ],
       "nullable": [
@@ -2983,6 +3321,9 @@
         true,
         true,
         true,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
