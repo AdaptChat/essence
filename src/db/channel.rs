@@ -476,6 +476,34 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         Ok(channels)
     }
 
+    /// Fetches all DM and group channels for a user.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channels.
+    async fn fetch_all_dm_channels_for_user(&self, user_id: u64) -> crate::Result<Vec<DmChannel>> {
+        let channels = sqlx::query_as!(
+            ChannelRecord,
+            r#"SELECT * FROM channels
+            WHERE (type = 'dm' OR type = 'group')
+            AND id IN (
+                SELECT channel_id FROM channel_recipients WHERE user_id = $1
+            )"#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?;
+
+        let mut resolved = Vec::with_capacity(channels.len());
+        for channel in channels {
+            resolved.push(match self.construct_channel_with_record(channel).await? {
+                Channel::Dm(dm) => dm,
+                Channel::Guild(_) => continue,
+            });
+        }
+
+        Ok(resolved)
+    }
+
     /// Creates a new channel in a guild from a payload. Payload must be validated prior to creating
     /// the channel.
     ///
