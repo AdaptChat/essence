@@ -711,10 +711,9 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
 
         sqlx::query(
             "INSERT INTO channel_recipients
-            SELECT $1, $2, out.* FROM UNNEST($3) AS out(recipient_id)",
+            SELECT $1, out.* FROM UNNEST($2) AS out(user_id)",
         )
         .bind(channel_id as i64)
-        .bind(user_id as i64)
         .bind(
             recipient_ids
                 .iter()
