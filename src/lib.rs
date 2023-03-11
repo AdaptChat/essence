@@ -43,7 +43,7 @@ macro_rules! serde_for_bitflags {
         impl utoipa::ToSchema<'static> for $t {
             fn schema() -> (&'static str, utoipa::openapi::RefOr<utoipa::openapi::Schema>) {
                 (
-                    "bitflags",
+                    stringify!($t),
                     utoipa::openapi::RefOr::T(
                         utoipa::openapi::ObjectBuilder::new()
                             .schema_type(utoipa::openapi::SchemaType::Integer)
