@@ -12,7 +12,8 @@
     clippy::missing_errors_doc,
     clippy::missing_panics_doc,
     clippy::doc_markdown,
-    clippy::significant_drop_tightening
+    clippy::significant_drop_tightening,
+    clippy::collection_is_never_read // false positives, but when fixed this ignore can be removed
 )]
 
 #[cfg(any(feature = "auth", feature = "token-parsing"))]

@@ -3,8 +3,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::models::{
-    Channel, ClientUser, Guild, Invite, Member, Message, PartialGuild, Presence, Relationship,
-    Role, User,
+    Channel, ClientUser, DmChannel, Guild, Invite, Member, Message, PartialGuild, Presence,
+    Relationship, Role, User,
 };
 
 /// Extra information about member removal.
@@ -51,6 +51,8 @@ pub enum OutboundMessage {
         user: ClientUser,
         /// A list of guilds that the session's user is a member of.
         guilds: Vec<Guild>,
+        /// A list of DM channels that the session's user is a member of.
+        dm_channels: Vec<DmChannel>,
         /// An initial array of all presences observed by the user.
         presences: Vec<Presence>,
         /// A list of relationships associated with the user.
