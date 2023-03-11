@@ -1,6 +1,7 @@
 use super::DbExt;
 use crate::{
     db::get_pool,
+    error::UserInteractionType,
     http::user::EditUserPayload,
     models::{ClientUser, PrivacyConfiguration, Relationship, RelationshipType, User, UserFlags},
     Error, NotFoundExt,
@@ -73,6 +74,34 @@ macro_rules! query_relationships {
             $($arg),*
         )
     }};
+}
+
+macro_rules! privacy_configuration_method {
+    ($(#[$doc:meta])* $meth_name:ident, $col:literal) => {
+        $(#[$doc])*
+        #[doc = ""]
+        #[doc = "# Errors"]
+        #[doc = "* If an error occurs with fetching the privacy configuration."]
+        fn $meth_name<'slf, 'fut>(&'slf self, user_id: u64) ->
+            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = crate::Result<PrivacyConfiguration>> + Send + 'fut>>
+        where
+            'slf: 'fut,
+            Self: Sync + 'fut,
+        {
+            Box::pin(async move {
+                let privacy = sqlx::query!(
+                    "SELECT " + $col + " AS col FROM users WHERE id = $1",
+                    user_id as i64,
+                )
+                .fetch_optional(self.executor())
+                .await?
+                .ok_or_not_found("user", "user not found")?
+                .col;
+
+                Ok(PrivacyConfiguration::from_bits_truncate(privacy))
+            })
+        }
+    };
 }
 
 #[derive(Copy, Clone, sqlx::Type)]
@@ -341,7 +370,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         user_id: u64,
         target_id: u64,
     ) -> crate::Result<Option<RelationshipType>> {
-        let relationship = self.fetch_relationship_type(user_id, target_id).await?;
+        let relationship = self.fetch_relationship_type(target_id, user_id).await?;
         if let Some(relationship) = relationship
             && relationship == RelationshipType::Blocked
         {
@@ -352,6 +381,104 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         }
 
         Ok(relationship)
+    }
+
+    privacy_configuration_method! {
+        /// Fetches the DM privacy configuration for the user with the given ID.
+        fetch_dm_privacy_configuration, "dm_privacy"
+    }
+
+    privacy_configuration_method! {
+        /// Fetches the group DM privacy configuration for the user with the given ID.
+        fetch_group_dm_privacy_configuration, "group_dm_privacy"
+    }
+
+    privacy_configuration_method! {
+        /// Fetches the friend request privacy configuration for the user with the given ID.
+        fetch_friend_request_privacy_configuration, "friend_request_privacy"
+    }
+
+    /// Asserts that the user with the given ID can interact with the user with the given ID based
+    /// on the given privacy configuration.
+    ///
+    /// # Errors
+    /// * If the user cannot interact with the user.
+    async fn assert_user_can_interact_with(
+        &self,
+        user_id: u64,
+        target_id: u64,
+        interaction: UserInteractionType,
+    ) -> crate::Result<()> {
+        if user_id == target_id {
+            return Err(Error::CannotActOnSelf {
+                message: "You cannot act on yourself.".to_string(),
+            });
+        }
+
+        let relationship = self
+            .assert_user_is_not_blocked_by(user_id, target_id)
+            .await?;
+        let privacy = match interaction {
+            UserInteractionType::Dm => self.fetch_dm_privacy_configuration(user_id).await?,
+            UserInteractionType::GroupDm => {
+                self.fetch_group_dm_privacy_configuration(user_id).await?
+            }
+            UserInteractionType::FriendRequest => {
+                self.fetch_friend_request_privacy_configuration(user_id)
+                    .await?
+            }
+        };
+
+        if privacy.contains(PrivacyConfiguration::EVERYONE)
+            // Friends
+            || interaction != UserInteractionType::FriendRequest
+                && privacy.contains(PrivacyConfiguration::FRIENDS)
+                && relationship == Some(RelationshipType::Friend)
+
+            // Mutual friends
+            || privacy.contains(PrivacyConfiguration::MUTUAL_FRIENDS)
+                && sqlx::query!(
+                    r#"SELECT EXISTS(
+                        SELECT 1 FROM relationships
+                        WHERE user_id = $1 AND target_id IN (
+                            SELECT target_id FROM relationships
+                            WHERE user_id = $2 AND type = 'friend'
+                        ) AND type = 'friend'
+                    ) AS "exists!""#,
+                    user_id as i64,
+                    target_id as i64,
+                )
+                .fetch_one(self.executor())
+                .await?
+                .exists
+
+            // Guild members
+            || privacy.contains(PrivacyConfiguration::GUILD_MEMBERS)
+                && sqlx::query!(
+                    r#"SELECT EXISTS(
+                        SELECT 1 FROM members
+                        WHERE id = $1 AND guild_id IN (
+                            SELECT guild_id FROM members WHERE id = $2
+                        )
+                    ) AS "exists!""#,
+                    target_id as i64,
+                    user_id as i64,
+                )
+                .fetch_one(self.executor())
+                .await?
+                .exists
+        {
+            Ok(())
+        } else {
+            Err(Error::UserInteractionDisallowed {
+                interaction_type: interaction,
+                target_id,
+                message: format!(
+                    "The user you are trying to {} with has privacy settings that prevent you from doing so.",
+                    interaction.as_verb(),
+                )
+            })
+        }
     }
 
     /// Fetches the relationship between two users.

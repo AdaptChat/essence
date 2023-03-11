@@ -3,8 +3,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::models::{
-    Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence,
-    Relationship, Role, User,
+    Channel, ClientUser, Guild, Invite, Member, Message, PartialGuild, Presence, Relationship,
+    Role, User,
 };
 
 /// Extra information about member removal.
@@ -94,10 +94,10 @@ pub enum OutboundMessage {
         #[serde(flatten)]
         info: MemberRemoveInfo,
     },
-    /// Sent by harmony when a channel is created within a guild.
-    GuildChannelCreate {
+    /// Sent by harmony when a channel is created. This could be any type of channel
+    ChannelCreate {
         /// The channel that was created.
-        channel: GuildChannel,
+        channel: Channel,
     },
     /// Sent by harmony when a channel is modified.
     ChannelUpdate {

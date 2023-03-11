@@ -23,17 +23,30 @@ pub enum MalformedBodyErrorType {
 }
 
 /// The type of user interaction that was disallowed.
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "snake_case")]
-pub enum DisallowedUserInteractionType {
+pub enum UserInteractionType {
     /// You are unable to open a DM or send DM messages to this user.
     Dm,
     /// You are unable to add this user to a group DM.
     GroupDm,
     /// You are unable to request to add this user as a friend.
     FriendRequest,
+}
+
+impl UserInteractionType {
+    /// Returns the interaction type as a verb.
+    #[inline]
+    #[must_use]
+    pub const fn as_verb(&self) -> &'static str {
+        match self {
+            Self::Dm => "DM",
+            Self::GroupDm => "add to the group",
+            Self::FriendRequest => "add as a friend",
+        }
+    }
 }
 
 /// An error that occurs within Adapt.
@@ -171,7 +184,7 @@ pub enum Error {
     /// settings that prevent you from doing so.
     UserInteractionDisallowed {
         /// The type of interaction that was disallowed.
-        interaction_type: DisallowedUserInteractionType,
+        interaction_type: UserInteractionType,
         /// The ID of the user you are attempting to interact with.
         target_id: u64,
         /// The error message.
