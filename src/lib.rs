@@ -1,8 +1,8 @@
 #![cfg_attr(feature = "db", feature(once_cell))]
 #![cfg_attr(feature = "db", feature(let_chains))]
 #![cfg_attr(any(feature = "auth", feature = "db"), feature(is_some_and))]
-#![cfg_attr(feature = "async-trait", feature(async_fn_in_trait))]
-#![cfg_attr(feature = "async-trait", allow(incomplete_features))]
+#![cfg_attr(any(feature = "auth", feature = "db"), feature(async_fn_in_trait))]
+#![cfg_attr(any(feature = "auth", feature = "db"), allow(incomplete_features))]
 #![allow(
     clippy::module_name_repetitions,
     clippy::cast_possible_truncation,
