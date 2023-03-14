@@ -42,3 +42,4 @@ db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "dep:tokio", "snowflakes",
 snowflakes = []
 token-parsing = ["dep:base64", "snowflakes"]
 webserver = ["auth", "bincode", "db", "utoipa", "utoipa/axum_extras", "utoipa/yaml"]
+async-trait = []

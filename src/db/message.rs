@@ -34,7 +34,6 @@ macro_rules! construct_message {
     }};
 }
 
-#[async_trait::async_trait]
 pub trait MessageDbExt<'t>: DbExt<'t> {
     /// Fetches quick metadata about a message. Returns `author_id`.
     ///

@@ -36,7 +36,6 @@ macro_rules! construct_partial_guild {
     }};
 }
 
-#[async_trait::async_trait]
 pub trait GuildDbExt<'t>: DbExt<'t> {
     /// Builds a cache of all known guild IDs.
     async fn build_guild_cache(&self) -> crate::Result<()> {

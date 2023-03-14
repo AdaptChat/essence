@@ -82,24 +82,17 @@ macro_rules! privacy_configuration_method {
         #[doc = ""]
         #[doc = "# Errors"]
         #[doc = "* If an error occurs with fetching the privacy configuration."]
-        fn $meth_name<'slf, 'fut>(&'slf self, user_id: u64) ->
-            ::core::pin::Pin<Box<dyn ::core::future::Future<Output = crate::Result<PrivacyConfiguration>> + Send + 'fut>>
-        where
-            'slf: 'fut,
-            Self: Sync + 'fut,
-        {
-            Box::pin(async move {
-                let privacy = sqlx::query!(
-                    "SELECT " + $col + " AS col FROM users WHERE id = $1",
-                    user_id as i64,
-                )
-                .fetch_optional(self.executor())
-                .await?
-                .ok_or_not_found("user", "user not found")?
-                .col;
+        async fn $meth_name(&self, user_id: u64) -> crate::Result<PrivacyConfiguration> {
+            let privacy = sqlx::query!(
+                "SELECT " + $col + " AS col FROM users WHERE id = $1",
+                user_id as i64,
+            )
+            .fetch_optional(self.executor())
+            .await?
+            .ok_or_not_found("user", "user not found")?
+            .col;
 
-                Ok(PrivacyConfiguration::from_bits_truncate(privacy))
-            })
+            Ok(PrivacyConfiguration::from_bits_truncate(privacy))
         }
     };
 }
@@ -125,7 +118,6 @@ pub struct DbRelationship {
     pub kind: DbRelationshipType,
 }
 
-#[async_trait::async_trait]
 pub trait UserDbExt<'t>: DbExt<'t> {
     /// Fetches a user from the database with the given ID.
     ///

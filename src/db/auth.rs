@@ -2,7 +2,6 @@ use crate::cache;
 use crate::db::DbExt;
 use crate::models::UserFlags;
 
-#[async_trait::async_trait]
 pub trait AuthDbExt<'t>: DbExt<'t> {
     /// Fetches the password hash for the given user ID and verifies it against the given password.
     ///

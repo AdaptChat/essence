@@ -52,7 +52,6 @@ use crate::http::member::{EditClientMemberPayload, EditMemberPayload};
 use crate::models::{MaybePartialUser, ModelType};
 pub(crate) use construct_member;
 
-#[async_trait::async_trait]
 pub trait MemberDbExt<'t>: DbExt<'t> {
     /// Fetches a member from the database with the given guild and user ID.
     ///

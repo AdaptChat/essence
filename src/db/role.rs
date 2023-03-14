@@ -31,7 +31,6 @@ use crate::models::ModelType;
 use crate::snowflake::with_model_type;
 pub(crate) use construct_role;
 
-#[async_trait::async_trait]
 pub trait RoleDbExt<'t>: DbExt<'t> {
     /// Asserts the role exists and returns the position of the role.
     async fn assert_role_exists(&self, guild_id: u64, role_id: u64) -> crate::Result<u16> {

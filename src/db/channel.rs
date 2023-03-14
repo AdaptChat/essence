@@ -115,7 +115,6 @@ pub struct ChannelRecord {
     owner_id: Option<i64>,
 }
 
-#[async_trait::async_trait]
 pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// Asserts the given channel ID exists in the given guild.
     async fn assert_channel_in_guild(&self, guild_id: u64, channel_id: u64) -> crate::Result<()> {
