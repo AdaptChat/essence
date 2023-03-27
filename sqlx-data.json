@@ -302,6 +302,98 @@
     },
     "query": "DELETE FROM channels WHERE id = $1"
   },
+  "0bb53c5e92b068f4222863cae6384e9e5b2bf5f4b6dbdd21a6b07ed387c0e254": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "topic",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM channels\n            WHERE (type = 'dm' OR type = 'group')\n            AND id IN (\n                SELECT channel_id FROM channel_recipients WHERE user_id = $1\n            )"
+  },
   "0c9f645069caa860ec011099ea9a17dc29398d44d92ad75fcdaa2b445b8cd5d0": {
     "describe": {
       "columns": [
@@ -604,6 +696,26 @@
     },
     "query": "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)"
   },
+  "1b1c4aff0145e49d057a401ea0d53e928e92fd637633c6eab12fe5b36be917c2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id!",
+          "ordinal": 0,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT DISTINCT\n                id AS \"id!\"\n            FROM members\n            WHERE\n                guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n            UNION SELECT\n                target_id AS \"id!\"\n            FROM\n                relationships\n            WHERE\n                user_id = $1\n            UNION SELECT $1 AS \"id!\"\n            "
+  },
   "1c244b204b6dc9ee0ed7c56673644cc66ac548872772c7eacdd7d7565c669de0": {
     "describe": {
       "columns": [
@@ -659,6 +771,26 @@
       }
     },
     "query": "UPDATE invites\n            SET uses = uses + 1\n            WHERE\n                code = $1\n                AND (max_age = 0 OR created_at + max_age * interval '1 second' > NOW())\n            RETURNING *\n            "
+  },
+  "1eefbfc231b8aa692244c44df4fb874b600d9c0d380308e055bfb607eee5876c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "col",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT dm_privacy AS col FROM users WHERE id = $1"
   },
   "1fee245716c07941ac5dd77780673fabfbd5f8e51d7deef0273cdc41a072438b": {
     "describe": {
@@ -806,6 +938,27 @@
     },
     "query": "SELECT \n                guilds.*,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds \n            WHERE \n                id IN (SELECT guild_id FROM members WHERE id = $1)\n            "
   },
+  "252c0461d3d4a1ae0dd9b073b9b7933609a5ef549cef29fe7f3675b9c3580ea7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists!",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(\n                        SELECT 1 FROM relationships\n                        WHERE user_id = $1 AND target_id IN (\n                            SELECT target_id FROM relationships\n                            WHERE user_id = $2 AND type = 'friend'\n                        ) AND type = 'friend'\n                    ) AS \"exists!\""
+  },
   "2b72dc65f84de2c96fe943fb2fc90c181f10da5e6063c5497e973e344ec32797": {
     "describe": {
       "columns": [],
@@ -853,6 +1006,26 @@
       }
     },
     "query": "SELECT guild_id, owner_id, type AS kind FROM channels WHERE id = $1"
+  },
+  "2c605c02e92b4d22e9c11cf6c490b8dec9775e40de5b43210caa67cf7a5dab48": {
+    "describe": {
+      "columns": [
+        {
+          "name": "col",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT group_dm_privacy AS col FROM users WHERE id = $1"
   },
   "366e65997d0ed6a92d40d9031f6b76e77638472532a1c2a8f9e617704a62ce2a": {
     "describe": {
@@ -975,6 +1148,28 @@
       }
     },
     "query": "INSERT INTO channels\n                (id, guild_id, type, name, position, slowmode, nsfw, locked)\n            VALUES\n                ($1, $2, 'text', 'general', 0, 0, false, false)"
+  },
+  "3e6ef98691c8a18749fe68817ca6032cba24a84bdd951e00c086d0c7aa0ad2ec": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discriminator",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Int2"
+        ]
+      }
+    },
+    "query": "SELECT discriminator FROM users WHERE id != $1 AND username = $2 AND discriminator = $3"
   },
   "3f85b7625724dd4efc25e1d5ecdcc6a8dcac87a5f8a34ae64c449812ef3cf7a4": {
     "describe": {
@@ -1225,26 +1420,167 @@
     },
     "query": "INSERT INTO invites\n                (code, inviter_id, guild_id, max_uses, max_age)\n            VALUES\n                ($1, $2, $3, $4, $5)\n            ON CONFLICT (code) DO NOTHING\n            RETURNING created_at\n            "
   },
-  "6ead10a4ea43d6e21372f6bd5092ef344faa928d3b2a3cfd73b0be1bbf75eac2": {
+  "65f796a4732de6258ab9bb6577e8ca06d368b4a2b175b77eca430b9fe39c11ea": {
     "describe": {
       "columns": [
         {
-          "name": "discriminator",
+          "name": "target_id",
           "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 2,
           "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "kind: _",
+          "ordinal": 7,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "incoming",
+                  "outgoing"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
         }
       ],
       "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
         false
       ],
       "parameters": {
         "Left": [
-          "Text",
-          "Int2"
+          "Int8",
+          "Int8",
+          {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "incoming",
+                  "outgoing"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
         ]
       }
     },
-    "query": "SELECT discriminator FROM users WHERE username = $1 AND discriminator = $2"
+    "query": "WITH updated AS (\n                INSERT INTO relationships\n                    (user_id, target_id, type)\n                VALUES\n                    ($1, $2, $3)\n                ON CONFLICT (user_id, target_id)\n                DO UPDATE SET type = $3\n                RETURNING target_id, type\n            )\n            SELECT\n                u.id AS target_id,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags,\n                updated.type AS \"kind: _\"\n            FROM\n                updated\n            INNER JOIN\n                users AS u ON u.id = updated.target_id\n            "
+  },
+  "6d32b8f01fdadb4ad0fd7549ba60b88bd620340eaa96f5a21791cd877007ad90": {
+    "describe": {
+      "columns": [
+        {
+          "name": "target_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 2,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "kind: _",
+          "ordinal": 7,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "incoming",
+                  "outgoing"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT\n                r.target_id,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags,\n                r.type AS \"kind: _\"\n            FROM\n                relationships AS r\n            INNER JOIN\n                users AS u ON u.id = r.target_id\n            WHERE user_id = $1"
   },
   "7132360ca9b4dcbe19bbbe046033fba320ff4fc21e9368c1e7a81e0487e936b6": {
     "describe": {
@@ -1293,6 +1629,21 @@
           "name": "flags",
           "ordinal": 8,
           "type_info": "Int4"
+        },
+        {
+          "name": "dm_privacy",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "group_dm_privacy",
+          "ordinal": 10,
+          "type_info": "Int2"
+        },
+        {
+          "name": "friend_request_privacy",
+          "ordinal": 11,
+          "type_info": "Int2"
         }
       ],
       "nullable": [
@@ -1304,6 +1655,9 @@
         true,
         true,
         true,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
@@ -1330,6 +1684,40 @@
       }
     },
     "query": "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5"
+  },
+  "78c23da7fcfff2a5ffc2c8f57b92a1b708323747e4b5adc10a066cfd8db2f52c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "exists!",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT EXISTS(\n                        SELECT 1 FROM members\n                        WHERE id = $1 AND guild_id IN (\n                            SELECT guild_id FROM members WHERE id = $2\n                        )\n                    ) AS \"exists!\""
+  },
+  "79882605db255c14711a09b7c13a2bedc357e0272685820172a6451b6bac6364": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "DELETE FROM\n                relationships\n            WHERE\n                user_id = $1 AND target_id = $2\n            OR\n                target_id = $1 AND user_id = $2 AND type != 'blocked'\n            "
   },
   "7ca2668d2402b8702ed588885790c4c6657be36f0850d3df2cf0e11998b88001": {
     "describe": {
@@ -1398,6 +1786,26 @@
     },
     "query": "SELECT owner_id FROM channels WHERE id = $1"
   },
+  "81e0be5bd705712872e208757d971d444070cb9945c066a29d0721c72cc4d956": {
+    "describe": {
+      "columns": [
+        {
+          "name": "col",
+          "ordinal": 0,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT friend_request_privacy AS col FROM users WHERE id = $1"
+  },
   "82656124ef41560bc2fe44a9e64c26c52399c0b3410f5eef6a609823a599e93d": {
     "describe": {
       "columns": [],
@@ -1457,6 +1865,21 @@
           "name": "flags",
           "ordinal": 8,
           "type_info": "Int4"
+        },
+        {
+          "name": "dm_privacy",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "group_dm_privacy",
+          "ordinal": 10,
+          "type_info": "Int2"
+        },
+        {
+          "name": "friend_request_privacy",
+          "ordinal": 11,
+          "type_info": "Int2"
         }
       ],
       "nullable": [
@@ -1468,6 +1891,9 @@
         true,
         true,
         true,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
@@ -1696,6 +2122,39 @@
     },
     "query": "SELECT role_id FROM role_data WHERE guild_id = $1 AND user_id = $2"
   },
+  "9b2a479ebc2d6066b96dad7aaeaf9144f28ed99afd95e6e7b394e6e6c327e7ca": {
+    "describe": {
+      "columns": [
+        {
+          "name": "kind: _",
+          "ordinal": 0,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "incoming",
+                  "outgoing"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT type AS \"kind: _\" FROM relationships WHERE user_id = $1 AND target_id = $2"
+  },
   "9d2c649ff158908f95226af761c8b96f3e79fb760b1be0335ef2e58a3b2dd831": {
     "describe": {
       "columns": [
@@ -1789,6 +2248,21 @@
       }
     },
     "query": "DELETE FROM guilds WHERE id = $1"
+  },
+  "afa5f85b96f6cbeae8c7218db551a2f3ddca5267421b63853fecb1d002021015": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Text",
+          "Text",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO channels (id, name, type, owner_id) VALUES ($1, $2, $3, $4)"
   },
   "b0aeda436354e29cb909c13db36333af8772a732bec6d5e64a6efa0290f1d293": {
     "describe": {
@@ -2210,26 +2684,6 @@
     },
     "query": "SELECT EXISTS(SELECT 1 FROM channel_recipients WHERE channel_id = $1 AND user_id = $2)"
   },
-  "d500e48c5138991ca0657436b55eb308c13999c2cbaf2f4abfdf1a029ae258a6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT DISTINCT\n                id\n            FROM\n                members\n            WHERE guild_id IN (SELECT guild_id FROM members WHERE id = $1);\n            "
-  },
   "d59fa440c1c209176b8a9c6779321964b1efc6b2aa6289c5d40cf5c07db30e53": {
     "describe": {
       "columns": [
@@ -2329,6 +2783,99 @@
       }
     },
     "query": "UPDATE users SET username = $1, discriminator = $2 WHERE id = $3"
+  },
+  "da69495fa5ce33f429e8f4fba93208a326f17dba42952fd7d49ccaeed3046502": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "guild_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "position",
+          "ordinal": 4,
+          "type_info": "Int2"
+        },
+        {
+          "name": "parent_id",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "topic",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "icon",
+          "ordinal": 7,
+          "type_info": "Text"
+        },
+        {
+          "name": "slowmode",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "nsfw",
+          "ordinal": 9,
+          "type_info": "Bool"
+        },
+        {
+          "name": "locked",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "user_limit",
+          "ordinal": 11,
+          "type_info": "Int2"
+        },
+        {
+          "name": "owner_id",
+          "ordinal": 12,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM channels WHERE type = 'dm' AND id IN (\n                        SELECT channel_id\n                        FROM channel_recipients\n                        WHERE user_id = $1\n                        AND channel_id IN (\n                            SELECT channel_id\n                            FROM channel_recipients\n                            WHERE user_id = $2\n                        )\n                    )"
   },
   "dd8628efdc56d427db7b0ca21125fd36e7dd31513ee81815649c080b6304dab5": {
     "describe": {
@@ -2748,6 +3295,21 @@
           "name": "flags",
           "ordinal": 8,
           "type_info": "Int4"
+        },
+        {
+          "name": "dm_privacy",
+          "ordinal": 9,
+          "type_info": "Int2"
+        },
+        {
+          "name": "group_dm_privacy",
+          "ordinal": 10,
+          "type_info": "Int2"
+        },
+        {
+          "name": "friend_request_privacy",
+          "ordinal": 11,
+          "type_info": "Int2"
         }
       ],
       "nullable": [
@@ -2759,6 +3321,9 @@
         true,
         true,
         true,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
@@ -2788,5 +3353,80 @@
       }
     },
     "query": "INSERT INTO channels\n                (id, guild_id, type, name, position, parent_id, topic, icon, user_limit)\n            VALUES\n                ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            "
+  },
+  "f8fde17d591865b65e5081b251eefe2b407de237b44656004aa4b9f17a338920": {
+    "describe": {
+      "columns": [
+        {
+          "name": "target_id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "discriminator",
+          "ordinal": 2,
+          "type_info": "Int2"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "banner",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "bio",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "flags",
+          "ordinal": 6,
+          "type_info": "Int4"
+        },
+        {
+          "name": "kind: _",
+          "ordinal": 7,
+          "type_info": {
+            "Custom": {
+              "kind": {
+                "Enum": [
+                  "friend",
+                  "blocked",
+                  "incoming",
+                  "outgoing"
+                ]
+              },
+              "name": "relationship_type"
+            }
+          }
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "\n            SELECT\n                r.target_id,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags,\n                r.type AS \"kind: _\"\n            FROM\n                relationships AS r\n            INNER JOIN\n                users AS u ON u.id = r.target_id\n            WHERE user_id = $1 AND target_id = $2"
   }
 }

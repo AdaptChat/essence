@@ -76,6 +76,38 @@ pub struct CreateGuildChannelPayload {
     pub overwrites: Option<Vec<PermissionOverwrite>>,
 }
 
+/// The request body sent to create a new DM or group channel.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CreateDmChannelPayload {
+    /// A standard DM channel with a single recipient.
+    Dm {
+        /// The ID of the recipient to add to the DM with.
+        recipient_id: u64,
+    },
+    /// A group DM channel with multiple recipients.
+    Group {
+        /// The name of the group DM.
+        name: String,
+        /// A list of recipient IDs to initially add to the group DM.
+        recipient_ids: Vec<u64>,
+    },
+}
+
+impl CreateDmChannelPayload {
+    /// Returns the [`ChannelType`] of the requested channel.
+    #[inline]
+    #[must_use]
+    pub const fn channel_type(&self) -> ChannelType {
+        match self {
+            Self::Dm { .. } => ChannelType::Dm,
+            Self::Group { .. } => ChannelType::Group,
+        }
+    }
+}
+
 /// The request body sent to modify a channel.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]

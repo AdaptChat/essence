@@ -8,6 +8,7 @@ use utoipa::ToSchema;
 /// A type alias for a [`Result`] with the error type [`Error`].
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// The categorization of why the body is malformed.
 #[derive(Copy, Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
@@ -19,6 +20,33 @@ pub enum MalformedBodyErrorType {
     InvalidUtf8,
     /// Received invalid JSON body.
     InvalidJson,
+}
+
+/// The type of user interaction that was disallowed.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum UserInteractionType {
+    /// You are unable to open a DM or send DM messages to this user.
+    Dm,
+    /// You are unable to add this user to a group DM.
+    GroupDm,
+    /// You are unable to request to add this user as a friend.
+    FriendRequest,
+}
+
+impl UserInteractionType {
+    /// Returns the interaction type as a verb.
+    #[inline]
+    #[must_use]
+    pub const fn as_verb(&self) -> &'static str {
+        match self {
+            Self::Dm => "DM",
+            Self::GroupDm => "add to the group",
+            Self::FriendRequest => "add as a friend",
+        }
+    }
 }
 
 /// An error that occurs within Adapt.
@@ -140,9 +168,45 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// You cannot perform the requested action on yourself.
+    CannotActOnSelf {
+        /// The error message.
+        message: String,
+    },
+    /// You cannot add bots as friends.
+    CannotFriendBots {
+        /// The ID of the bot you are trying to friend.
+        target_id: u64,
+        /// The error message.
+        message: String,
+    },
+    /// The user you are trying to interact with (e.g. add as a friend, open DMs, etc.) has privacy
+    /// settings that prevent you from doing so.
+    UserInteractionDisallowed {
+        /// The type of interaction that was disallowed.
+        interaction_type: UserInteractionType,
+        /// The ID of the user you are attempting to interact with.
+        target_id: u64,
+        /// The error message.
+        message: String,
+    },
+    /// The user has blocked you, so you cannot interact with them.
+    BlockedByUser {
+        /// The ID of the user that blocked you.
+        target_id: u64,
+        /// The error message.
+        message: String,
+    },
     /// Something was already taken, e.g. a username or email.
     AlreadyTaken {
         /// What was already taken.
+        what: String,
+        /// The error message.
+        message: String,
+    },
+    /// Something already exists, e.g. a relationship.
+    AlreadyExists {
+        /// What already exists.
         what: String,
         /// The error message.
         message: String,
@@ -178,16 +242,20 @@ impl Error {
             | Self::InvalidField { .. }
             | Self::MissingField { .. }
             | Self::MalformedIp { .. }
-            | Self::UnsupportedAuthMethod { .. } => 400,
+            | Self::UnsupportedAuthMethod { .. }
+            | Self::CannotActOnSelf { .. }
+            | Self::CannotFriendBots { .. } => 400,
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
             Self::NotMember { .. }
             | Self::NotOwner { .. }
             | Self::MissingPermissions { .. }
             | Self::RoleTooLow { .. }
             | Self::RoleIsManaged { .. }
-            | Self::CannotLeaveAsOwner { .. } => 403,
+            | Self::CannotLeaveAsOwner { .. }
+            | Self::UserInteractionDisallowed { .. }
+            | Self::BlockedByUser { .. } => 403,
             Self::NotFound { .. } => 404,
-            Self::AlreadyTaken { .. } => 409,
+            Self::AlreadyTaken { .. } | Self::AlreadyExists { .. } => 409,
             Self::Ratelimited { .. } => 429,
             Self::InternalError { .. } => 500,
         })

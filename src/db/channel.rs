@@ -93,9 +93,27 @@ macro_rules! construct_guild_channel {
 
 use crate::cache::ChannelInspection;
 use crate::db::get_pool;
-use crate::http::channel::{CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload};
+use crate::http::channel::{
+    CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload,
+};
 #[allow(clippy::redundant_pub_crate)] // false positive
 pub(crate) use {construct_guild_channel, query_guild_channels};
+
+pub struct ChannelRecord {
+    id: i64,
+    guild_id: Option<i64>,
+    r#type: String,
+    name: Option<String>,
+    position: Option<i16>,
+    parent_id: Option<i64>,
+    topic: Option<String>,
+    icon: Option<String>,
+    slowmode: Option<i32>,
+    nsfw: Option<bool>,
+    locked: Option<bool>,
+    user_limit: Option<i16>,
+    owner_id: Option<i64>,
+}
 
 #[async_trait::async_trait]
 pub trait ChannelDbExt<'t>: DbExt<'t> {
@@ -232,20 +250,36 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         Ok(Some(channel))
     }
 
-    /// Fetches a channel from the database with the given ID.
+    /// Fetches a channel from the database.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
+    /// returned.
+    async fn fetch_channel(&self, channel_id: u64) -> crate::Result<Option<Channel>> {
+        let Some(channel) = sqlx::query_as!(
+            ChannelRecord,
+            "SELECT * FROM channels WHERE id = $1",
+            channel_id as i64
+        )
+        .fetch_optional(self.executor())
+        .await? else {
+            return Ok(None);
+        };
+
+        self.construct_channel_with_record(channel).await.map(Some)
+    }
+
+    /// Constructs a channel from the database with the given information.
     ///
     /// # Errors
     /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
     /// returned.
     #[allow(clippy::too_many_lines)]
-    async fn fetch_channel(&self, channel_id: u64) -> crate::Result<Option<Channel>> {
-        let Some(channel) =
-            sqlx::query!("SELECT * FROM channels WHERE id = $1", channel_id as i64)
-                .fetch_optional(self.executor())
-                .await? else {
-            return Ok(None);
-        };
-
+    async fn construct_channel_with_record(
+        &self,
+        channel: ChannelRecord,
+    ) -> crate::Result<Channel> {
+        let channel_id = channel.id as u64;
         let kind = ChannelType::from_str(&channel.r#type)?;
         let info = match kind {
             _ if kind.is_guild_text_based() => {
@@ -269,7 +303,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             _ if kind.is_dm() => {
                 let recipients: Vec<u64> = sqlx::query!(
                     "SELECT user_id FROM channel_recipients WHERE channel_id = $1",
-                    channel_id as i64,
+                    channel.id,
                 )
                 .fetch_all(self.executor())
                 .await?
@@ -329,7 +363,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             }),
         };
 
-        Ok(Some(channel))
+        Ok(channel)
     }
 
     /// Fetches channel overwrites in bulk with a custom WHERE clause.
@@ -440,6 +474,34 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .collect::<crate::Result<Vec<_>>>()?;
 
         Ok(channels)
+    }
+
+    /// Fetches all DM and group channels for a user.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channels.
+    async fn fetch_all_dm_channels_for_user(&self, user_id: u64) -> crate::Result<Vec<DmChannel>> {
+        let channels = sqlx::query_as!(
+            ChannelRecord,
+            r#"SELECT * FROM channels
+            WHERE (type = 'dm' OR type = 'group')
+            AND id IN (
+                SELECT channel_id FROM channel_recipients WHERE user_id = $1
+            )"#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?;
+
+        let mut resolved = Vec::with_capacity(channels.len());
+        for channel in channels {
+            resolved.push(match self.construct_channel_with_record(channel).await? {
+                Channel::Dm(dm) => dm,
+                Channel::Guild(_) => continue,
+            });
+        }
+
+        Ok(resolved)
     }
 
     /// Creates a new channel in a guild from a payload. Payload must be validated prior to creating
@@ -570,6 +632,111 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             position,
             parent_id: payload.parent_id,
             overwrites: payload.overwrites.unwrap_or_default(),
+        })
+    }
+
+    /// Creates a new DM-type channel from a payload. Payload must be validated prior to creating
+    /// the channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with creating the channel.
+    async fn create_dm_channel(
+        &mut self,
+        user_id: u64,
+        channel_id: u64,
+        payload: CreateDmChannelPayload,
+    ) -> crate::Result<DmChannel> {
+        let kind = payload.channel_type();
+        let (name, owner_id, recipient_ids) = match payload.clone() {
+            CreateDmChannelPayload::Dm { recipient_id } => {
+                if recipient_id == user_id {
+                    return Err(Error::InvalidField {
+                        field: "recipient_id".to_string(),
+                        message: "Recipient ID cannot be the same as the user ID".to_string(),
+                    });
+                }
+
+                let db_immut = get_pool();
+                if let Some(channel) = sqlx::query_as!(
+                    ChannelRecord,
+                    r#"SELECT * FROM channels WHERE type = 'dm' AND id IN (
+                        SELECT channel_id
+                        FROM channel_recipients
+                        WHERE user_id = $1
+                        AND channel_id IN (
+                            SELECT channel_id
+                            FROM channel_recipients
+                            WHERE user_id = $2
+                        )
+                    )"#,
+                    user_id as i64,
+                    recipient_id as i64,
+                )
+                .fetch_optional(db_immut)
+                .await?
+                {
+                    if let Channel::Dm(channel) =
+                        db_immut.construct_channel_with_record(channel).await?
+                    {
+                        return Ok(channel);
+                    }
+                }
+
+                (None, None, vec![user_id, recipient_id])
+            }
+            CreateDmChannelPayload::Group {
+                name,
+                mut recipient_ids,
+            } => {
+                if !recipient_ids.contains(&user_id) {
+                    recipient_ids.push(user_id);
+                }
+                (Some(name), Some(user_id), recipient_ids)
+            }
+        };
+
+        sqlx::query!(
+            "INSERT INTO channels (id, name, type, owner_id) VALUES ($1, $2, $3, $4)",
+            channel_id as i64,
+            name,
+            kind.name(),
+            owner_id.map(|id| id as i64),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        sqlx::query(
+            "INSERT INTO channel_recipients
+            SELECT $1, out.* FROM UNNEST($2) AS out(user_id)",
+        )
+        .bind(channel_id as i64)
+        .bind(
+            recipient_ids
+                .iter()
+                .map(|&id| id as i64)
+                .collect::<Vec<_>>(),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(DmChannel {
+            id: channel_id,
+            info: match payload {
+                CreateDmChannelPayload::Dm { recipient_id } => DmChannelInfo::Dm {
+                    recipient_ids: (user_id, recipient_id),
+                },
+                CreateDmChannelPayload::Group { name, .. } => DmChannelInfo::Group {
+                    name,
+                    topic: None,
+                    icon: None,
+                    owner_id: user_id,
+                    recipient_ids,
+                },
+            },
         })
     }
 

@@ -3,14 +3,15 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::models::{
-    Channel, ClientUser, Guild, GuildChannel, Invite, Member, Message, PartialGuild, Presence, Role,
+    Channel, ClientUser, DmChannel, Guild, Invite, Member, Message, PartialGuild, Presence,
+    Relationship, Role, User,
 };
 
 /// Extra information about member removal.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum MemberRemoveInfo {
     /// The guild was deleted. Note that this is never sent in `member_remove` events.
     Delete,
@@ -50,8 +51,24 @@ pub enum OutboundMessage {
         user: ClientUser,
         /// A list of guilds that the session's user is a member of.
         guilds: Vec<Guild>,
+        /// A list of DM channels that the session's user is a member of.
+        dm_channels: Vec<DmChannel>,
         /// An initial array of all presences observed by the user.
         presences: Vec<Presence>,
+        /// A list of relationships associated with the user.
+        relationships: Vec<Relationship>,
+    },
+    /// Sent by harmony when an observable user is updated.
+    UserUpdate {
+        /// The user before it was updated.
+        before: User,
+        /// The user after it was updated.
+        after: User,
+    },
+    /// Sent by harmony when an observable user is deleted.
+    UserDelete {
+        /// The ID of the user that was deleted.
+        user_id: u64,
     },
     /// Sent by harmony when the client joins or creates a guild. Note that this does not include
     /// guilds received from the `Ready` event, those must be accounted for separately.
@@ -76,12 +93,13 @@ pub enum OutboundMessage {
         /// The ID of the guild that was left or deleted.
         guild_id: u64,
         /// Extra information about the guild deletion.
+        #[serde(flatten)]
         info: MemberRemoveInfo,
     },
-    /// Sent by harmony when a channel is created within a guild.
-    GuildChannelCreate {
+    /// Sent by harmony when a channel is created. This could be any type of channel
+    ChannelCreate {
         /// The channel that was created.
-        channel: GuildChannel,
+        channel: Channel,
     },
     /// Sent by harmony when a channel is modified.
     ChannelUpdate {
@@ -161,10 +179,35 @@ pub enum OutboundMessage {
         /// The ID of the message that was deleted.
         message_id: u64,
     },
+    /// Sent by harmony when a user starts typing.
+    TypingStart {
+        /// The ID of the channel that the user is typing in.
+        channel_id: u64,
+        /// The ID of the user that is typing.
+        user_id: u64,
+    },
+    /// Send by harmony when a user stops typing. This is not always sent.
+    TypingStop {
+        /// The ID of the channel that the user stopped typing in.
+        channel_id: u64,
+        /// The ID of the user that stopped typing.
+        user_id: u64,
+    },
     /// Sent by harmony when a user updates their presence.
     PresenceUpdate {
         /// The presence after it was updated. The user ID can be retrieved from accessing
         /// `presence.user_id`.
         presence: Presence,
+    },
+    /// Sent by harmony when a relationship is created. If a relationship already exists, this
+    /// should be treated as an update and replace it.
+    RelationshipCreate {
+        /// The relationship that was created.
+        relationship: Relationship,
+    },
+    /// Sent by harmony when a relationship is removed.
+    RelationshipRemove {
+        /// The ID of the user that the relationship was removed with.
+        user_id: u64,
     },
 }

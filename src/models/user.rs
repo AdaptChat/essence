@@ -1,4 +1,6 @@
-use crate::{bincode_for_bitflags, builder_methods, serde_for_bitflags};
+#[cfg(feature = "db")]
+use crate::db::{DbRelationship, DbRelationshipType};
+use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -102,13 +104,15 @@ pub struct ClientUser {
     #[serde(skip)]
     #[cfg(feature = "db")]
     pub password: Option<String>,
-    // /// A list of DM channels that the client has open.
-    // pub dm_channels: Vec<DmChannel<u64>>,
-    // /// A list of guilds that the client is a member of. This is a list of partial guilds that
-    // /// include information such as the guild's ID, name, icon, and owner.
-    // pub guilds: Vec<PartialGuild<u64>>,
-    /// A list of relationships that the client has with other users.
-    pub relationships: Vec<Relationship>,
+    /// Controls who can open and/or send direct messages to the client.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub dm_privacy: PrivacyConfiguration,
+    /// Controls who can add the client to group DMs.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub group_dm_privacy: PrivacyConfiguration,
+    /// Controls who can request to add the client as a friend.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub friend_request_privacy: PrivacyConfiguration,
 }
 
 impl std::ops::Deref for ClientUser {
@@ -128,36 +132,96 @@ impl std::ops::DerefMut for ClientUser {
 impl ClientUser {
     builder_methods! {
         email: String => set_email + Some,
-        // guilds: Vec<PartialGuild<u64>> => set_guilds,
-        relationships: Vec<Relationship> => set_relationships,
-        // dm_channels: Vec<DmChannel<u64>> => set_dm_channels,
     }
 }
 
-/// Represents a client user with addition to their password.
+bitflags::bitflags! {
+    /// Represents a privacy configuration.
+    #[derive(Default)]
+    pub struct PrivacyConfiguration: i16 {
+        /// This configuration is public for friends.
+        const FRIENDS = 1 << 0;
+        /// This configuration is public for mutual friends (friends of friends).
+        const MUTUAL_FRIENDS = 1 << 1;
+        /// This configuration is public for users who share a guild with you.
+        const GUILD_MEMBERS = 1 << 2;
+        /// This configuration is public for everyone. This overwrites all other configurations.
+        const EVERYONE = 1 << 3;
+
+        // Aliases
+        /// Default configuration for ``dm_privacy``.
+        const DEFAULT_DM_PRIVACY = Self::FRIENDS.bits
+            | Self::MUTUAL_FRIENDS.bits
+            | Self::GUILD_MEMBERS.bits;
+        /// Default configuration for ``group_dm_privacy``.
+        const DEFAULT_GROUP_DM_PRIVACY = Self::FRIENDS.bits;
+        /// Default configuration for ``friend_request_privacy``.
+        const DEFAULT_FRIEND_REQUEST_PRIVACY = Self::EVERYONE.bits;
+    }
+}
+
+serde_for_bitflags!(i16: PrivacyConfiguration);
 
 /// Represents the type of relationship a user has with another user.
-#[derive(Copy, Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum RelationshipType {
-    /// The user is added as a friend.
-    #[default]
+    /// The other user is added as a friend.
     Friend,
-    /// The user is blocked.
+    /// The client user has sent a friend request to the other user which is still pending.
+    OutgoingRequest,
+    /// The other user has sent a friend request to the client user which is still pending.
+    IncomingRequest,
+    /// The client user has blocked the other user.
     Blocked,
 }
 
+#[cfg(feature = "db")]
+impl From<DbRelationshipType> for RelationshipType {
+    #[inline]
+    fn from(kind: DbRelationshipType) -> Self {
+        match kind {
+            DbRelationshipType::Friend => Self::Friend,
+            DbRelationshipType::Incoming => Self::IncomingRequest,
+            DbRelationshipType::Outgoing => Self::OutgoingRequest,
+            DbRelationshipType::Blocked => Self::Blocked,
+        }
+    }
+}
+
 /// Represents a relationship that a user has with another user.
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Relationship {
-    /// The ID of the user that this relationship is with.
-    pub id: u64,
+    /// The user that this relationship is with.
+    pub user: User,
     /// The type of relationship this is.
     #[serde(rename = "type")]
     pub kind: RelationshipType,
+}
+
+#[cfg(feature = "db")]
+impl Relationship {
+    /// Creates a new relationship from a database row.
+    /// This is used internally by the database module.
+    #[inline]
+    #[allow(clippy::missing_const_for_fn)] // false positive
+    pub(crate) fn from_db_relationship(data: DbRelationship) -> Self {
+        Self {
+            user: User {
+                id: data.target_id as _,
+                username: data.username,
+                discriminator: data.discriminator as _,
+                avatar: data.avatar,
+                banner: data.banner,
+                bio: data.bio,
+                flags: UserFlags::from_bits_truncate(data.flags as _),
+            },
+            kind: RelationshipType::from(data.kind),
+        }
+    }
 }

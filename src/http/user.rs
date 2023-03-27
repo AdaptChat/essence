@@ -88,3 +88,14 @@ pub struct EditUserPayload {
     #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
     pub bio: Maybe<String>,
 }
+
+/// Payload sent when requesting to add a user as a friend.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct SendFriendRequestPayload {
+    /// The username of the user to add as a friend.
+    pub username: String,
+    /// The discriminator of the user.
+    pub discriminator: u16,
+}

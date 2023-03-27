@@ -15,6 +15,7 @@ pub use member::MemberDbExt;
 pub use message::MessageDbExt;
 pub use role::RoleDbExt;
 pub use user::UserDbExt;
+pub(crate) use user::{DbRelationship, DbRelationshipType};
 
 pub use sqlx;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
