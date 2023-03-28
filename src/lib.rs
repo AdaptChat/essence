@@ -1,5 +1,6 @@
 #![cfg_attr(feature = "db", feature(once_cell))]
 #![cfg_attr(feature = "db", feature(let_chains))]
+#![cfg_attr(feature = "db", feature(trait_alias))]
 #![cfg_attr(any(feature = "auth", feature = "db"), feature(is_some_and))]
 #![cfg_attr(feature = "async-trait", feature(async_fn_in_trait))]
 #![cfg_attr(feature = "async-trait", allow(incomplete_features))]
@@ -28,7 +29,6 @@ pub mod http;
 mod maybe;
 pub mod models;
 mod permissions;
-pub mod redis_cache;
 #[cfg(feature = "snowflakes")]
 pub mod snowflake;
 pub mod ws;
@@ -149,4 +149,11 @@ macro_rules! builder_methods {
             }
         )+
     };
+}
+
+pub async fn connect(db_url: &str, redis_url: &str) -> Result<()> {
+    db::connect(db_url).await?;
+    cache::connect(redis_url);
+
+    Ok(())
 }

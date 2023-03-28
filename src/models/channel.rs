@@ -30,6 +30,7 @@ pub struct TextBasedGuildChannelInfo {
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(rename_all = "snake_case")]
 pub enum ChannelType {
     /// A text channel.

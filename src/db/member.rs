@@ -237,7 +237,11 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with creating the member.
-    async fn create_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<Option<Member>> {
+    async fn create_member(
+        &mut self,
+        guild_id: u64,
+        user_id: u64,
+    ) -> crate::Result<Option<Member>> {
         let user = get_pool().fetch_user_by_id(user_id).await?.map_or(
             MaybePartialUser::Partial { id: user_id },
             MaybePartialUser::Full,
@@ -258,11 +262,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             roles: None,
         });
 
-        if let Some(guild_cache) = cache::write().await.guild_mut(guild_id) {
-            if let Some(ref mut members) = guild_cache.members {
-                members.insert(user_id);
-            }
-        }
+        cache::update_member_of_guild(guild_id, user_id).await?;
 
         Ok(member)
     }
@@ -275,7 +275,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with deleting the member.
-    async fn delete_member(&mut self, guild_id: u64, user_id: u64) -> sqlx::Result<()> {
+    async fn delete_member(&mut self, guild_id: u64, user_id: u64) -> crate::Result<()> {
         sqlx::query!(
             "DELETE FROM members WHERE guild_id = $1 AND id = $2",
             guild_id as i64,
@@ -284,10 +284,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        cache::write()
-            .await
-            .guild_mut(guild_id)
-            .map(|g| g.members.as_mut().map(|m| m.remove(&user_id)));
+        cache::remove_member_from_guild(guild_id, user_id).await?;
         Ok(())
     }
 }
