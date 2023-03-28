@@ -57,9 +57,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     async fn assert_guild_exists(&self, guild_id: u64) -> crate::Result<()> {
         let guild_cached = cache::guild_exist(guild_id).await?;
 
-        let guild_exists = if guild_cached.is_some() {
-            true
-        } else {
+        let guild_exists = guild_cached.is_some() || {
             self.build_guild_cache().await?;
             cache::guild_exist(guild_id).await?.is_some()
         };
@@ -108,9 +106,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
 
         let cached = cache::is_member_of_guild(guild_id, user_id).await?;
 
-        let member_in_guild = if cached.is_some() {
-            true
-        } else {
+        let member_in_guild = cached.is_some() || {
             self.build_member_cache(guild_id).await?;
             cache::is_member_of_guild(guild_id, user_id)
                 .await?

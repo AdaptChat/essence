@@ -1,6 +1,6 @@
 #[cfg(feature = "db")]
 use crate::db::{DbRelationship, DbRelationshipType};
-use crate::{bincode_for_bitflags, builder_methods, serde_for_bitflags};
+use crate::{builder_methods, serde_for_bitflags};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -41,7 +41,6 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(u32: UserFlags);
-bincode_for_bitflags!(UserFlags);
 
 impl User {
     builder_methods! {

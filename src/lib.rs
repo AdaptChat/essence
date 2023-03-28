@@ -40,10 +40,10 @@ pub use permissions::{calculate_permissions, calculate_permissions_sorted};
 pub use utoipa;
 
 #[macro_export]
-macro_rules! bincode_for_bitflags {
-    ($ty: ty) => {
+macro_rules! serde_for_bitflags {
+    (@bincode for $t:ty) => {
         #[cfg(feature = "db")]
-        impl bincode::Encode for $ty {
+        impl bincode::Encode for $t {
             fn encode<E: bincode::enc::Encoder>(
                 &self,
                 encoder: &mut E,
@@ -53,7 +53,7 @@ macro_rules! bincode_for_bitflags {
         }
 
         #[cfg(feature = "db")]
-        impl bincode::Decode for $ty {
+        impl bincode::Decode for $t {
             fn decode<D: bincode::de::Decoder>(
                 decoder: &mut D,
             ) -> Result<Self, bincode::error::DecodeError> {
@@ -65,9 +65,6 @@ macro_rules! bincode_for_bitflags {
             }
         }
     };
-}
-#[macro_export]
-macro_rules! serde_for_bitflags {
     (@openapi for $t:ty => $format:ident) => {
         #[cfg(feature = "utoipa")]
         impl utoipa::ToSchema<'static> for $t {
@@ -133,9 +130,18 @@ macro_rules! serde_for_bitflags {
         );
     };
 
-    (u32: $t:ty) => { serde_for_bitflags!(@serde_unsigned(u32) $t => Int32); };
-    (i16: $t:ty) => { serde_for_bitflags!(@serde_signed(i16) $t => Int32); };
-    (i64: $t:ty) => { serde_for_bitflags!(@serde_signed(i64) $t => Int64); };
+    (u32: $t:ty) => {
+        serde_for_bitflags!(@serde_unsigned(u32) $t => Int32);
+        serde_for_bitflags!(@bincode for $t);
+    };
+    (i16: $t:ty) => {
+        serde_for_bitflags!(@serde_signed(i16) $t => Int32);
+        serde_for_bitflags!(@bincode for $t);
+    };
+    (i64: $t:ty) => {
+        serde_for_bitflags!(@serde_signed(i64) $t => Int64);
+        serde_for_bitflags!(@bincode for $t);
+    };
 }
 
 #[macro_export]
