@@ -10,7 +10,6 @@ use crate::{
 
 static POOL: OnceLock<Pool> = OnceLock::new();
 
-type ResultOption<T> = Result<Option<T>>;
 pub trait AsRefThreadSafe<T: ?Sized> = AsRef<T> + Send + Sync;
 
 #[derive(Clone, bincode::Encode, bincode::Decode)]
@@ -35,7 +34,7 @@ async fn get_con() -> Result<Connection> {
 
 pub async fn user_info_for_token(
     token: impl AsRefThreadSafe<str>,
-) -> ResultOption<(u64, UserFlags)> {
+) -> Result<Option<(u64, UserFlags)>> {
     Ok(get_con()
         .await?
         .hget::<_, _, Option<BincodeType<(u64, UserFlags)>>>("essence-tokens", token.as_ref())
@@ -160,7 +159,7 @@ pub async fn guild_exist(guild_id: u64) -> Result<Option<()>> {
         .then_some(()))
 }
 
-pub async fn is_member_of_guild(guild_id: u64, user_id: u64) -> ResultOption<()> {
+pub async fn is_member_of_guild(guild_id: u64, user_id: u64) -> Result<Option<()>> {
     Ok(get_con()
         .await?
         .sismember::<_, _, bool>(format!("essence-{guild_id}-members"), user_id)
@@ -226,7 +225,7 @@ pub async fn permissions_for(
     guild_id: u64,
     user_id: u64,
     channel_id: Option<u64>,
-) -> ResultOption<Permissions> {
+) -> Result<Option<Permissions>> {
     Ok(get_con()
         .await?
         .hget::<_, _, Option<i64>>(
