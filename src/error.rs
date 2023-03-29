@@ -350,3 +350,16 @@ impl<T> NotFoundExt<T> for Option<T> {
         })
     }
 }
+
+/// An extension trait for [`Result`] that adds [`ErrIntoExt::err_into`].
+pub trait ErrIntoExt<T, E, F> {
+    /// Converts a [`Result<T, E>`] into a [`Result<T, F>`]
+    /// where `F: From<E>` using [`Into::into`]
+    fn err_into(self) -> std::result::Result<T, F>;
+}
+
+impl<T, E, F: From<E>> ErrIntoExt<T, E, F> for std::result::Result<T, E> {
+    fn err_into(self) -> std::result::Result<T, F> {
+        self.map_err(Into::into)
+    }
+}

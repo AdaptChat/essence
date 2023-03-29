@@ -4,7 +4,7 @@ use deadpool_redis::{redis::AsyncCommands, Config, Connection, Pool, Runtime};
 
 use crate::{
     bincode_impl::BincodeType,
-    error::Result,
+    error::{ErrIntoExt, Result},
     models::{ChannelType, Permissions, User, UserFlags},
 };
 
@@ -60,9 +60,11 @@ pub async fn cache_token(
 }
 
 pub async fn invalidate_token(token: String) -> Result<()> {
-    get_con().await?.hdel("essence-tokens", token).await?;
-
-    Ok(())
+    get_con()
+        .await?
+        .hdel("essence-tokens", token)
+        .await
+        .err_into()
 }
 
 pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
@@ -83,14 +85,15 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
         })
         .collect::<Vec<String>>();
 
-    Ok(con.hdel("essence-tokens", tokens).await?)
+    con.hdel("essence-tokens", tokens).await.err_into()
 }
 
 pub async fn update_user(user: User) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .hset("essence-users", user.id, BincodeType(user))
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn user(user_id: u64) -> Result<Option<User>> {
@@ -102,14 +105,19 @@ pub async fn user(user_id: u64) -> Result<Option<User>> {
 }
 
 pub async fn remove_user(user_id: u64) -> Result<()> {
-    Ok(get_con().await?.hdel("essence-users", user_id).await?)
+    get_con()
+        .await?
+        .hdel("essence-users", user_id)
+        .await
+        .err_into()
 }
 
 pub async fn update_channel(channel_id: u64, inspection: ChannelInspection) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .hset("essence-channels", channel_id, BincodeType(inspection))
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn inspection_for_channel(channel_id: u64) -> Result<Option<ChannelInspection>> {
@@ -121,10 +129,11 @@ pub async fn inspection_for_channel(channel_id: u64) -> Result<Option<ChannelIns
 }
 
 pub async fn remove_channel(channel_id: u64) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .hdel("essence-channels", channel_id)
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn remove_guild(guild_id: u64) -> Result<()> {
@@ -135,20 +144,23 @@ pub async fn remove_guild(guild_id: u64) -> Result<()> {
         .await?;
     con.del(keys).await?;
 
-    con.srem("essence-guilds", guild_id).await?;
-
-    Ok(())
+    con.srem("essence-guilds", guild_id).await.err_into()
 }
 
 pub async fn insert_guild(guild_id: u64) -> Result<()> {
-    Ok(get_con().await?.sadd("essence-guilds", guild_id).await?)
+    get_con()
+        .await?
+        .sadd("essence-guilds", guild_id)
+        .await
+        .err_into()
 }
 
 pub async fn insert_guilds(guild_ids: impl AsRefThreadSafe<[u64]>) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .sadd("essence-guilds", guild_ids.as_ref())
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn guild_exist(guild_id: u64) -> Result<Option<()>> {
@@ -168,41 +180,46 @@ pub async fn is_member_of_guild(guild_id: u64, user_id: u64) -> Result<Option<()
 }
 
 pub async fn remove_member_from_guild(guild_id: u64, user_id: u64) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .srem(format!("essence-{guild_id}-members"), user_id)
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn update_member_of_guild(guild_id: u64, user_id: u64) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .sadd(format!("essence-{guild_id}-members"), user_id)
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn update_members_of_guild(
     guild_id: u64,
     user_ids: impl AsRefThreadSafe<[u64]>,
 ) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .sadd(format!("essence-{guild_id}-members"), user_ids.as_ref())
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn update_owner_of_guild(guild_id: u64, user_id: u64) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .set(format!("essence-{guild_id}-owner"), user_id)
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn owner_of_guild(guild_id: u64) -> Result<Option<u64>> {
-    Ok(get_con()
+    get_con()
         .await?
         .get(format!("essence-{guild_id}-owner"))
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn update_permissions_for(
@@ -211,14 +228,15 @@ pub async fn update_permissions_for(
     channel_id: Option<u64>,
     permissions: Permissions,
 ) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .hset(
             format!("essence-{guild_id}-{user_id}-perm"),
             channel_id.unwrap_or(0),
             permissions.bits(),
         )
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn permissions_for(
@@ -237,10 +255,11 @@ pub async fn permissions_for(
 }
 
 pub async fn delete_permissions_for_user(guild_id: u64, user_id: u64) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .del(format!("essence-{guild_id}-{user_id}-perm"))
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn delete_permissions_for_user_in_channel(
@@ -248,13 +267,14 @@ pub async fn delete_permissions_for_user_in_channel(
     user_id: u64,
     channel_id: Option<u64>,
 ) -> Result<()> {
-    Ok(get_con()
+    get_con()
         .await?
         .hdel(
             format!("essence-{guild_id}-{user_id}-perm"),
             channel_id.unwrap_or(0),
         )
-        .await?)
+        .await
+        .err_into()
 }
 
 pub async fn clear_member_permissions(guild_id: u64) -> Result<()> {
@@ -263,5 +283,5 @@ pub async fn clear_member_permissions(guild_id: u64) -> Result<()> {
         .keys::<_, Vec<String>>(format!("essence-{guild_id}-*-perm"))
         .await?;
 
-    Ok(con.del(keys).await?)
+    con.del(keys).await.err_into()
 }
