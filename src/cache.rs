@@ -1,12 +1,10 @@
-use std::sync::OnceLock;
-
-use deadpool_redis::{redis::AsyncCommands, Config, Connection, Pool, Runtime};
-
 use crate::{
     bincode_impl::BincodeType,
     error::{ErrIntoExt, Result},
     models::{ChannelType, Permissions, User, UserFlags},
 };
+use deadpool_redis::{redis::AsyncCommands, Config, Connection, Pool, Runtime};
+use std::sync::OnceLock;
 
 static POOL: OnceLock<Pool> = OnceLock::new();
 
