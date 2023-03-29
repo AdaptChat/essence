@@ -217,15 +217,14 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
-    /// Inspects basic information about a channel. Returns a tuple
-    /// `(guild_id, owner_id, channel_type)`.
+    /// Inspects basic information about a channel.
     ///
     /// # Errors
     /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
     /// returned.
     async fn inspect_channel(&self, channel_id: u64) -> crate::Result<Option<ChannelInspection>> {
-        if let Some(inspection) = cache::read().await.channels.get(&channel_id) {
-            return Ok(Some(*inspection));
+        if let Some(inspection) = cache::inspection_for_channel(channel_id).await? {
+            return Ok(Some(inspection));
         }
 
         let channel = if let Some(r) = sqlx::query!(
@@ -235,13 +234,13 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .fetch_optional(self.executor())
         .await?
         {
-            let inspection = (
-                r.guild_id.map(|id| id as _),
-                r.owner_id.map(|id| id as _),
-                ChannelType::from_str(&r.kind)?,
-            );
+            let inspection = ChannelInspection {
+                guild_id: r.guild_id.map(|id| id as _),
+                owner_id: r.owner_id.map(|id| id as _),
+                channel_type: ChannelType::from_str(&r.kind)?,
+            };
 
-            cache::write().await.channels.insert(channel_id, inspection);
+            cache::update_channel(channel_id, inspection.clone()).await?;
             inspection
         } else {
             return Ok(None);
@@ -806,7 +805,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        cache::write().await.channels.remove(&channel_id);
+        cache::remove_channel(channel_id).await?;
         Ok((old, channel))
     }
 
@@ -820,7 +819,11 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with deleting the channel.
     /// * If the channel is not found.
     async fn delete_channel(&mut self, channel_id: u64) -> crate::Result<()> {
-        let (guild_id, _, kind) = get_pool()
+        let ChannelInspection {
+            guild_id,
+            owner_id: _,
+            channel_type: kind,
+        } = get_pool()
             .inspect_channel(channel_id)
             .await?
             .ok_or_not_found(
@@ -856,7 +859,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .execute(self.transaction())
             .await?;
 
-        cache::write().await.channels.remove(&channel_id);
+        cache::remove_channel(channel_id).await?;
         Ok(())
     }
 }

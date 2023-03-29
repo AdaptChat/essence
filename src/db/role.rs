@@ -385,9 +385,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        if let Some(guild_cache) = cache::write().await.guild_mut(guild_id) {
-            guild_cache.member_permissions.clear();
-        }
+        cache::clear_member_permissions(guild_id).await?;
         Ok(role)
     }
 
@@ -417,9 +415,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        if let Some(guild_cache) = cache::write().await.guild_mut(guild_id) {
-            guild_cache.member_permissions.clear();
-        }
+        cache::clear_member_permissions(guild_id).await?;
         Ok(())
     }
 }

@@ -49,30 +49,17 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             guild_ids.insert(guild_id.id as u64);
         }
 
-        cache::write().await.existing_guild_ids = Some(guild_ids);
+        cache::insert_guilds(guild_ids.into_iter().collect::<Vec<u64>>()).await?;
         Ok(())
     }
 
     /// Asserts a guild with the given ID exists.
     async fn assert_guild_exists(&self, guild_id: u64) -> crate::Result<()> {
-        let guild_cached = {
-            let read_lock = cache::read().await;
-            read_lock
-                .existing_guild_ids
-                .as_ref()
-                .map(|g| g.contains(&guild_id))
-        };
+        let guild_cached = cache::guild_exist(guild_id).await?;
 
-        let guild_exists = if let Some(contains) = guild_cached {
-            contains
-        } else {
+        let guild_exists = guild_cached.is_some() || {
             self.build_guild_cache().await?;
-            cache::read()
-                .await
-                .existing_guild_ids
-                .as_ref()
-                .unwrap()
-                .contains(&guild_id)
+            cache::guild_exist(guild_id).await?.is_some()
         };
 
         if !guild_exists {
@@ -99,12 +86,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             member_ids.insert(member_id.id as u64);
         }
 
-        let mut cache = cache::write().await;
-        let cache = cache
-            .guilds
-            .entry(guild_id)
-            .or_insert_with(Default::default);
-        cache.members = Some(member_ids);
+        cache::update_members_of_guild(guild_id, member_ids.into_iter().collect::<Vec<u64>>())
+            .await?;
 
         Ok(())
     }
@@ -121,24 +104,13 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     ) -> crate::Result<()> {
         self.assert_guild_exists(guild_id).await?;
 
-        let cached = {
-            let read_lock = cache::read().await;
-            read_lock
-                .guild(guild_id)
-                .and_then(|g| g.members.as_ref())
-                .map(|m| m.contains(&user_id))
-        };
+        let cached = cache::is_member_of_guild(guild_id, user_id).await?;
 
-        let member_in_guild = if let Some(contains) = cached {
-            contains
-        } else {
+        let member_in_guild = cached.is_some() || {
             self.build_member_cache(guild_id).await?;
-            cache::read()
-                .await
-                .guild(guild_id)
-                .and_then(|g| g.members.as_ref())
-                .unwrap()
-                .contains(&user_id)
+            cache::is_member_of_guild(guild_id, user_id)
+                .await?
+                .is_some()
         };
 
         if !member_in_guild {
@@ -186,10 +158,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     /// Returns `true` if the given user is the owner of the guild.
     async fn is_guild_owner(&self, guild_id: u64, user_id: u64) -> crate::Result<bool> {
         self.assert_guild_exists(guild_id).await?;
-        let cached_owner_id = {
-            let read_lock = cache::read().await;
-            read_lock.guild(guild_id).and_then(|g| g.owner_id)
-        };
+        let cached_owner_id = cache::owner_of_guild(guild_id).await?;
 
         Ok(if let Some(owner_id) = cached_owner_id {
             owner_id == user_id
@@ -200,9 +169,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                     .await?
                     .owner_id as u64;
 
-            if let Some(cache) = cache::write().await.guild_mut(guild_id) {
-                cache.owner_id = Some(owner_id);
-            }
+            cache::update_owner_of_guild(guild_id, owner_id).await?;
 
             owner_id == user_id
         })
@@ -258,14 +225,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         user_id: u64,
         channel_id: Option<u64>,
     ) -> crate::Result<Permissions> {
-        let cached_permissions = {
-            let read_lock = cache::read().await;
-            read_lock
-                .guild(guild_id)
-                .and_then(|g| g.member_permissions.get(&user_id))
-                .and_then(|p| p.get(&channel_id))
-                .copied()
-        };
+        let cached_permissions = cache::permissions_for(guild_id, user_id, channel_id).await?;
 
         if let Some(permissions) = cached_permissions {
             Ok(permissions)
@@ -274,16 +234,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 .fetch_member_permissions_prefer_db(guild_id, user_id, channel_id)
                 .await?;
 
-            let mut cache = cache::write().await;
-            let guild = cache
-                .guilds
-                .entry(guild_id)
-                .or_insert_with(Default::default);
-            let member_perms = guild
-                .member_permissions
-                .entry(user_id)
-                .or_insert_with(Default::default);
-            member_perms.insert(channel_id, perms);
+            cache::update_permissions_for(guild_id, user_id, channel_id, perms).await?;
 
             Ok(perms)
         }
@@ -698,16 +649,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             joined_at,
         };
 
-        let mut cache = cache::write().await;
-        let guild_cache = cache
-            .guilds
-            .entry(guild_id)
-            .or_insert_with(Default::default);
-
-        guild_cache.owner_id = Some(owner_id);
-        if let Some(ref mut guild_ids) = cache.existing_guild_ids {
-            guild_ids.insert(guild_id);
-        }
+        cache::insert_guild(guild_id).await?;
+        cache::update_owner_of_guild(guild_id, owner_id).await?;
 
         Ok(Guild {
             partial,
@@ -788,9 +731,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             .execute(self.transaction())
             .await?;
 
-        if let Some(ref mut guild_ids) = cache::write().await.existing_guild_ids {
-            guild_ids.remove(&guild_id);
-        }
+        cache::remove_guild(guild_id).await?;
         Ok(())
     }
 }

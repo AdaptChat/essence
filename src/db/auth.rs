@@ -47,9 +47,9 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     /// `Ok(None)` is returned.
     async fn fetch_user_info_by_token(
         &self,
-        token: impl AsRef<str> + Send,
-    ) -> sqlx::Result<Option<(u64, UserFlags)>> {
-        if let Some(cached) = cache::read().await.user_info_for_token(token.as_ref()) {
+        token: impl AsRef<str> + Send + Sync,
+    ) -> crate::Result<Option<(u64, UserFlags)>> {
+        if let Some(cached) = cache::user_info_for_token(token.as_ref()).await? {
             return Ok(Some(cached));
         }
 
@@ -61,9 +61,8 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
         .await?
         .map(|r| (r.id as u64, UserFlags::from_bits_truncate(r.flags as u32)))
         {
-            cache::write()
-                .await
-                .cache_token(token.as_ref().to_string(), user_id, flags);
+            let token = token.as_ref();
+            cache::cache_token(token, user_id, flags).await?;
             Ok(Some(out))
         } else {
             Ok(None)
@@ -101,12 +100,12 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with deleting the tokens.
-    async fn delete_all_tokens(&mut self, user_id: u64) -> sqlx::Result<()> {
+    async fn delete_all_tokens(&mut self, user_id: u64) -> crate::Result<()> {
         sqlx::query!("DELETE FROM tokens WHERE user_id = $1", user_id as i64)
             .execute(self.transaction())
             .await?;
 
-        cache::write().await.invalidate_tokens_for(user_id);
+        cache::invalidate_tokens_for(user_id).await?;
         Ok(())
     }
 }

@@ -28,7 +28,7 @@ pub static POOL: OnceLock<Pool<Postgres>> = OnceLock::new();
 ///
 /// # Errors
 /// * If the database connection fails.
-pub async fn connect(url: &str) -> Result<(), sqlx::Error> {
+pub(crate) async fn connect(url: &str) -> Result<(), sqlx::Error> {
     let pool = PgPoolOptions::new().connect(url).await?;
 
     POOL.set(pool)
