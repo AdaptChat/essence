@@ -95,17 +95,4 @@ macro_rules! serde_for_bitflags {
     (i64: $t:ty) => { serde_for_bitflags!(@serde_signed(i64) $t => Int64); };
 }
 
-#[macro_export]
-macro_rules! builder_methods {
-    ($($attr:ident: $t:ty => $name:ident $(+ $modifier:ident)?),+ $(,)?) => {
-        $(
-            #[doc = concat!("Changes the ``", stringify!($attr), "`` attribute.")]
-            pub fn $name(&mut self, $attr: $t) -> &mut Self {
-                self.$attr = $($modifier)? ($attr);
-                self
-            }
-        )+
-    };
-}
-
-pub use {builder_methods, serde_for_bitflags};
+pub use serde_for_bitflags;

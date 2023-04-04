@@ -1,6 +1,6 @@
 #[cfg(feature = "db")]
 use crate::db::{DbRelationship, DbRelationshipType};
-use crate::{builder_methods, serde_for_bitflags};
+use crate::serde_for_bitflags;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -41,18 +41,6 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(u32: UserFlags);
-
-impl User {
-    builder_methods! {
-        id: u64 => set_id,
-        username: String => set_username,
-        discriminator: u16 => set_discriminator,
-        avatar: String => set_avatar + Some,
-        banner: String => set_banner + Some,
-        bio: String => set_bio + Some,
-        flags: UserFlags => set_flags,
-    }
-}
 
 /// Represents information such as the name and color of a guild folder.
 /// This is only shown in the client's UI.
@@ -125,12 +113,6 @@ impl std::ops::Deref for ClientUser {
 impl std::ops::DerefMut for ClientUser {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.user
-    }
-}
-
-impl ClientUser {
-    builder_methods! {
-        email: String => set_email + Some,
     }
 }
 
