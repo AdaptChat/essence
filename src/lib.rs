@@ -40,7 +40,8 @@ pub use permissions::{calculate_permissions, calculate_permissions_sorted};
 #[cfg(feature = "utoipa")]
 pub use utoipa;
 
-pub async fn connect(db_url: &str, redis_url: &str) -> Result<()> {
+#[cfg(feature = "db")]
+pub async fn connect(db_url: &str, redis_url: &str) -> sqlx::Result<()> {
     db::connect(db_url).await?;
     cache::connect(redis_url);
 
