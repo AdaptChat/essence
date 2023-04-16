@@ -1508,6 +1508,19 @@
     },
     "query": "WITH updated AS (\n                INSERT INTO relationships\n                    (user_id, target_id, type)\n                VALUES\n                    ($1, $2, $3)\n                ON CONFLICT (user_id, target_id)\n                DO UPDATE SET type = $3\n                RETURNING target_id, type\n            )\n            SELECT\n                u.id AS target_id,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags,\n                updated.type AS \"kind: _\"\n            FROM\n                updated\n            INNER JOIN\n                users AS u ON u.id = updated.target_id\n            "
   },
+  "67e8530facf57f313f7bbad9f94ce059433b4ad0535d0a33ec7bc41a6dd19a5f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE users SET flags = $1 WHERE id = $2"
+  },
   "6d32b8f01fdadb4ad0fd7549ba60b88bd620340eaa96f5a21791cd877007ad90": {
     "describe": {
       "columns": [
@@ -1903,6 +1916,26 @@
       }
     },
     "query": "SELECT * FROM users WHERE id = $1"
+  },
+  "871fab2f0549279f8c335552ba608f93bbce13c497f724fe44e66d69bbc70f96": {
+    "describe": {
+      "columns": [
+        {
+          "name": "flags",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT flags FROM users WHERE id = $1"
   },
   "87742854ab3161409d6fb266f96c1d251b75dc157e95dbeb9b13b915b8fee9af": {
     "describe": {
