@@ -186,6 +186,76 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         })
     }
 
+    /// Sends a system message in the given channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs registering the message in the database.
+    async fn send_system_message(
+        &mut self,
+        channel_id: u64,
+        message_id: u64,
+        user_id: u64,
+        info: MessageInfo,
+    ) -> crate::Result<Message> {
+        // SAFETY: mem::zeroed is Option::None
+        let (
+            mut md_target_id,
+            mut md_pinned_by,
+            mut md_pinned_message_id,
+        ) = unsafe { std::mem::zeroed() };
+
+        match info {
+            MessageInfo::Default => {
+                return Err(Error::custom_for(
+                    "system message",
+                    "Cannot send a default message as a system message",
+                ));
+            }
+            MessageInfo::Join { user_id } | MessageInfo::Leave { user_id } => {
+                md_target_id = Some(user_id as i64);
+            }
+            MessageInfo::Pin { pinned_by, pinned_message_id } => {
+                md_pinned_by = Some(pinned_by as i64);
+                md_pinned_message_id = Some(pinned_message_id as i64);
+            }
+        };
+
+        sqlx::query!(
+            "INSERT INTO messages (
+                id, channel_id, author_id,
+                metadata_user_id, metadata_pinned_by, metadata_pinned_message_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ",
+            message_id as i64,
+            channel_id as i64,
+            user_id as i64,
+            md_target_id,
+            md_pinned_by,
+            md_pinned_message_id,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(Message {
+            id: message_id,
+            revision_id: None,
+            channel_id,
+            author_id: Some(user_id),
+            author: None,
+            kind: info,
+            content: None,
+            embeds: Vec::new(),
+            attachments: Vec::new(),
+            flags: MessageFlags::empty(),
+            stars: 0,
+        })
+    }
+
     /// Edits a message in the given channel. This turns the current message into a revision of the
     /// message, and creates a new message with the new data.
     ///

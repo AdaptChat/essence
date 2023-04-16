@@ -260,6 +260,26 @@ impl Error {
             Self::InternalError { .. } => 500,
         })
     }
+
+    /// Returns an internal error with the given message.
+    #[must_use]
+    pub fn custom(message: impl AsRef<str>) -> Self {
+        Self::InternalError {
+            what: None,
+            message: message.as_ref().to_string(),
+            debug: None,
+        }
+    }
+
+    /// Returns an internal error with the given "what" and message.
+    #[must_use]
+    pub fn custom_for(what: impl AsRef<str>, message: impl AsRef<str>) -> Self {
+        Self::InternalError {
+            what: Some(what.as_ref().to_string()),
+            message: message.as_ref().to_string(),
+            debug: None,
+        }
+    }
 }
 
 #[cfg(feature = "db")]
