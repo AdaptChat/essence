@@ -162,6 +162,39 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         fetch_client_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
+    /// Fetches the flags of a user by their user ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user.
+    async fn fetch_user_flags_by_id(&self, id: u64) -> sqlx::Result<Option<UserFlags>> {
+        Ok(
+            sqlx::query!("SELECT flags FROM users WHERE id = $1", id as i64)
+                .fetch_optional(self.executor())
+                .await?
+                .map(|r| UserFlags::from_bits_truncate(r.flags as _)),
+        )
+    }
+
+    /// Sets the flags of a user by their user ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn set_user_flags_by_id(&mut self, id: u64, flags: UserFlags) -> sqlx::Result<()> {
+        sqlx::query!(
+            "UPDATE users SET flags = $1 WHERE id = $2",
+            flags.bits() as i32,
+            id as i64
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
     /// Fetches the client user from the database by email.
     ///
     /// # Errors

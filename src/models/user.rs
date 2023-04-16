@@ -45,6 +45,8 @@ bitflags::bitflags! {
         const CONTRIBUTOR = 1 << 3;
         /// The user has reported security issues or bugs within Adapt.
         const BUG_HUNTER = 1 << 4;
+        /// The user has elevated privileges on the Adapt platform.
+        const PRIVILEGED = 1 << 5;
     }
 }
 
