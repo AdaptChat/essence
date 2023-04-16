@@ -37,6 +37,14 @@ bitflags::bitflags! {
     pub struct UserFlags: u32 {
         /// The user is a bot account.
         const BOT = 1 << 0;
+        /// The user has a verified email address.
+        const VERIFIED = 1 << 1;
+        /// The user is a maintainer of Adapt.
+        const MAINTAINER = 1 << 2;
+        /// The user is a contributor to Adapt.
+        const CONTRIBUTOR = 1 << 3;
+        /// The user has reported security issues or bugs within Adapt.
+        const BUG_HUNTER = 1 << 4;
     }
 }
 
