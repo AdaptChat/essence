@@ -198,15 +198,11 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         &mut self,
         channel_id: u64,
         message_id: u64,
-        user_id: u64,
         info: MessageInfo,
     ) -> crate::Result<Message> {
         // SAFETY: mem::zeroed is Option::None
-        let (
-            mut md_target_id,
-            mut md_pinned_by,
-            mut md_pinned_message_id,
-        ) = unsafe { std::mem::zeroed() };
+        let (mut md_target_id, mut md_pinned_by, mut md_pinned_message_id) =
+            unsafe { std::mem::zeroed() };
 
         match info {
             MessageInfo::Default => {
@@ -218,7 +214,10 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             MessageInfo::Join { user_id } | MessageInfo::Leave { user_id } => {
                 md_target_id = Some(user_id as i64);
             }
-            MessageInfo::Pin { pinned_by, pinned_message_id } => {
+            MessageInfo::Pin {
+                pinned_by,
+                pinned_message_id,
+            } => {
                 md_pinned_by = Some(pinned_by as i64);
                 md_pinned_message_id = Some(pinned_message_id as i64);
             }
@@ -226,14 +225,13 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
 
         sqlx::query!(
             "INSERT INTO messages (
-                id, channel_id, author_id,
+                id, channel_id,
                 metadata_user_id, metadata_pinned_by, metadata_pinned_message_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES ($1, $2, $3, $4, $5)
             ",
             message_id as i64,
             channel_id as i64,
-            user_id as i64,
             md_target_id,
             md_pinned_by,
             md_pinned_message_id,
@@ -245,7 +243,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             id: message_id,
             revision_id: None,
             channel_id,
-            author_id: Some(user_id),
+            author_id: None,
             author: None,
             kind: info,
             content: None,
