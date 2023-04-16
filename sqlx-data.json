@@ -170,23 +170,6 @@
     },
     "query": "SELECT\n                        messages.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages\n                    WHERE\n                        channel_id = $1\n                    AND\n                        revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR author_id = $4)\n                    ORDER BY id ASC LIMIT $5"
   },
-  "04009ec55ff00cad53557f761c9f6cce4c783f2fcda02987f933bffa699e2408": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "INSERT INTO messages (\n                id, channel_id, author_id,\n                metadata_user_id, metadata_pinned_by, metadata_pinned_message_id\n            )\n            VALUES ($1, $2, $3, $4, $5, $6)\n            "
-  },
   "08352cdccaa069d3bd25e783dd19b6e290dc2399f1f826e687a1422fdfed4c8e": {
     "describe": {
       "columns": [
@@ -410,6 +393,22 @@
       }
     },
     "query": "SELECT * FROM channels\n            WHERE (type = 'dm' OR type = 'group')\n            AND id IN (\n                SELECT channel_id FROM channel_recipients WHERE user_id = $1\n            )"
+  },
+  "0bcb240594ce85a8a417380037dda45374b53af69283ef9b898cbc75168ce266": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO messages (\n                id, channel_id,\n                metadata_user_id, metadata_pinned_by, metadata_pinned_message_id\n            )\n            VALUES ($1, $2, $3, $4, $5)\n            "
   },
   "0c9f645069caa860ec011099ea9a17dc29398d44d92ad75fcdaa2b445b8cd5d0": {
     "describe": {
