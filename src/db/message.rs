@@ -1,8 +1,11 @@
-use crate::db::DbExt;
-use crate::http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery};
 #[allow(unused_imports)]
-use crate::models::{Embed, Message, MessageFlags, MessageInfo};
-use crate::Error;
+use crate::models::Embed;
+use crate::{
+    db::DbExt,
+    http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
+    models::{Message, MessageFlags, MessageInfo},
+    Error, NotFoundExt,
+};
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -252,6 +255,37 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             flags: MessageFlags::empty(),
             stars: 0,
         })
+    }
+
+    /// Modifies the flags of a message in the given channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs fetching the message.
+    async fn edit_message_flags(
+        &mut self,
+        channel_id: u64,
+        message_id: u64,
+        enable: MessageFlags,
+        disable: MessageFlags,
+    ) -> crate::Result<MessageFlags> {
+        let message = sqlx::query!(
+            r"UPDATE messages SET flags = flags | $1::INT & ~$2::INT
+                WHERE id = $3 AND channel_id = $4
+                RETURNING flags",
+            enable.bits() as i32,
+            disable.bits() as i32,
+            message_id as i64,
+            channel_id as i64,
+        )
+        .fetch_optional(self.transaction())
+        .await?
+        .ok_or_not_found("message", format!("Message with ID {message_id} not found"))?;
+
+        Ok(MessageFlags::from_bits_truncate(message.flags as _))
     }
 
     /// Edits a message in the given channel. This turns the current message into a revision of the
