@@ -1973,6 +1973,29 @@
     },
     "query": "SELECT generate_discriminator($1) AS out"
   },
+  "8851938605b2e90020406014314d9556fc65d3231ce6fc5a40dd76ec0233ce2b": {
+    "describe": {
+      "columns": [
+        {
+          "name": "flags",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int4",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "UPDATE messages SET flags = flags | $1::INT & ~$2::INT\n                WHERE id = $3 AND channel_id = $4\n                RETURNING flags"
+  },
   "88baf02973b98c1cc93bdc415d026bafd2ea602116ccde8f30067d5b0738fa18": {
     "describe": {
       "columns": [
