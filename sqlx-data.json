@@ -975,6 +975,56 @@
     },
     "query": "SELECT EXISTS(\n                        SELECT 1 FROM relationships\n                        WHERE user_id = $1 AND target_id IN (\n                            SELECT target_id FROM relationships\n                            WHERE user_id = $2 AND type = 'friend'\n                        ) AND type = 'friend'\n                    ) AS \"exists!\""
   },
+  "267af2ab394dc71f2fcb7d823e03f21b10c1f7cfb97c834fcaf37cab7ec609d6": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "message_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "filename",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "size",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "alt",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT * FROM attachments WHERE message_id = $1"
+  },
   "2b72dc65f84de2c96fe943fb2fc90c181f10da5e6063c5497e973e344ec32797": {
     "describe": {
       "columns": [],
