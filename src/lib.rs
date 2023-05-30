@@ -1,4 +1,3 @@
-#![cfg_attr(feature = "db", feature(once_cell))]
 #![cfg_attr(feature = "db", feature(let_chains))]
 #![cfg_attr(feature = "db", feature(trait_alias))]
 #![cfg_attr(any(feature = "auth", feature = "db"), feature(is_some_and))]

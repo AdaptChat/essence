@@ -1,3 +1,4 @@
+use crate::models::Attachment;
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
@@ -55,6 +56,29 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         Ok(data)
     }
 
+    /// Fetches the attachments for a message.
+    ///
+    /// # Errors
+    /// * If an error occurs fetching the attachments.
+    /// * If an error occurs fetching the message.
+    /// * If the message is not found.
+    async fn fetch_message_attachments(&self, message_id: u64) -> crate::Result<Vec<Attachment>> {
+        Ok(sqlx::query!(
+            r"SELECT * FROM attachments WHERE message_id = $1",
+            message_id as i64
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|attachment| Attachment {
+            id: attachment.id as _,
+            alt: attachment.alt,
+            filename: attachment.filename,
+            size: attachment.size as _,
+        })
+        .collect())
+    }
+
     /// Fetches a message from the database with the given ID in the given channel.
     ///
     /// # Errors
@@ -67,7 +91,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         message_id: u64,
     ) -> crate::Result<Option<Message>> {
-        let message = sqlx::query!(
+        let mut message = sqlx::query!(
             r#"SELECT
                 messages.*,
                 embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
@@ -87,6 +111,9 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .await?
         .map(|m| construct_message!(m));
 
+        if let Some(message) = message.as_mut() {
+            message.attachments = self.fetch_message_attachments(message_id).await?;
+        }
         Ok(message)
     }
 

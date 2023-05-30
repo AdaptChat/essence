@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 /// The type of a message embed.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -121,16 +122,15 @@ pub struct Embed {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct Attachment {
-    /// The snowflake ID of the attachment.
-    pub id: u64,
+    /// The UUID of the attachment.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub id: Uuid,
     /// The filename of the attachment.
     pub filename: String,
     /// The description/alt text of the attachment.
-    pub description: Option<String>,
+    pub alt: Option<String>,
     /// The size of the attachment, in bytes.
     pub size: u64,
-    /// The CDN URL of the attachment.
-    pub url: String,
 }
 
 /// Represents the type and info of a message.
