@@ -216,6 +216,26 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         })
     }
 
+    /// Create a new attachment.
+    /// 
+    /// # Note
+    /// This method uses transactions to ensure consistency with [`create_message`]
+    async fn create_attachment(&mut self, message_id: u64, revision_id: u64, attachment: Attachment) -> crate::Result<()> {
+        sqlx::query!(
+            "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5, $6)", 
+            attachment.id,
+            message_id as i64,
+            revision_id as i64,
+            attachment.filename,
+            attachment.size as i64,
+            attachment.alt,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
     /// Sends a system message in the given channel.
     ///
     /// # Note
