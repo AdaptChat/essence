@@ -1,15 +1,16 @@
-name: Generate sqlx-data.json
+name: Generate sqlx data & doc
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 env:
   CARGO_TERM_COLOR: always
   CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
 
 jobs:
-  build:
+  sqlx:
     runs-on: ubuntu-latest
 
     services:
@@ -41,3 +42,37 @@ jobs:
         git add .
         git commit -m "Update sqlx-data.json" || true
         git push || true
+
+  deploy:
+    needs: sqlx
+
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup cache
+        uses: Swatinem/rust-cache@v2
+
+      - run: cargo doc --all-features --workspace --no-deps
+      - run: echo "<meta http-equiv=\"refresh\" content=\"0; url=essence\">" > target/doc/index.html
+      - run: cp -r target/doc ./docs
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
