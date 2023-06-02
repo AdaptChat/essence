@@ -17,6 +17,7 @@
 
 #[cfg(any(feature = "auth", feature = "token-parsing"))]
 pub mod auth;
+#[cfg(all(feature = "db", feature = "webserver"))]
 pub mod bincode_impl;
 #[cfg(feature = "db")]
 pub mod cache;

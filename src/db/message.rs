@@ -7,7 +7,8 @@ use crate::{
     models::{Message, MessageFlags, MessageInfo},
     Error, NotFoundExt,
 };
-use std::collections::BTreeMap;
+use itertools::Itertools;
+use std::collections::HashMap;
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -162,8 +163,8 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                         messages m"#,
                     $direction
                 )
-                .map(|m| (m.id as u64, construct_message!(m)))
-                .collect::<BTreeMap<_, _>>()
+                .map(|m| construct_message!(m))
+                .collect::<Vec<_>>()
             }};
             (@attachments $direction:literal) => {{
                 query!(
@@ -181,22 +182,28 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                         size: attachment.size as _,
                     },
                 ))
-                .collect::<Vec<_>>()
+                .into_group_map()
             }};
             ($direction:literal) => {{
-                let attachments: Vec<(u64, Attachment)> = query!(@attachments $direction);
+                let mut attachments: HashMap<u64, Vec<_>> = query!(@attachments $direction);
                 let mut messages = query!(@messages $direction);
-
-                for (message_id, attachment) in attachments {
-                    if let Some(message) = messages.get_mut(&message_id) {
-                        message.attachments.push(attachment);
+                for message in &mut messages {
+                    if let Some(attachments) = attachments.remove(&message.id) {
+                        message.attachments = attachments;
                     }
                 }
-                messages.into_values().collect()
+                messages
             }};
         }
         Ok(if query.oldest_first {
-            query!("ASC")
+            let mut attachments: HashMap<u64, Vec<Attachment>> = query!(@attachments "ASC");
+            let mut messages = query!(@messages "ASC");
+            for message in &mut messages {
+                if let Some(attachments) = attachments.remove(&message.id) {
+                    message.attachments = attachments;
+                }
+            }
+            messages
         } else {
             query!("DESC")
         })
