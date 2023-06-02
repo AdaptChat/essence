@@ -74,102 +74,6 @@
     },
     "query": "SELECT\n                m.id,\n                m.guild_id,\n                m.nick AS nick,\n                m.joined_at AS joined_at,\n                u.username AS username,\n                u.discriminator AS discriminator,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags\n            FROM\n                members AS m\n            INNER JOIN\n                users AS u ON u.id = m.id\n            WHERE guild_id = $1"
   },
-  "0134a963f2e04f3ec2febcd0bf47242dc180aa41deb347319394bafbde879354": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "revision_id",
-          "ordinal": 1,
-          "type_info": "Int8"
-        },
-        {
-          "name": "channel_id",
-          "ordinal": 2,
-          "type_info": "Int8"
-        },
-        {
-          "name": "author_id",
-          "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "type",
-          "ordinal": 4,
-          "type_info": "Text"
-        },
-        {
-          "name": "content",
-          "ordinal": 5,
-          "type_info": "Text"
-        },
-        {
-          "name": "embeds",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "flags",
-          "ordinal": 7,
-          "type_info": "Int4"
-        },
-        {
-          "name": "stars",
-          "ordinal": 8,
-          "type_info": "Int4"
-        },
-        {
-          "name": "metadata_user_id",
-          "ordinal": 9,
-          "type_info": "Int8"
-        },
-        {
-          "name": "metadata_pinned_message_id",
-          "ordinal": 10,
-          "type_info": "Int8"
-        },
-        {
-          "name": "metadata_pinned_by",
-          "ordinal": 11,
-          "type_info": "Int8"
-        },
-        {
-          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
-          "ordinal": 12,
-          "type_info": "Jsonb"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        true,
-        false,
-        false,
-        false,
-        true,
-        true,
-        true,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT\n                        messages.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages\n                    WHERE\n                        channel_id = $1\n                    AND\n                        revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR author_id = $4)\n                    ORDER BY id ASC LIMIT $5"
-  },
   "08352cdccaa069d3bd25e783dd19b6e290dc2399f1f826e687a1422fdfed4c8e": {
     "describe": {
       "columns": [
@@ -620,6 +524,102 @@
       }
     },
     "query": "SELECT * FROM roles WHERE guild_id = $1 AND id = $2"
+  },
+  "107718a3d4275d58f1491d66ec176649b88e2e26f388d62e3b15b01fa626553d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "embeds",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "stars",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "metadata_user_id",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_message_id",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_by",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+          "ordinal": 12,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        m.revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id DESC LIMIT $5"
   },
   "12be787fd9a8ded7a277e77e97a5544cfecdd2c4125db7bb481568828824784b": {
     "describe": {
@@ -1218,6 +1218,60 @@
       }
     },
     "query": "SELECT\n                    members.*,\n                    users.username,\n                    users.discriminator,\n                    users.avatar,\n                    users.banner,\n                    users.bio,\n                    users.flags\n                FROM\n                    members\n                INNER JOIN\n                    users\n                ON\n                    members.id = users.id\n                WHERE\n                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                "
+  },
+  "3b677777ef915a740002bee2ca76754064223dae7310aca4a6f20e618bc15421": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "message_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "filename",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "size",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "alt",
+          "ordinal": 5,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT a.*\n                    FROM attachments a\n                    INNER JOIN messages m ON a.message_id = m.id WHERE\n                        m.channel_id = $1\n                    AND\n                        m.revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id DESC LIMIT $5"
   },
   "3b742230b799b60f0125f252618921ff0d69773b5595b542cbf322eaada813cb": {
     "describe": {
@@ -2131,6 +2185,102 @@
     },
     "query": "SELECT\n                id,\n                name,\n                description,\n                icon,\n                banner,\n                owner_id,\n                flags,\n                vanity_url,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds\n            WHERE\n                id = $1"
   },
+  "8b1dd953eed8071a88c11278fbc56ffad3afd4b2176d5bc4f8aaa208038f6b26": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "revision_id",
+          "ordinal": 1,
+          "type_info": "Int8"
+        },
+        {
+          "name": "channel_id",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "author_id",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "type",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "content",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "embeds",
+          "ordinal": 6,
+          "type_info": "Jsonb"
+        },
+        {
+          "name": "flags",
+          "ordinal": 7,
+          "type_info": "Int4"
+        },
+        {
+          "name": "stars",
+          "ordinal": 8,
+          "type_info": "Int4"
+        },
+        {
+          "name": "metadata_user_id",
+          "ordinal": 9,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_message_id",
+          "ordinal": 10,
+          "type_info": "Int8"
+        },
+        {
+          "name": "metadata_pinned_by",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+          "ordinal": 12,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        m.revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id ASC LIMIT $5"
+  },
   "8e9435b541172c361ac79545d45bc91d7826b3ff54f84be50d38d06ec562d5a9": {
     "describe": {
       "columns": [
@@ -2450,89 +2600,47 @@
     },
     "query": "SELECT flags FROM roles WHERE guild_id = $1 AND id = $2"
   },
-  "bed6e0bc072164cefe0f62e2433290c6b2601d5e85e013d84de4ee360b8a484d": {
+  "c02fd003f2725942303f0b7dcfb6ff7699e9716999d68e5ce572f0de5305df91": {
     "describe": {
       "columns": [
         {
           "name": "id",
           "ordinal": 0,
-          "type_info": "Int8"
+          "type_info": "Uuid"
         },
         {
-          "name": "revision_id",
+          "name": "message_id",
           "ordinal": 1,
           "type_info": "Int8"
         },
         {
-          "name": "channel_id",
+          "name": "revision_id",
           "ordinal": 2,
           "type_info": "Int8"
         },
         {
-          "name": "author_id",
+          "name": "filename",
           "ordinal": 3,
-          "type_info": "Int8"
-        },
-        {
-          "name": "type",
-          "ordinal": 4,
           "type_info": "Text"
         },
         {
-          "name": "content",
+          "name": "size",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "alt",
           "ordinal": 5,
           "type_info": "Text"
-        },
-        {
-          "name": "embeds",
-          "ordinal": 6,
-          "type_info": "Jsonb"
-        },
-        {
-          "name": "flags",
-          "ordinal": 7,
-          "type_info": "Int4"
-        },
-        {
-          "name": "stars",
-          "ordinal": 8,
-          "type_info": "Int4"
-        },
-        {
-          "name": "metadata_user_id",
-          "ordinal": 9,
-          "type_info": "Int8"
-        },
-        {
-          "name": "metadata_pinned_message_id",
-          "ordinal": 10,
-          "type_info": "Int8"
-        },
-        {
-          "name": "metadata_pinned_by",
-          "ordinal": 11,
-          "type_info": "Int8"
-        },
-        {
-          "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
-          "ordinal": 12,
-          "type_info": "Jsonb"
         }
       ],
       "nullable": [
         false,
         false,
         false,
-        true,
-        false,
-        true,
         false,
         false,
-        false,
-        true,
-        true,
-        true,
-        false
+        true
       ],
       "parameters": {
         "Left": [
@@ -2544,7 +2652,7 @@
         ]
       }
     },
-    "query": "SELECT\n                        messages.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages\n                    WHERE\n                        channel_id = $1\n                    AND\n                        revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR author_id = $4)\n                    ORDER BY id DESC LIMIT $5"
+    "query": "SELECT a.*\n                    FROM attachments a\n                    INNER JOIN messages m ON a.message_id = m.id WHERE\n                        m.channel_id = $1\n                    AND\n                        m.revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id ASC LIMIT $5"
   },
   "c0e8c822329cf7f119412c93753f3cd476d8d426e27a456d7257ee1dd3192e0a": {
     "describe": {
