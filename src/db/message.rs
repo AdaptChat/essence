@@ -7,6 +7,7 @@ use crate::{
     models::{Message, MessageFlags, MessageInfo},
     Error, NotFoundExt,
 };
+use std::collections::HashMap;
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -127,24 +128,19 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         query: MessageHistoryQuery,
     ) -> crate::Result<Vec<Message>> {
         macro_rules! query {
-            ($direction:literal) => {{
+            ($base:literal, $direction:literal) => {{
                 sqlx::query!(
-                    r#"SELECT
-                        messages.*,
-                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
-                    FROM
-                        messages
-                    WHERE
-                        channel_id = $1
+                    $base + r#" WHERE
+                        m.channel_id = $1
                     AND
-                        revision_id = 0
+                        m.revision_id = 0
                     AND
-                        ($2::BIGINT IS NULL OR id < $2)
+                        ($2::BIGINT IS NULL OR m.id < $2)
                     AND
-                        ($3::BIGINT IS NULL OR id > $3)
+                        ($3::BIGINT IS NULL OR m.id > $3)
                     AND
-                        ($4::BIGINT IS NULL OR author_id = $4)
-                    ORDER BY id "#
+                        ($4::BIGINT IS NULL OR m.author_id = $4)
+                    ORDER BY m.id "#
                         + $direction
                         + " LIMIT $5",
                     channel_id as i64,
@@ -156,8 +152,47 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 .fetch_all(self.executor())
                 .await?
                 .into_iter()
-                .map(|m| construct_message!(m))
+            }};
+            (@messages $direction:literal) => {{
+                query!(
+                    r#"SELECT
+                        m.*,
+                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+                    FROM
+                        messages m"#,
+                    $direction
+                )
+                .map(|m| (m.id as u64, construct_message!(m)))
+                .collect::<HashMap<_, _>>()
+            }};
+            (@attachments $direction:literal) => {{
+                query!(
+                    r"SELECT a.*
+                    FROM attachments a
+                    INNER JOIN messages m ON a.message_id = m.id",
+                    $direction
+                )
+                .map(|attachment| (
+                    attachment.message_id as u64,
+                    Attachment {
+                        id: attachment.id as _,
+                        alt: attachment.alt,
+                        filename: attachment.filename,
+                        size: attachment.size as _,
+                    },
+                ))
                 .collect::<Vec<_>>()
+            }};
+            ($direction:literal) => {{
+                let attachments: Vec<(u64, Attachment)> = query!(@attachments $direction);
+                let mut messages = query!(@messages $direction);
+
+                for (message_id, attachment) in attachments {
+                    if let Some(message) = messages.get_mut(&message_id) {
+                        message.attachments.push(attachment);
+                    }
+                }
+                messages.into_values().collect()
             }};
         }
         Ok(if query.oldest_first {
@@ -217,12 +252,17 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     }
 
     /// Create a new attachment.
-    /// 
+    ///
     /// # Note
     /// This method uses transactions to ensure consistency with [`create_message`]
-    async fn create_attachment(&mut self, message_id: u64, revision_id: u64, attachment: Attachment) -> crate::Result<()> {
+    async fn create_attachment(
+        &mut self,
+        message_id: u64,
+        revision_id: u64,
+        attachment: Attachment,
+    ) -> crate::Result<()> {
         sqlx::query!(
-            "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5, $6)", 
+            "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5, $6)",
             attachment.id,
             message_id as i64,
             revision_id as i64,
