@@ -20,6 +20,8 @@ pub enum MalformedBodyErrorType {
     InvalidUtf8,
     /// Received invalid JSON body.
     InvalidJson,
+    /// Received invalid multipart body.
+    InvalidMultipart,
 }
 
 /// The type of user interaction that was disallowed.
