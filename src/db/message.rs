@@ -7,7 +7,7 @@ use crate::{
     models::{Message, MessageFlags, MessageInfo},
     Error, NotFoundExt,
 };
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -163,7 +163,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                     $direction
                 )
                 .map(|m| (m.id as u64, construct_message!(m)))
-                .collect::<HashMap<_, _>>()
+                .collect::<BTreeMap<_, _>>()
             }};
             (@attachments $direction:literal) => {{
                 query!(
