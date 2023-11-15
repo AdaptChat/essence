@@ -482,7 +482,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 r#"SELECT
                     members.*,
                     users.username,
-                    users.discriminator,
+                    users.display_name,
                     users.avatar,
                     users.banner,
                     users.bio,

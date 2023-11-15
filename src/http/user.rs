@@ -68,6 +68,12 @@ pub struct ChangeEmailPayload {
 pub struct EditUserPayload {
     /// The new username of the user. Leave empty to keep the current username.
     pub username: Option<String>,
+    /// The new display name of the user. Leave empty to keep the current display name, and set to
+    /// `null` to remove the display name.
+    #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
+    pub display_name: Maybe<String>,
     /// The new avatar of the user. Leave empty to keep the current avatar, and set to `null` to
     /// remove the avatar. If provided, the avatar should be represented as a
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
@@ -96,6 +102,4 @@ pub struct EditUserPayload {
 pub struct SendFriendRequestPayload {
     /// The username of the user to add as a friend.
     pub username: String,
-    /// The discriminator of the user.
-    pub discriminator: u16,
 }

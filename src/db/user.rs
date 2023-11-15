@@ -12,7 +12,7 @@ macro_rules! construct_user {
         User {
             id: $data.id as _,
             username: $data.username,
-            discriminator: $data.discriminator as _,
+            display_name: $data.display_name as _,
             avatar: $data.avatar,
             banner: $data.banner,
             bio: $data.bio,
@@ -60,7 +60,7 @@ macro_rules! query_relationships {
             SELECT
                 r.target_id,
                 u.username AS username,
-                u.discriminator AS discriminator,
+                u.display_name AS display_name,
                 u.avatar AS avatar,
                 u.banner AS banner,
                 u.bio AS bio,
@@ -117,7 +117,7 @@ pub enum DbRelationshipType {
 pub struct DbRelationship {
     pub target_id: i64,
     pub username: String,
-    pub discriminator: i16,
+    pub display_name: Option<String>,
     pub avatar: Option<String>,
     pub banner: Option<String>,
     pub bio: Option<String>,
@@ -136,22 +136,13 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         fetch_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
-    /// Fetches a user from the database with the given username and discriminator.
+    /// Fetches a user from the database with the given username.
     ///
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
-    async fn fetch_user_by_tag(
-        &self,
-        username: &str,
-        discriminator: u16,
-    ) -> sqlx::Result<Option<User>> {
-        fetch_user!(
-            self,
-            "SELECT * FROM users WHERE username = $1 AND discriminator = $2",
-            username,
-            discriminator as i16,
-        )
+    async fn fetch_user_by_username(&self, username: &str) -> sqlx::Result<Option<User>> {
+        fetch_user!(self, "SELECT * FROM users WHERE username = $1", username)
     }
 
     /// Fetches the client user from the database.
@@ -237,33 +228,26 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         &mut self,
         id: u64,
         username: impl AsRef<str> + Send,
+        display_name: Option<impl AsRef<str> + Send>,
         email: impl AsRef<str> + Send,
         password: impl AsRef<str> + Send,
     ) -> crate::Result<()> {
         let password = password.as_ref();
         let hashed = crate::auth::hash_password(password).await?;
 
-        let discriminator = sqlx::query!(
+        sqlx::query!(
             "INSERT INTO
-                users (id, username, email, password)
+                users (id, username, display_name, email, password)
             VALUES
-                ($1, $2, $3, $4)
-            RETURNING
-                discriminator",
+                ($1, $2, $3, $4, $5)",
             id as i64,
             username.as_ref().trim(),
+            display_name.as_ref().map(|s| s.as_ref().trim()),
             email.as_ref().trim(),
             hashed,
         )
-        .fetch_optional(self.transaction())
+        .execute(self.transaction())
         .await?;
-
-        if discriminator.is_none() {
-            return Err(Error::AlreadyTaken {
-                what: "username".to_string(),
-                message: "Username is already taken".to_string(),
-            });
-        }
 
         Ok(())
     }
@@ -290,50 +274,24 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             .ok_or_not_found("user", "user not found")?;
         let old = user.clone();
 
-        if let Some(username) = payload.username {
-            let discriminator = if sqlx::query!(
-                "SELECT discriminator FROM users WHERE id != $1 AND username = $2 AND discriminator = $3",
-                id as i64,
-                username,
-                user.discriminator as i16,
-            )
-            .fetch_optional(get_pool())
-            .await?
-            .is_none()
-            {
-                user.discriminator as i16
-            } else {
-                let discriminator =
-                    sqlx::query!("SELECT generate_discriminator($1) AS out", username)
-                        .fetch_one(get_pool())
-                        .await?
-                        .out;
-
-                discriminator.ok_or_else(|| Error::AlreadyTaken {
-                    what: "username".to_string(),
-                    message: "Username is already taken".to_string(),
-                })?
-            };
-
-            sqlx::query!(
-                "UPDATE users SET username = $1, discriminator = $2 WHERE id = $3",
-                username,
-                discriminator,
-                id as i64,
-            )
-            .execute(self.transaction())
-            .await?;
-
-            user.username = username;
-            user.discriminator = discriminator as u16;
-        }
-
+        user.username = payload.username.unwrap_or(user.username);
+        user.display_name = payload
+            .display_name
+            .into_option_or_if_absent(user.display_name);
         user.avatar = payload.avatar.into_option_or_if_absent(user.avatar);
         user.banner = payload.banner.into_option_or_if_absent(user.banner);
         user.bio = payload.bio.into_option_or_if_absent(user.bio);
 
         sqlx::query!(
-            r#"UPDATE users SET avatar = $1, banner = $2, bio = $3 WHERE id = $4"#,
+            r#"UPDATE users
+            SET
+                username = $1, display_name = $2,
+                avatar = $3, banner = $4, bio = $5
+            WHERE
+                id = $6
+            "#,
+            user.username,
+            user.display_name,
             user.avatar,
             user.banner,
             user.bio,
@@ -607,7 +565,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             SELECT
                 u.id AS target_id,
                 u.username AS username,
-                u.discriminator AS discriminator,
+                u.display_name AS display_name,
                 u.avatar AS avatar,
                 u.banner AS banner,
                 u.bio AS bio,

@@ -18,7 +18,10 @@ pub use user::UserDbExt;
 pub(crate) use user::{DbRelationship, DbRelationshipType};
 
 pub use sqlx;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Transaction};
+use sqlx::{
+    postgres::{PgConnection, PgPoolOptions},
+    Pool, Postgres, Transaction,
+};
 use std::sync::OnceLock;
 
 /// The global database pool.
@@ -76,7 +79,7 @@ impl DbExt<'static> for &'static Pool<Postgres> {
 
 impl<'t> DbExt<'t> for Transaction<'static, Postgres> {
     type Executor = &'static Pool<Postgres>;
-    type Transaction = &'t mut Self;
+    type Transaction = &'t mut PgConnection;
 
     #[inline]
     fn executor(&self) -> Self::Executor {
@@ -86,6 +89,7 @@ impl<'t> DbExt<'t> for Transaction<'static, Postgres> {
     #[inline]
     fn transaction(&mut self) -> Self::Transaction {
         // SAFETY: `self` will only be acted on while the transaction is still active.
-        unsafe { std::mem::transmute(self) }
+        let transaction: &mut Transaction<'static, Postgres> = unsafe { std::mem::transmute(self) };
+        &mut *transaction
     }
 }

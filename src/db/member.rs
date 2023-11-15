@@ -10,7 +10,7 @@ macro_rules! query_member {
                 m.nick AS nick,
                 m.joined_at AS joined_at,
                 u.username AS username,
-                u.discriminator AS discriminator,
+                u.display_name AS display_name,
                 u.avatar AS avatar,
                 u.banner AS banner,
                 u.bio AS bio,
@@ -33,7 +33,7 @@ macro_rules! construct_member {
             user: MaybePartialUser::Full(User {
                 id: $data.id as _,
                 username: $data.username,
-                discriminator: $data.discriminator as _,
+                display_name: $data.display_name as _,
                 avatar: $data.avatar,
                 banner: $data.banner,
                 bio: $data.bio,

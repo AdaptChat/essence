@@ -18,8 +18,8 @@ pub struct User {
     pub id: u64,
     /// The username of the user.
     pub username: String,
-    /// The discriminator of the user, between 0 and 9999.
-    pub discriminator: u16,
+    /// The display name of the user. This is `None` if the user has no display name.
+    pub display_name: Option<String>,
     /// The URL of the user's avatar. This is `None` if the user has no avatar.
     pub avatar: Option<String>,
     /// The URL of the user's banner. This is `None` if the user has no banner.
@@ -206,7 +206,7 @@ impl Relationship {
             user: User {
                 id: data.target_id as _,
                 username: data.username,
-                discriminator: data.discriminator as _,
+                display_name: data.display_name,
                 avatar: data.avatar,
                 banner: data.banner,
                 bio: data.bio,
