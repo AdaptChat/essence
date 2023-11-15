@@ -214,6 +214,22 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok(result.unwrap())
     }
 
+    /// Returns `true` if the given username is taken.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn is_username_taken(&self, username: impl AsRef<str> + Send) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)",
+            username.as_ref()
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists;
+
+        Ok(result.unwrap())
+    }
+
     /// Registers a user in the database with the given payload. No validation is done, they must
     /// be done before calling this method. Hashing of the password is done here.
     ///
