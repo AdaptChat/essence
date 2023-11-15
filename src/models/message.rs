@@ -124,6 +124,7 @@ pub struct Embed {
 pub struct Attachment {
     /// The UUID of the attachment.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    #[cfg_attr(feature = "utoipa", schema(format = "uuid", value_type = String))]
     pub id: Uuid,
     /// The filename of the attachment.
     pub filename: String,
