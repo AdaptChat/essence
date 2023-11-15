@@ -8,8 +8,11 @@ use utoipa::ToSchema;
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CreateUserPayload {
-    /// The username of the user. Must be between 2 and 32 characters.
+    /// The unique username of the user. Must between 2 and 32 characters and only contain
+    /// alphanumeric characters, periods (.), hyphens (-), and underscores (_).
     pub username: String,
+    /// The global display name of the user. Must be between 2 and 32 characters.
+    pub display_name: Option<String>,
     /// The email of the user. Must be a valid email address.
     #[cfg_attr(feature = "utoipa", schema(format = "email"))]
     pub email: String,
