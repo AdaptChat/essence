@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO messages (\n                id, channel_id,\n                metadata_user_id, metadata_pinned_by, metadata_pinned_message_id\n            )\n            VALUES ($1, $2, $3, $4, $5)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0bcb240594ce85a8a417380037dda45374b53af69283ef9b898cbc75168ce266"
+}

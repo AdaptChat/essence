@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE messages SET flags = flags | $1::INT & ~$2::INT\n                WHERE id = $3 AND channel_id = $4\n                RETURNING flags",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "flags",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8851938605b2e90020406014314d9556fc65d3231ce6fc5a40dd76ec0233ce2b"
+}

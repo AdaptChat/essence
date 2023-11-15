@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                r.id,\n                r.position\n            FROM roles r\n            INNER JOIN\n                role_data rd\n            ON\n                r.id = rd.role_id\n            WHERE\n                r.guild_id = $1 AND rd.user_id = $2\n            ORDER BY\n                r.position DESC\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "position",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "7d5b0df20f033a397c1fa0b3f533e4abaf6a1aa48812cf83903094b8d09e1058"
+}

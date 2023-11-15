@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM\n                relationships\n            WHERE\n                user_id = $1 AND target_id = $2\n            OR\n                target_id = $1 AND user_id = $2 AND type != 'blocked'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "79882605db255c14711a09b7c13a2bedc357e0272685820172a6451b6bac6364"
+}

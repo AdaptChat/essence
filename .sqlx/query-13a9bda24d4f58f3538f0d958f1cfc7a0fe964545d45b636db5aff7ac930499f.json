@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n                guilds (id, name, description, icon, banner, owner_id, flags)\n            VALUES\n                ($1, $2, $3, $4, $5, $6, $7)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "13a9bda24d4f58f3538f0d958f1cfc7a0fe964545d45b636db5aff7ac930499f"
+}

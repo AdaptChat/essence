@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(\n                        SELECT 1 FROM relationships\n                        WHERE user_id = $1 AND target_id IN (\n                            SELECT target_id FROM relationships\n                            WHERE user_id = $2 AND type = 'friend'\n                        ) AND type = 'friend'\n                    ) AS \"exists!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "252c0461d3d4a1ae0dd9b073b9b7933609a5ef549cef29fe7f3675b9c3580ea7"
+}

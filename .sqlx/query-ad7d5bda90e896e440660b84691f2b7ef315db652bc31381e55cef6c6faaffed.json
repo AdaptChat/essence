@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                position\n            FROM\n                roles\n            WHERE\n                guild_id = $1\n            AND\n                id = ANY($2)\n            ORDER BY\n                position DESC\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "position",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ad7d5bda90e896e440660b84691f2b7ef315db652bc31381e55cef6c6faaffed"
+}

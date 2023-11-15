@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n                    channels\n                SET\n                    position = position - 1\n                WHERE\n                    guild_id = $1\n                AND\n                    position > (SELECT position FROM channels WHERE id = $2)\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c7e36a91ac50c648a3a4766123fc0bf7f13c8e901523a356e5c1403cd55d6345"
+}

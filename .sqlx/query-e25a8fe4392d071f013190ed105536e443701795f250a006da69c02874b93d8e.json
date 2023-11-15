@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT target_id, allow, deny FROM channel_overwrites WHERE channel_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "target_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "allow",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "deny",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e25a8fe4392d071f013190ed105536e443701795f250a006da69c02874b93d8e"
+}

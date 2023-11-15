@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE roles SET position = position + 1 WHERE position > 0",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "0f13e1beaa0f0a32d4411273614a4bc7319318fb12be988a3ad74234d5024965"
+}
