@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT type AS \"kind: _\" FROM relationships WHERE user_id = $1 AND target_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind: _",
+        "type_info": {
+          "Custom": {
+            "name": "relationship_type",
+            "kind": {
+              "Enum": [
+                "friend",
+                "blocked",
+                "incoming",
+                "outgoing"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9b2a479ebc2d6066b96dad7aaeaf9144f28ed99afd95e6e7b394e6e6c327e7ca"
+}

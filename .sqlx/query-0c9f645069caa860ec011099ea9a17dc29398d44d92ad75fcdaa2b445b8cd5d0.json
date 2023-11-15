@@ -1,0 +1,96 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                UPDATE messages SET revision_id = $1\n                WHERE id = $2 AND channel_id = $3 AND revision_id = 0\n                RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "revision_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "author_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "embeds",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "flags",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "stars",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata_user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "metadata_pinned_message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "metadata_pinned_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "0c9f645069caa860ec011099ea9a17dc29398d44d92ad75fcdaa2b445b8cd5d0"
+}

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users\n            SET\n                username = $1, display_name = $2,\n                avatar = $3, banner = $4, bio = $5\n            WHERE\n                id = $6\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18dc3c6ccfdc59cb6f6a657610b955160be33859ceb8db85bbeedbc16a8ce952"
+}

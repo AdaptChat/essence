@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS(\n                        SELECT 1 FROM members\n                        WHERE id = $1 AND guild_id IN (\n                            SELECT guild_id FROM members WHERE id = $2\n                        )\n                    ) AS \"exists!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "exists!",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "78c23da7fcfff2a5ffc2c8f57b92a1b708323747e4b5adc10a066cfd8db2f52c"
+}

@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                id,\n                guild_id AS \"guild_id!\",\n                name AS \"name!\",\n                type AS kind,\n                position AS \"position!\",\n                parent_id,\n                icon,\n                topic,\n                nsfw,\n                locked,\n                slowmode,\n                user_limit\n            FROM\n                channels\n            WHERE\n            guild_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "position!",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "topic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 9,
+        "name": "locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "slowmode",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "user_limit",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "d59fa440c1c209176b8a9c6779321964b1efc6b2aa6289c5d40cf5c07db30e53"
+}

@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n                guilds\n            SET\n                name = $1, description = $2, icon = $3, banner = $4, flags = $5\n            WHERE\n                id = $6\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0879cd2d80bc104b7ffaddbbe03f35ca1edd5b9f25834e8384c99b73951208b2"
+}

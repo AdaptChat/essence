@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE\n                roles\n            SET\n                name = $1,\n                color = $2,\n                allowed_permissions = $3,\n                denied_permissions = $4,\n                flags = $5\n            WHERE\n                guild_id = $6\n            AND\n                id = $7\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3f85b7625724dd4efc25e1d5ecdcc6a8dcac87a5f8a34ae64c449812ef3cf7a4"
+}

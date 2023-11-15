@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT\n                id AS \"id!\"\n            FROM members\n            WHERE\n                guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n            UNION SELECT\n                target_id AS \"id!\"\n            FROM\n                relationships\n            WHERE\n                user_id = $1\n            UNION SELECT $1 AS \"id!\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "1b1c4aff0145e49d057a401ea0d53e928e92fd637633c6eab12fe5b36be917c2"
+}
