@@ -136,13 +136,17 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         fetch_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
     }
 
-    /// Fetches a user from the database with the given username.
+    /// Fetches a user from the database with the given username this is case-insensitive.
     ///
     /// # Errors
     /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
     /// returned.
     async fn fetch_user_by_username(&self, username: &str) -> sqlx::Result<Option<User>> {
-        fetch_user!(self, "SELECT * FROM users WHERE username = $1", username)
+        fetch_user!(
+            self,
+            "SELECT * FROM users WHERE LOWER(username) = LOWER($1)",
+            username
+        )
     }
 
     /// Fetches the client user from the database.
@@ -214,13 +218,34 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok(result.unwrap())
     }
 
+    /// Returns `true` if the given username is taken, excluding the user with the given ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn is_username_taken_excluding(
+        &self,
+        username: impl AsRef<str> + Send,
+        exclude: u64,
+    ) -> sqlx::Result<bool> {
+        let result = sqlx::query!(
+            "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) AND id != $2)",
+            username.as_ref(),
+            exclude as i64,
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists;
+
+        Ok(result.unwrap())
+    }
+
     /// Returns `true` if the given username is taken.
     ///
     /// # Errors
     /// * If an error occurs with the database.
     async fn is_username_taken(&self, username: impl AsRef<str> + Send) -> sqlx::Result<bool> {
         let result = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)",
+            "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1))",
             username.as_ref()
         )
         .fetch_one(self.executor())
