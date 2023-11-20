@@ -117,6 +117,12 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// Invalid Turnstile CAPTCHA token was provided. This is a token provided by Cloudflare
+    /// when a user completes a CAPTCHA, and is used while registering new users to prevent spam.
+    InvalidCaptcha {
+        /// The error message.
+        message: String,
+    },
     /// You must be a member of the guild to perform the requested action.
     NotMember {
         /// The ID of the guild you are not a member of.
@@ -255,7 +261,8 @@ impl Error {
             | Self::RoleIsManaged { .. }
             | Self::CannotLeaveAsOwner { .. }
             | Self::UserInteractionDisallowed { .. }
-            | Self::BlockedByUser { .. } => 403,
+            | Self::BlockedByUser { .. }
+            | Self::InvalidCaptcha { .. } => 403,
             Self::NotFound { .. } => 404,
             Self::AlreadyTaken { .. } | Self::AlreadyExists { .. } => 409,
             Self::Ratelimited { .. } => 429,
