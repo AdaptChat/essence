@@ -19,6 +19,8 @@ pub struct CreateUserPayload {
     /// The password of the user. Must be between 8 and 32 characters.
     #[cfg_attr(feature = "utoipa", schema(format = "password"))]
     pub password: String,
+    /// Turnstile CAPTCHA response from Cloudflare.
+    pub captcha_token: String,
 }
 
 /// Data returned when creating a new user.
