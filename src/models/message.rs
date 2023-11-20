@@ -105,9 +105,9 @@ pub struct Embed {
     /// should be a number between `0` and `100`, measured as a percentage.
     pub hue: Option<u8>,
     /// The author of the embed.
-    pub author: EmbedAuthor,
+    pub author: Option<EmbedAuthor>,
     /// The footer of the embed.
-    pub footer: EmbedFooter,
+    pub footer: Option<EmbedFooter>,
     /// The image URL of the embed.
     pub image: Option<String>,
     /// The thumbnail URL of the embed.
