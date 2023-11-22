@@ -176,6 +176,8 @@ pub enum OutboundMessage {
     },
     /// Sent by harmony when a message is deleted.
     MessageDelete {
+        /// The ID of the channel that the message was deleted in.
+        channel_id: u64,
         /// The ID of the message that was deleted.
         message_id: u64,
     },
