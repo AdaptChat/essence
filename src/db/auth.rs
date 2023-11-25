@@ -108,6 +108,107 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
         cache::invalidate_tokens_for(user_id).await?;
         Ok(())
     }
+
+    /// Fetches all push notification registration keys associated with the given user ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the keys.
+    /// * If the user is not found.
+    /// * If the user is a bot account.
+    async fn fetch_push_keys(&self, user_id: u64) -> crate::Result<Vec<String>> {
+        let rows = sqlx::query!(
+            "SELECT registration_key AS key FROM push_registration_keys WHERE user_id = $1",
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?;
+
+        Ok(rows.into_iter().map(|r| r.key).collect())
+    }
+
+    /// Fetches the ID of the user associated with the push notification  given registration key.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user. If the user is not found, `Ok(None)` is
+    /// returned.
+    async fn fetch_user_id_by_push_key(
+        &self,
+        key: impl AsRef<str> + Send,
+    ) -> crate::Result<Option<u64>> {
+        let user_id = sqlx::query!(
+            "SELECT user_id FROM push_registration_keys WHERE registration_key = $1",
+            key.as_ref(),
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|r| r.user_id as u64);
+
+        Ok(user_id)
+    }
+
+    /// Inserts a new push notification registration key for the given user ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with inserting the key.
+    /// * If the user is a bot account.
+    async fn insert_push_key(
+        &mut self,
+        user_id: u64,
+        key: impl AsRef<str> + Send,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            "INSERT INTO push_registration_keys (user_id, registration_key) VALUES ($1, $2)",
+            user_id as i64,
+            key.as_ref(),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
+    /// Deletes all push notification registration keys associated with the given user ID.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the keys.
+    /// * If the user is a bot account.
+    async fn delete_push_keys(&mut self, user_id: u64) -> crate::Result<()> {
+        sqlx::query!(
+            "DELETE FROM push_registration_keys WHERE user_id = $1",
+            user_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
+    /// Deletes a single push notification registration key.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the key.
+    async fn delete_push_key(&mut self, key: impl AsRef<str> + Send) -> crate::Result<()> {
+        sqlx::query!(
+            "DELETE FROM push_registration_keys WHERE registration_key = $1",
+            key.as_ref(),
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
 }
 
 impl<'t, T> AuthDbExt<'t> for T where T: DbExt<'t> {}

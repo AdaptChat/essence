@@ -166,7 +166,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             .await?;
 
             sqlx::query(
-                r#"INSERT INTO
+                r"INSERT INTO
                     role_data
                 SELECT
                     $1, $2, out.*
@@ -177,7 +177,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
                 WHERE
                     role_id IN (SELECT id FROM roles WHERE guild_id = $1)
                 ON CONFLICT DO NOTHING
-                "#,
+                ",
             )
             .bind(guild_id as i64)
             .bind(user_id as i64)

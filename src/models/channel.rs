@@ -58,11 +58,13 @@ impl FromStr for ChannelType {
             "category" => Ok(Self::Category),
             "dm" => Ok(Self::Dm),
             "group" => Ok(Self::Group),
-            _ => Err(Error::InternalError {
-                what: None,
-                message: "Database returned invalid channel type".to_string(),
-                debug: None,
-            }),
+            _ => {
+                Err(Error::InternalError {
+                    what: None,
+                    message: "Database returned invalid channel type".to_string(),
+                    debug: None,
+                })
+            }
         }
     }
 }

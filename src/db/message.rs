@@ -224,12 +224,13 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
-        let embeds =
-            serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
+        let embeds = serde_json::to_value(payload.embeds.clone()).map_err(|err| {
+            Error::InternalError {
                 what: Some("embed serialization".to_string()),
                 message: err.to_string(),
                 debug: Some(format!("{err:?}")),
-            })?;
+            }
+        })?;
 
         sqlx::query!(
             "INSERT INTO messages (id, channel_id, author_id, content, embeds)

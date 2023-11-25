@@ -399,14 +399,15 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with deleting the role.
     /// * If the role does not exist.
     async fn delete_role(&mut self, guild_id: u64, role_id: u64) -> crate::Result<()> {
-        let position = sqlx::query!(
-            "DELETE FROM roles WHERE guild_id = $1 AND id = $2 RETURNING position",
-            guild_id as i64,
-            role_id as i64,
-        )
-        .fetch_one(self.transaction())
-        .await?
-        .position;
+        let position =
+            sqlx::query!(
+                "DELETE FROM roles WHERE guild_id = $1 AND id = $2 RETURNING position",
+                guild_id as i64,
+                role_id as i64,
+            )
+            .fetch_one(self.transaction())
+            .await?
+            .position;
 
         sqlx::query!(
             "UPDATE roles SET position = position - 1 WHERE position > $1",

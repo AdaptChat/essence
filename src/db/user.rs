@@ -207,13 +207,14 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with the database.
     async fn is_email_taken(&self, email: impl AsRef<str> + Send) -> sqlx::Result<bool> {
-        let result = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
-            email.as_ref()
-        )
-        .fetch_one(self.executor())
-        .await?
-        .exists;
+        let result =
+            sqlx::query!(
+                "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
+                email.as_ref()
+            )
+            .fetch_one(self.executor())
+            .await?
+            .exists;
 
         Ok(result.unwrap())
     }
@@ -227,14 +228,15 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         username: impl AsRef<str> + Send,
         exclude: u64,
     ) -> sqlx::Result<bool> {
-        let result = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) AND id != $2)",
-            username.as_ref(),
-            exclude as i64,
-        )
-        .fetch_one(self.executor())
-        .await?
-        .exists;
+        let result =
+            sqlx::query!(
+                "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) AND id != $2)",
+                username.as_ref(),
+                exclude as i64,
+            )
+            .fetch_one(self.executor())
+            .await?
+            .exists;
 
         Ok(result.unwrap())
     }
@@ -450,16 +452,17 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         let relationship = self
             .assert_user_is_not_blocked_by(user_id, target_id)
             .await?;
-        let privacy = match interaction {
-            UserInteractionType::Dm => self.fetch_dm_privacy_configuration(user_id).await?,
-            UserInteractionType::GroupDm => {
-                self.fetch_group_dm_privacy_configuration(user_id).await?
-            }
-            UserInteractionType::FriendRequest => {
-                self.fetch_friend_request_privacy_configuration(user_id)
-                    .await?
-            }
-        };
+        let privacy =
+            match interaction {
+                UserInteractionType::Dm => self.fetch_dm_privacy_configuration(user_id).await?,
+                UserInteractionType::GroupDm => {
+                    self.fetch_group_dm_privacy_configuration(user_id).await?
+                }
+                UserInteractionType::FriendRequest => {
+                    self.fetch_friend_request_privacy_configuration(user_id)
+                        .await?
+                }
+            };
 
         if privacy.contains(PrivacyConfiguration::EVERYONE)
             // Friends
@@ -584,12 +587,14 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         kind: Option<DbRelationshipType>,
     ) -> sqlx::Result<Option<Relationship>> {
         let Some(kind) = kind else {
-            return Ok(
-                query_relationships!("user_id = $1 AND target_id = $2", user_id as i64, target_id as i64)
-                    .fetch_optional(get_pool())
-                    .await?
-                    .map(Relationship::from_db_relationship)
+            return Ok(query_relationships!(
+                "user_id = $1 AND target_id = $2",
+                user_id as i64,
+                target_id as i64
             )
+            .fetch_optional(get_pool())
+            .await?
+            .map(Relationship::from_db_relationship));
         };
 
         let db_relationship = sqlx::query_as!(
