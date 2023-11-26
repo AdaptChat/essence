@@ -1,10 +1,15 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT role_id FROM role_data WHERE guild_id = $1",
+  "query": "SELECT user_id, role_id FROM role_data WHERE guild_id = $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
         "name": "role_id",
         "type_info": "Int8"
       }
@@ -15,8 +20,9 @@
       ]
     },
     "nullable": [
+      false,
       false
     ]
   },
-  "hash": "7ca2668d2402b8702ed588885790c4c6657be36f0850d3df2cf0e11998b88001"
+  "hash": "a1be721225e2d07102bafb68485993aada18eaae32b93871f6aa271b4da70369"
 }
