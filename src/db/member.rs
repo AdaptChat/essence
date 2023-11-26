@@ -95,13 +95,13 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with fetching the roles for a member.
     async fn fetch_all_members_in_guild(&self, guild_id: u64) -> sqlx::Result<Vec<Member>> {
         let roles = sqlx::query!(
-            "SELECT role_id FROM role_data WHERE guild_id = $1",
+            "SELECT user_id, role_id FROM role_data WHERE guild_id = $1",
             guild_id as i64,
         )
         .fetch_all(self.executor())
         .await?
         .into_iter()
-        .into_group_map_by(|r| r.role_id as u64);
+        .into_group_map_by(|r| r.user_id as u64);
 
         let members = query_member!("WHERE guild_id = $1", guild_id as i64)
             .fetch_all(self.executor())
