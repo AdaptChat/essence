@@ -74,6 +74,9 @@ pub struct CreateGuildChannelPayload {
     pub parent_id: Option<u64>,
     /// A list of permission overwrites to apply to the channel, if any.
     pub overwrites: Option<Vec<PermissionOverwrite>>,
+    /// A nonce to include with the channel. This is not stored and can be used to identify the
+    /// channel later on (it is relayed through the websocket).
+    pub nonce: Option<String>,
 }
 
 /// The request body sent to create a new DM or group channel.

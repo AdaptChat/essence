@@ -100,6 +100,12 @@ pub enum OutboundMessage {
     ChannelCreate {
         /// The channel that was created.
         channel: Channel,
+        /// A custom nonce for this channel. This is a random string that if used, a message with
+        /// the same nonce will be dispatched by the websocket, indicating that the channel was
+        /// created.
+        ///
+        /// This is only used once and it is not stored.
+        nonce: Option<String>,
     },
     /// Sent by harmony when a channel is modified.
     ChannelUpdate {
