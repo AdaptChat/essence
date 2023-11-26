@@ -112,6 +112,8 @@ pub enum OutboundMessage {
     ChannelDelete {
         /// The ID of the channel that was deleted.
         channel_id: u64,
+        /// The ID of the guild that the channel was deleted in, if any.
+        guild_id: Option<u64>,
     },
     /// Sent by harmony when a role is created within a guild.
     RoleCreate {
