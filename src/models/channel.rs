@@ -61,13 +61,11 @@ impl FromStr for ChannelType {
             "merged" => Ok(Self::Merged),
             "dm" => Ok(Self::Dm),
             "group" => Ok(Self::Group),
-            _ => {
-                Err(Error::InternalError {
-                    what: None,
-                    message: "Database returned invalid channel type".to_string(),
-                    debug: None,
-                })
-            }
+            _ => Err(Error::InternalError {
+                what: None,
+                message: "Database returned invalid channel type".to_string(),
+                debug: None,
+            }),
         }
     }
 }

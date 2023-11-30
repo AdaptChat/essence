@@ -234,13 +234,12 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
-        let embeds = serde_json::to_value(payload.embeds.clone()).map_err(|err| {
-            Error::InternalError {
+        let embeds =
+            serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
                 what: Some("embed serialization".to_string()),
                 message: err.to_string(),
                 debug: Some(format!("{err:?}")),
-            }
-        })?;
+            })?;
 
         sqlx::query!(
             "INSERT INTO messages (id, channel_id, author_id, content, embeds)
@@ -502,10 +501,17 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         guilds: &[Guild],
     ) -> crate::Result<HashMap<u64, Vec<u64>>> {
-        let channels = guilds
+        let channel_ids = guilds
             .iter()
-            .flat_map(|g| g.channels.map)
-        
+            .flat_map(|g| {
+                g.channels
+                    .filter(|c| {
+                        self.fetch_member_permissions(g.id, user_id, Some(c.id))
+                            .contains(Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY)
+                    })
+                    .map(|c| c.id as i64)
+            })
+            .collect::<Vec<_>>();
 
         // TODO: this huge query tends to be very inefficient, optimize?
         let res = sqlx::query!(
@@ -516,9 +522,8 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             WHERE (
                 ca.last_message_id IS NULL OR m.id > ca.last_message_id
             )
-            AND m.channel_id IN (
-                SELECT id FROM channels
-                WHERE c.guild_id IN (SELECT guild_id FROM members WHERE id = $1)
+            AND (
+                m.channel_id = ANY($2::BIGINT[])
                 OR $1 IN (SELECT user_id FROM channel_recipients WHERE channel_id = c.id)
             )
             AND (
@@ -527,6 +532,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 OR m.mentions && (SELECT array_agg(role_id) FROM role_data WHERE user_id = $1)
             )",
             user_id as i64,
+            channel_ids,
         )
         .fetch_all(self.executor())
         .await?
