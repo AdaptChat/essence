@@ -82,7 +82,7 @@ pub fn extract_mentions(s: &str) -> Vec<u64> {
     let mut iter = s.chars().enumerate().peekable();
     while let Some((_, c)) = iter.next() {
         if c != '<' {
-            continue
+            continue;
         }
 
         // only accept this bracket if @ immediately succeeds it
@@ -100,9 +100,13 @@ pub fn extract_mentions(s: &str) -> Vec<u64> {
             match c {
                 '0'..='9' => {
                     iter.next();
-                    if start == 0 { start = i; }
+                    if start == 0 {
+                        start = i;
+                    }
                     // prevent overflows and also uphold safety contract of unwrap_unchecked below
-                    if i - start >= 22 { break; }
+                    if i - start >= 22 {
+                        break;
+                    }
                 }
                 '>' => {
                     iter.next();
@@ -112,7 +116,7 @@ pub fn extract_mentions(s: &str) -> Vec<u64> {
                         s[start..i].parse().unwrap_unchecked()
                     });
                     break;
-                },
+                }
                 _ => break,
             }
         }

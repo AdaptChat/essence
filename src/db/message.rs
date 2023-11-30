@@ -255,7 +255,11 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        let mentions = payload.content.as_deref().map(extract_mentions).unwrap_or_default();
+        let mentions = payload
+            .content
+            .as_deref()
+            .map(extract_mentions)
+            .unwrap_or_default();
         Ok(Message {
             id: message_id,
             revision_id: None,
@@ -481,7 +485,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     ) -> crate::Result<()> {
         sqlx::query!(
             "DELETE FROM messages WHERE id = ANY($1::BIGINT[]) AND ($2 IS NULL OR channel_id = $2)"
-            &message_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
+                & message_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
             channel_id,
         )
         .execute(self.transaction())
@@ -494,7 +498,10 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with fetching the messages.
-    async fn fetch_mentioned_messages(&self, user_id: u64) -> crate::Result<HashMap<u64, Vec<u64>>> {
+    async fn fetch_mentioned_messages(
+        &self,
+        user_id: u64,
+    ) -> crate::Result<HashMap<u64, Vec<u64>>> {
         // TODO: include role pings and everyone pings
         let res = sqlx::query!(
             r"SELECT m.id, m.channel_id

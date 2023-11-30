@@ -210,8 +210,8 @@ pub struct Message {
     /// The amount of stars this message has received.
     pub stars: u32,
     /// A list of snowflake IDs of users and/or roles that this message mentions. If this message
-    /// also mentions everyone/here in a guild, then the guild ID is also included in this list. 
-    /// 
+    /// also mentions everyone/here in a guild, then the guild ID is also included in this list.
+    ///
     /// Note: Users or roles will stay in this list even if they are deleted. This represents those
     /// that were mentioned at the time the message was sent. That is, there is no guarantee that
     /// all of these IDs will resolve to a user or role!
