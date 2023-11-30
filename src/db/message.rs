@@ -2,10 +2,9 @@ use crate::models::Attachment;
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
-    cache::all_last_message_ids,
     db::DbExt,
     http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
-    models::{Message, MessageFlags, MessageInfo},
+    models::{Guild, Message, MessageFlags, MessageInfo},
     snowflake::extract_mentions,
     Error, NotFoundExt,
 };
@@ -484,8 +483,8 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         message_ids: &[u64],
     ) -> crate::Result<()> {
         sqlx::query!(
-            "DELETE FROM messages WHERE id = ANY($1::BIGINT[]) AND ($2 IS NULL OR channel_id = $2)"
-                & message_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
+            "DELETE FROM messages WHERE id = ANY($1::BIGINT[]) AND ($2 IS NULL OR channel_id = $2)",
+            message_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
             channel_id,
         )
         .execute(self.transaction())
@@ -501,8 +500,14 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     async fn fetch_mentioned_messages(
         &self,
         user_id: u64,
+        guilds: &[Guild],
     ) -> crate::Result<HashMap<u64, Vec<u64>>> {
-        // TODO: include role pings and everyone pings
+        let channels = guilds
+            .iter()
+            .flat_map(|g| g.channels.map)
+        
+
+        // TODO: this huge query tends to be very inefficient, optimize?
         let res = sqlx::query!(
             r"SELECT m.id, m.channel_id
             FROM messages m
@@ -511,11 +516,15 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             WHERE (
                 ca.last_message_id IS NULL OR m.id > ca.last_message_id
             )
-            AND $1 = ANY(m.mentions)
             AND m.channel_id IN (
                 SELECT id FROM channels
                 WHERE c.guild_id IN (SELECT guild_id FROM members WHERE id = $1)
                 OR $1 IN (SELECT user_id FROM channel_recipients WHERE channel_id = c.id)
+            )
+            AND (
+                $1 = ANY(m.mentions)
+                OR c.guild_id = ANY(m.mentions)
+                OR m.mentions && (SELECT array_agg(role_id) FROM role_data WHERE user_id = $1)
             )",
             user_id as i64,
         )
