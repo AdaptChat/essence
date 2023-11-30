@@ -504,13 +504,18 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         let channel_ids = guilds
             .iter()
             .flat_map(|g| {
-                g.channels
-                    .filter(|c| {
-                        self.fetch_member_permissions(g.id, user_id, Some(c.id))
-                            .contains(Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY)
-                    })
-                    .map(|c| c.id as i64)
+                g.channels.map(|channels| {
+                    channels
+                        .filter(|c| {
+                            self.fetch_member_permissions(g.id, user_id, Some(c.id))
+                                .contains(
+                                    Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY,
+                                )
+                        })
+                        .map(|c| c.id as i64)
+                })
             })
+            .flatten()
             .collect::<Vec<_>>();
 
         // TODO: this huge query tends to be very inefficient, optimize?
