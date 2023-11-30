@@ -112,7 +112,7 @@ pub fn extract_mentions(s: &str) -> Vec<u64> {
                     iter.next();
                     captures.push(unsafe {
                         // SAFETY: our parser guarantees that s[start..i] only consists of digits,
-                        // and `i - start` is guaranteed to be less than 20.
+                        // and `i - start` is guaranteed to be less than 20 (len(str(u64::MAX))).
                         s[start..i].parse().unwrap_unchecked()
                     });
                     break;
