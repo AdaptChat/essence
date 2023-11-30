@@ -1,0 +1,2 @@
+ALTER TABLE messages
+    ADD COLUMN mentions BIGINT[] DEFAULT ARRAY[]::BIGINT[] NOT NULL;

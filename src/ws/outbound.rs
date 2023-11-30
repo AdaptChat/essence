@@ -30,6 +30,21 @@ pub enum MemberRemoveInfo {
     },
 }
 
+/// An unacknowledged channel.
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+pub struct UnackedChannel {
+    /// The ID of the channel.
+    pub channel_id: u64,
+    /// The ID of the last message acknowledged in the channel. If this is `None`, then no messages
+    /// have been acknowledged.
+    pub last_message_id: Option<u64>,
+    /// A list of message IDs that have mentioned you since the last time you acknowledged this
+    /// channel.
+    pub mentions: Vec<u64>,
+}
+
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
@@ -57,6 +72,8 @@ pub enum OutboundMessage {
         presences: Vec<Presence>,
         /// A list of relationships associated with the user.
         relationships: Vec<Relationship>,
+        /// A list of unacknowledged messages, organized by channel ID.
+        unacked: Vec<UnackedChannel>,
     },
     /// Sent by harmony when an observable user is updated.
     UserUpdate {
@@ -96,7 +113,15 @@ pub enum OutboundMessage {
         #[serde(flatten)]
         info: MemberRemoveInfo,
     },
-    /// Sent by harmony when a channel is created. This could be any type of channel
+    /// Sent by harmony when a channel is acknowledged ("marked as read")
+    ChannelAck {
+        /// The ID of the channel that was acknowledged.
+        channel_id: u64,
+        /// New messages up to this ID can be considered acknowledged.
+        last_message_id: Option<u64>,
+    },
+    /// Sent by harmony when a channel is created. This could be any type of channel, including
+    /// guild channels, DM channels, and group DM channels.
     ChannelCreate {
         /// The channel that was created.
         channel: Channel,

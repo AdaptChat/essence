@@ -72,6 +72,54 @@ pub const fn with_model_type(snowflake: u64, model_type: ModelType) -> u64 {
     snowflake & !(0b11111 << 13) | (model_type as u64) << 13
 }
 
+/// Extract all snowflake IDs surrounded by <@!? and >, called mentions, from a string.
+pub fn extract_mentions(s: &str) -> Vec<u64> {
+    // if we really have to expand over 32 mentions, it's likely a spam message
+    // which would be very rare. in the future there could even be a 32-mention
+    // hard limit to prevent spam-mentions.
+    let mut captures = Vec::with_capacity(32);
+
+    let mut iter = s.chars().enumerate().peekable();
+    while let Some((_, c)) = iter.next() {
+        if c != '<' {
+            continue
+        }
+
+        // only accept this bracket if @ immediately succeeds it
+        if !iter.next().is_some_and(|(_, c)| c == '@') {
+            continue;
+        }
+        // allow an optional "!" to prevent mailto in some markdown parsers
+        if iter.peek().is_some_and(|&(_, c)| c == '!') {
+            iter.next();
+        }
+
+        // eat the rest of the mention
+        let mut start = 0_usize;
+        while let Some(&(i, c)) = iter.peek() {
+            match c {
+                '0'..='9' => {
+                    iter.next();
+                    if start == 0 { start = i; }
+                    // prevent overflows and also uphold safety contract of unwrap_unchecked below
+                    if i - start >= 22 { break; }
+                }
+                '>' => {
+                    iter.next();
+                    captures.push(unsafe {
+                        // SAFETY: our parser guarantees that s[start..i] only consists of digits,
+                        // and `i - start` is guaranteed to be less than 22.
+                        s[start..i].parse().unwrap_unchecked()
+                    });
+                    break;
+                },
+                _ => break,
+            }
+        }
+    }
+    captures
+}
+
 /// Reads parts of a snowflake.
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct SnowflakeReader(u64);

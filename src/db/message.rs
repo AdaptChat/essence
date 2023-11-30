@@ -2,13 +2,23 @@ use crate::models::Attachment;
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
+    cache::all_last_message_ids,
     db::DbExt,
     http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
     models::{Message, MessageFlags, MessageInfo},
+    snowflake::extract_mentions,
     Error, NotFoundExt,
 };
 use itertools::Itertools;
 use std::collections::HashMap;
+
+enum BulkFetchMessagesRequest {
+    History {
+        channel_id: u64,
+        query: MessageHistoryQuery,
+    },
+    Ids(Vec<u64>),
+}
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -36,6 +46,7 @@ macro_rules! construct_message {
             attachments: Vec::with_capacity(0),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
             stars: $data.stars as _,
+            mentions: $data.mentions.into_iter().map(|id| id as _).collect(),
         }
     }};
 }
@@ -244,6 +255,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        let mentions = payload.content.as_deref().map(extract_mentions).unwrap_or_default();
         Ok(Message {
             id: message_id,
             revision_id: None,
@@ -256,6 +268,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             attachments: Vec::new(),
             flags: MessageFlags::empty(),
             stars: 0,
+            mentions,
         })
     }
 
@@ -349,6 +362,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             attachments: Vec::new(),
             flags: MessageFlags::empty(),
             stars: 0,
+            mentions: Vec::new(),
         })
     }
 
@@ -434,6 +448,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
     ///
     /// # Errors
     /// * If an error occurs with deleting the message.
@@ -447,6 +462,63 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .await?;
 
         Ok(())
+    }
+
+    /// Bulk deletes messages with the given message IDs, optionally limiting to a channel.
+    ///
+    /// # Notes
+    /// * This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    ///   rolled back, and the transaction must be committed to save the changes.
+    /// * This method does not check if the message IDs are valid and will silently ignore invalid
+    ///   IDs.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the messages.
+    async fn bulk_delete_messages(
+        &mut self,
+        channel_id: Option<u64>,
+        message_ids: &[u64],
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            "DELETE FROM messages WHERE id = ANY($1::BIGINT[]) AND ($2 IS NULL OR channel_id = $2)"
+            &message_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
+            channel_id,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
+    /// Fetches the IDs of all unacked messages that mention the user with the given ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the messages.
+    async fn fetch_mentioned_messages(&self, user_id: u64) -> crate::Result<HashMap<u64, Vec<u64>>> {
+        // TODO: include role pings and everyone pings
+        let res = sqlx::query!(
+            r"SELECT m.id, m.channel_id
+            FROM messages m
+            JOIN channels c ON m.channel_id = c.id
+            LEFT JOIN channel_acks ca ON m.channel_id = ca.channel_id AND ca.user_id = $1
+            WHERE (
+                ca.last_message_id IS NULL OR m.id > ca.last_message_id
+            )
+            AND $1 = ANY(m.mentions)
+            AND m.channel_id IN (
+                SELECT id FROM channels
+                WHERE c.guild_id IN (SELECT guild_id FROM members WHERE id = $1)
+                OR $1 IN (SELECT user_id FROM channel_recipients WHERE channel_id = c.id)
+            )",
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|row| (row.channel_id as u64, row.id as u64))
+        .into_group_map();
+
+        Ok(res)
     }
 }
 
