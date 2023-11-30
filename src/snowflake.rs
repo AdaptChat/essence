@@ -104,15 +104,15 @@ pub fn extract_mentions(s: &str) -> Vec<u64> {
                         start = i;
                     }
                     // prevent overflows and also uphold safety contract of unwrap_unchecked below
-                    if i - start >= 22 {
+                    if i - start >= 20 {
                         break;
                     }
                 }
-                '>' => {
+                '>' if start != 0 => {
                     iter.next();
                     captures.push(unsafe {
                         // SAFETY: our parser guarantees that s[start..i] only consists of digits,
-                        // and `i - start` is guaranteed to be less than 22.
+                        // and `i - start` is guaranteed to be less than 20.
                         s[start..i].parse().unwrap_unchecked()
                     });
                     break;
