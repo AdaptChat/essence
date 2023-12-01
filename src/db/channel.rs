@@ -27,9 +27,14 @@ macro_rules! query_guild_channels {
                 nsfw,
                 locked,
                 slowmode,
-                user_limit
+                user_limit,
+                (
+                    SELECT m.id FROM messages m
+                    WHERE m.channel_id = c.id
+                    ORDER BY id DESC LIMIT 1
+                ) AS last_message_id
             FROM
-                channels
+                channels c
             WHERE
             "# + $where,
             $($($args),*)?
@@ -71,6 +76,7 @@ macro_rules! construct_guild_channel {
                         nsfw: $data.nsfw.unwrap_or_default(),
                         locked: $data.locked.unwrap_or_default(),
                         slowmode: $data.slowmode.unwrap_or_default() as u32,
+                        last_message_id: $data.last_message_id.map(|id| id as u64),
                     };
 
                     match kind {
@@ -147,16 +153,17 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         kind: ChannelType,
     ) -> crate::Result<()> {
-        let exists = sqlx::query!(
+        let exists =
+            sqlx::query!(
             "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2 AND type = $3)",
             channel_id as i64,
             guild_id as i64,
             kind.name(),
         )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or_default();
+            .fetch_one(self.executor())
+            .await?
+            .exists
+            .unwrap_or_default();
 
         if exists {
             Ok(())
@@ -289,6 +296,13 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     nsfw: channel.nsfw.unwrap_or_default(),
                     locked: channel.locked.unwrap_or_default(),
                     slowmode: channel.slowmode.unwrap_or_default() as u32,
+                    last_message_id: sqlx::query!(
+                        "SELECT id FROM messages WHERE channel_id = $1 ORDER BY id DESC LIMIT 1",
+                        channel_id as i64,
+                    )
+                    .fetch_optional(self.executor())
+                    .await?
+                    .map(|r| r.id as u64),
                 };
 
                 ChannelInfo::Guild(match kind {

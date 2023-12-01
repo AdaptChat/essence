@@ -23,6 +23,9 @@ pub struct TextBasedGuildChannelInfo {
     /// The slowmode delay of the channel, in **milliseconds**. This should be a value between
     /// `0` and `86_400_000` (24 hours). `0` indicates the absence of slowmode.
     pub slowmode: u32,
+    /// The ID of the last message sent in this channel. This is `None` if no messages have been
+    /// sent in this channel, and is sometimes always none in partial contexts.
+    pub last_message_id: Option<u64>,
 }
 
 /// An intermediate representation of a channel's type. This is never used directly, but is used
