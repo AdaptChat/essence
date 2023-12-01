@@ -941,7 +941,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
 
         for (k, last_message_id) in self.fetch_last_message_ids(user_id).await? {
             if let Some(unacked) = unacked.get_mut(&k) {
-                unacked.last_message_id.insert(last_message_id);
+                unacked.last_message_id = Some(last_message_id);
             } else {
                 unacked.insert(
                     k,
