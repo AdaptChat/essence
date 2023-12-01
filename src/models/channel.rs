@@ -39,8 +39,10 @@ pub enum ChannelType {
     Announcement,
     /// A voice channel.
     Voice,
-    /// A category channel.
+    /// A category of channels.
     Category,
+    /// Two or more channels merged together.
+    Merged,
     /// A standard DM channel.
     Dm,
     /// A group DM channel.
@@ -56,6 +58,7 @@ impl FromStr for ChannelType {
             "announcement" => Ok(Self::Announcement),
             "voice" => Ok(Self::Voice),
             "category" => Ok(Self::Category),
+            "merged" => Ok(Self::Merged),
             "dm" => Ok(Self::Dm),
             "group" => Ok(Self::Group),
             _ => {
@@ -79,6 +82,7 @@ impl ChannelType {
             Self::Announcement => "announcement",
             Self::Voice => "voice",
             Self::Category => "category",
+            Self::Merged => "merged",
             Self::Dm => "dm",
             Self::Group => "group",
         }
@@ -137,6 +141,8 @@ pub enum GuildChannelInfo {
     /// A category of channels. This isn't really a channel, but it shares many of the same
     /// properties of one.
     Category,
+    /// Two or more channels merged together.
+    Merged(TextBasedGuildChannelInfo),
 }
 
 impl GuildChannelInfo {
@@ -149,6 +155,7 @@ impl GuildChannelInfo {
             Self::Announcement { .. } => ChannelType::Announcement,
             Self::Voice { .. } => ChannelType::Voice,
             Self::Category => ChannelType::Category,
+            Self::Merged { .. } => ChannelType::Merged,
         }
     }
 }
@@ -209,7 +216,7 @@ pub struct GuildChannel {
     /// The permission overwrites for this channel.
     pub overwrites: Vec<PermissionOverwrite>,
     /// The ID of the parent category of the channel. This is `None` if the channel is not in a
-    /// category.
+    /// category. This is also used for merged channels.
     pub parent_id: Option<u64>,
 }
 

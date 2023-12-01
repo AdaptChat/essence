@@ -137,6 +137,13 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// You are not the author of the message you are trying to edit.
+    NotMessageAuthor {
+        /// The ID of the message you are trying to edit.
+        message_id: u64,
+        /// The error message.
+        message: String,
+    },
     /// You are too low in the role hierarchy to perform the requested action.
     RoleTooLow {
         /// The ID of the guild you are not the owner of.
@@ -256,6 +263,7 @@ impl Error {
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
             Self::NotMember { .. }
             | Self::NotOwner { .. }
+            | Self::NotMessageAuthor { .. }
             | Self::MissingPermissions { .. }
             | Self::RoleTooLow { .. }
             | Self::RoleIsManaged { .. }

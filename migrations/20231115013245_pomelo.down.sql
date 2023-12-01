@@ -21,4 +21,5 @@ END;
 $$;
 
 ALTER TABLE users
-    ADD COLUMN IF NOT EXISTS discriminator SMALLINT NOT NULL DEFAULT generate_discriminator('username');
+    ADD COLUMN IF NOT EXISTS discriminator SMALLINT NOT NULL DEFAULT generate_discriminator('username'),
+    DROP COLUMN IF EXISTS display_name;

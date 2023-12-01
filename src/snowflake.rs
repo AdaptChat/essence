@@ -18,8 +18,12 @@
 //! ```
 
 use crate::models::ModelType;
+use regex::Regex;
 use std::{
-    sync::atomic::{AtomicU8, Ordering::Relaxed},
+    sync::{
+        atomic::{AtomicU8, Ordering::Relaxed},
+        OnceLock,
+    },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -70,6 +74,18 @@ pub fn generate_snowflake(model_type: ModelType, node_id: u8) -> u64 {
 #[must_use]
 pub const fn with_model_type(snowflake: u64, model_type: ModelType) -> u64 {
     snowflake & !(0b11111 << 13) | (model_type as u64) << 13
+}
+
+/// Extract all snowflake IDs surrounded by <@!? and >, called mentions, from a string.
+#[must_use]
+pub fn extract_mentions(s: &str) -> Vec<u64> {
+    static REGEX: OnceLock<Regex> = OnceLock::new();
+
+    let regex = REGEX.get_or_init(|| Regex::new(r"<@!?(\d+)>").unwrap());
+    regex
+        .captures_iter(s)
+        .map(|c| c.get(1).unwrap().as_str().parse().unwrap())
+        .collect::<Vec<_>>()
 }
 
 /// Reads parts of a snowflake.

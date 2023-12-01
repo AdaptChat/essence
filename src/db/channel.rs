@@ -865,6 +865,55 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         cache::remove_channel(channel_id).await?;
         Ok(())
     }
+
+    /// Marks a channel as read up to the given message ID for the user in the given channel.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with marking the channel as read.
+    async fn ack(&mut self, user_id: u64, channel_id: u64, message_id: u64) -> crate::Result<()> {
+        sqlx::query!(
+            r"INSERT INTO channel_acks (
+                channel_id, user_id, last_message_id
+            )
+            VALUES ($1, $2, $3)
+            ON CONFLICT (channel_id, user_id)
+            DO UPDATE SET last_message_id = $3",
+            channel_id as i64,
+            user_id as i64,
+            message_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
+    /// Fetches a mapping of channel IDs to the last message ID that the user has read up to.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channel acks.
+    async fn fetch_last_message_ids(&self, user_id: u64) -> crate::Result<HashMap<u64, u64>> {
+        Ok(sqlx::query!(
+            r#"SELECT
+                channel_id,
+                last_message_id AS "last_message_id!"
+            FROM
+                channel_acks
+            WHERE
+                user_id = $1 AND last_message_id IS NOT NULL
+            "#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| (r.channel_id as u64, r.last_message_id as u64))
+        .collect())
+    }
 }
 
 impl<'t, T> ChannelDbExt<'t> for T where T: DbExt<'t> {}
