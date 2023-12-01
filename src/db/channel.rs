@@ -1,11 +1,12 @@
 use crate::{
     cache,
-    db::DbExt,
+    db::{DbExt, MessageDbExt},
     models::{
-        Channel, ChannelInfo, ChannelType, DmChannel, DmChannelInfo, GuildChannel,
+        Channel, ChannelInfo, ChannelType, DmChannel, DmChannelInfo, Guild, GuildChannel,
         GuildChannelInfo, PermissionOverwrite, PermissionPair, Permissions,
         TextBasedGuildChannelInfo,
     },
+    ws::UnackedChannel,
     Error, NotFoundExt,
 };
 use itertools::Itertools;
@@ -911,6 +912,36 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .into_iter()
         .map(|r| (r.channel_id as u64, r.last_message_id as u64))
         .collect())
+    }
+
+    /// Fetches all unacknowledged messages, aggregating both last_message_ids and mentions.
+    ///
+    /// # Errors
+    /// * If an error occurs while fetching unread messages.
+    pub async fn fetch_unacked(&self, user_id: u64, guilds: &[Guild]) -> Vec<UnackedChannel> {
+        let mut unacked = self
+            .fetch_mentioned_messages(user_id, guilds)
+            .await?
+            .into_iter()
+            .map(|(k, mentions)| UnackedChannel {
+                channel_id: k,
+                last_message_id: None,
+                mentions,
+            })
+            .collect::<HashMap<_, _>>();
+
+        for (k, last_message_id) in self.fetch_last_message_ids(user_id).await? {
+            if let Some(unacked) = unacked.get_mut(&k) {
+                unacked.last_message_id.insert(last_message_id);
+            } else {
+                unacked.insert(UnackedChannel {
+                    channel_id: k,
+                    last_message_id: Some(last_message_id),
+                    mentions: Vec::new(),
+                });
+            }
+        }
+        unacked
     }
 }
 
