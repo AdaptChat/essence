@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE messages\n            SET content = $1, embeds = $2::JSONB, edited_at = NOW()\n            WHERE id = $3 AND channel_id = $4\n            RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"",
+  "query": "UPDATE messages\n            SET \n                content = $1,\n                embeds = $2::JSONB, \n                edited_at = NOW(), \n                mentions = $3::BIGINT[]\n            WHERE \n                id = $4 AND channel_id = $5\n            RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"",
   "describe": {
     "columns": [
       {
@@ -65,6 +65,11 @@
       },
       {
         "ordinal": 12,
+        "name": "mentions",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 13,
         "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
         "type_info": "Jsonb"
       }
@@ -73,6 +78,7 @@
       "Left": [
         "Text",
         "Jsonb",
+        "Int8Array",
         "Int8",
         "Int8"
       ]
@@ -90,8 +96,9 @@
       true,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "2f0731d94fdd58989a77d24c2c33154cb2c66f826580539f0e97024a74e5a85b"
+  "hash": "686edba7edc89880b802131d391f9e45cc6172d6235a2c1f7a18a513bcd43c2c"
 }
