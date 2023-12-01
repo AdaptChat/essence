@@ -118,7 +118,7 @@ pub enum OutboundMessage {
         /// The ID of the channel that was acknowledged.
         channel_id: u64,
         /// New messages up to this ID can be considered acknowledged.
-        last_message_id: Option<u64>,
+        last_message_id: u64,
     },
     /// Sent by harmony when a channel is created. This could be any type of channel, including
     /// guild channels, DM channels, and group DM channels.
