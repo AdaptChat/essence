@@ -918,7 +918,11 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs while fetching unread messages.
-    async fn fetch_unacked(&self, user_id: u64, guilds: &[Guild]) -> Vec<UnackedChannel> {
+    async fn fetch_unacked(
+        &self,
+        user_id: u64,
+        guilds: &[Guild],
+    ) -> crate::Result<Vec<UnackedChannel>> {
         let mut unacked = self
             .fetch_mentioned_messages(user_id, guilds)
             .await?
@@ -946,7 +950,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                 });
             }
         }
-        unacked
+        Ok(unacked)
     }
 }
 
