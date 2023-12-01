@@ -422,6 +422,9 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     /// Edits a message in the given channel. This turns the current message into a revision of the
     /// message, and creates a new message with the new data.
     ///
+    /// If provided, ``user_id``` will be checked against the author of the message and throw a
+    /// forbidden error if they do not match.
+    ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
     /// rolled back, and the transaction must be committed to save the changes.
@@ -432,12 +435,23 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         &mut self,
         channel_id: u64,
         message_id: u64,
+        user_id: Option<u64>,
         payload: EditMessagePayload,
     ) -> crate::Result<(Message, Message)> {
         let old = get_pool()
             .fetch_message(channel_id, message_id)
             .await?
             .ok_or_not_found("message", format!("Message with ID {message_id} not found"))?;
+
+        if let Some(user_id) = user_id {
+            if old.author_id != Some(user_id) {
+                return Err(Error::NotMessageAuthor {
+                    message_id,
+                    message: "You must be the author of this message to edit it.".to_string(),
+                });
+            }
+        }
+
         let content = payload
             .content
             .into_option_or_if_absent_then(|| old.content.clone());
