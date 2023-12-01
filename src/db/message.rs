@@ -547,22 +547,19 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         }
 
         let res = sqlx::query!(
-            r"SELECT
-                m.message_id AS id,
-                m.channel_id
-            FROM mentions m
+            r"SELECT m.id, m.channel_id FROM messages m
             INNER JOIN channels c ON m.channel_id = c.id
             LEFT JOIN channel_acks a ON m.channel_id = a.channel_id AND a.user_id = $1
             WHERE
                 m.channel_id = ANY($2::BIGINT[])
             AND (
                 a.last_message_id IS NULL
-                OR m.message_id > a.last_message_id
+                OR m.id > a.last_message_id
             )
             AND (
-                $1 = ANY(m.targets)
-                OR c.guild_id = ANY(m.targets)
-                OR m.targets && (
+                $1 = ANY(m.mentions)
+                OR c.guild_id = ANY(m.mentions)
+                OR m.mentions && (
                     SELECT array_agg(role_id) FROM role_data 
                     WHERE guild_id = c.guild_id AND user_id = $1
                 )
