@@ -18,8 +18,12 @@
 //! ```
 
 use crate::models::ModelType;
+use regex::Regex;
 use std::{
-    sync::atomic::{AtomicU8, Ordering::Relaxed},
+    sync::{
+        atomic::{AtomicU8, Ordering::Relaxed},
+        OnceLock,
+    },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -73,55 +77,15 @@ pub const fn with_model_type(snowflake: u64, model_type: ModelType) -> u64 {
 }
 
 /// Extract all snowflake IDs surrounded by <@!? and >, called mentions, from a string.
+#[must_use]
 pub fn extract_mentions(s: &str) -> Vec<u64> {
-    // if we really have to expand over 32 mentions, it's likely a spam message
-    // which would be very rare. in the future there could even be a 32-mention
-    // hard limit to prevent spam-mentions.
-    let mut captures = Vec::with_capacity(32);
+    static REGEX: OnceLock<Regex> = OnceLock::new();
 
-    let mut iter = s.chars().enumerate().peekable();
-    while let Some((_, c)) = iter.next() {
-        if c != '<' {
-            continue;
-        }
-
-        // only accept this bracket if @ immediately succeeds it
-        if !iter.next().is_some_and(|(_, c)| c == '@') {
-            continue;
-        }
-        // allow an optional "!" to prevent mailto in some markdown parsers
-        if iter.peek().is_some_and(|&(_, c)| c == '!') {
-            iter.next();
-        }
-
-        // eat the rest of the mention
-        let mut start = 0_usize;
-        while let Some(&(i, c)) = iter.peek() {
-            match c {
-                '0'..='9' => {
-                    iter.next();
-                    if start == 0 {
-                        start = i;
-                    }
-                    // prevent overflows and also uphold safety contract of unwrap_unchecked below
-                    if i - start >= 20 {
-                        break;
-                    }
-                }
-                '>' if start != 0 => {
-                    iter.next();
-                    captures.push(unsafe {
-                        // SAFETY: our parser guarantees that s[start..i] only consists of digits,
-                        // and `i - start` is guaranteed to be less than 20 (len(str(u64::MAX))).
-                        s[start..i].parse().unwrap_unchecked()
-                    });
-                    break;
-                }
-                _ => break,
-            }
-        }
-    }
-    captures
+    let regex = REGEX.get_or_init(|| Regex::new(r"<@!?(\d+)>").unwrap());
+    regex
+        .captures_iter(s)
+        .map(|c| c.get(1).unwrap().as_str().parse().unwrap())
+        .collect::<Vec<_>>()
 }
 
 /// Reads parts of a snowflake.

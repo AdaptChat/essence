@@ -1,10 +1,10 @@
-use crate::models::Attachment;
+use crate::db::{get_pool, GuildDbExt};
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
     db::DbExt,
     http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
-    models::{Guild, Message, MessageFlags, MessageInfo},
+    models::{Attachment, Guild, Message, MessageFlags, MessageInfo, Permissions},
     snowflake::extract_mentions,
     Error, NotFoundExt,
 };
@@ -20,10 +20,9 @@ enum BulkFetchMessagesRequest {
 }
 
 macro_rules! construct_message {
-    ($data:ident) => {{
+    ($data:ident, mentions = $mentions:expr) => {{
         Message {
             id: $data.id as _,
-            revision_id: ($data.revision_id != 0).then_some($data.revision_id as _),
             channel_id: $data.channel_id as _,
             author_id: $data.author_id.map(|id| id as _),
             author: None,
@@ -45,8 +44,20 @@ macro_rules! construct_message {
             attachments: Vec::with_capacity(0),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
             stars: $data.stars as _,
-            mentions: $data.mentions.into_iter().map(|id| id as _).collect(),
+            mentions: $mentions,
+            edited_at: $data.edited_at,
         }
+    }};
+    ($data:ident) => {{
+        construct_message!(
+            $data,
+            mentions = $data
+                .mentions
+                .unwrap_or_default()
+                .into_iter()
+                .map(|id| id as _)
+                .collect()
+        )
     }};
 }
 
@@ -106,15 +117,14 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         let mut message = sqlx::query!(
             r#"SELECT
                 messages.*,
-                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+                (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions
             FROM
                 messages
             WHERE
                 channel_id = $1
             AND
                 id = $2
-            AND
-                revision_id = 0
             "#,
             channel_id as i64,
             message_id as i64,
@@ -144,8 +154,6 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                     $base + r#" WHERE
                         m.channel_id = $1
                     AND
-                        m.revision_id = 0
-                    AND
                         ($2::BIGINT IS NULL OR m.id < $2)
                     AND
                         ($3::BIGINT IS NULL OR m.id > $3)
@@ -168,7 +176,8 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 query!(
                     r#"SELECT
                         m.*,
-                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+                        (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions
                     FROM
                         messages m"#,
                     $direction
@@ -234,12 +243,13 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
-        let embeds =
-            serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
+        let embeds = serde_json::to_value(payload.embeds.clone()).map_err(|err| {
+            Error::InternalError {
                 what: Some("embed serialization".to_string()),
                 message: err.to_string(),
                 debug: Some(format!("{err:?}")),
-            })?;
+            }
+        })?;
 
         sqlx::query!(
             "INSERT INTO messages (id, channel_id, author_id, content, embeds)
@@ -253,14 +263,25 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        let mentions = payload
+        let mut mentions = payload
             .content
             .as_deref()
             .map(extract_mentions)
             .unwrap_or_default();
+        mentions.sort_unstable();
+        mentions.dedup();
+
+        sqlx::query(
+            "INSERT INTO mentions (message_id, target_id)
+             SELECT $1, out.target_id FROM UNNEST($2) AS out(target_id)",
+        )
+        .bind(message_id as i64)
+        .bind(mentions.iter().map(|m| *m as i64).collect_vec())
+        .execute(self.transaction())
+        .await?;
+
         Ok(Message {
             id: message_id,
-            revision_id: None,
             channel_id,
             author_id: Some(user_id),
             author: None,
@@ -271,6 +292,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             flags: MessageFlags::empty(),
             stars: 0,
             mentions,
+            edited_at: None,
         })
     }
 
@@ -281,14 +303,12 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     async fn create_attachment(
         &mut self,
         message_id: u64,
-        revision_id: u64,
         attachment: Attachment,
     ) -> crate::Result<()> {
         sqlx::query!(
-            "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5)",
             attachment.id,
             message_id as i64,
-            revision_id as i64,
             attachment.filename,
             attachment.size as i64,
             attachment.alt,
@@ -354,7 +374,6 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
 
         Ok(Message {
             id: message_id,
-            revision_id: None,
             channel_id,
             author_id: None,
             author: None,
@@ -365,6 +384,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             flags: MessageFlags::empty(),
             stars: 0,
             mentions: Vec::new(),
+            edited_at: None,
         })
     }
 
@@ -412,38 +432,57 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         &mut self,
         channel_id: u64,
         message_id: u64,
-        revision_id: u64,
         payload: EditMessagePayload,
     ) -> crate::Result<(Message, Message)> {
-        let message = sqlx::query!(
-            r#"
-                UPDATE messages SET revision_id = $1
-                WHERE id = $2 AND channel_id = $3 AND revision_id = 0
-                RETURNING *, embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
-            "#,
-            revision_id as i64,
+        let old = get_pool()
+            .fetch_message(channel_id, message_id)
+            .await?
+            .ok_or_not_found("message", format!("Message with ID {message_id} not found"))?;
+        let content = payload
+            .content
+            .into_option_or_if_absent_then(|| old.content.clone());
+        let embeds = payload
+            .embeds
+            .into_option_or_if_absent_then(|| Some(old.embeds.clone()))
+            .unwrap_or_default();
+        let embeds = serde_json::to_value(embeds).map_err(|err| Error::InternalError {
+            what: Some("embed serialization".to_string()),
+            message: err.to_string(),
+            debug: Some(format!("{err:?}")),
+        })?;
+
+        let mentions = content.as_deref().map(extract_mentions).unwrap_or_default();
+        // delete old mentions
+        sqlx::query!(
+            "DELETE FROM mentions WHERE message_id = $1",
+            message_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+        // insert new mentions
+        sqlx::query(
+            "INSERT INTO mentions (message_id, target_id)
+             SELECT $1, out.target_id FROM UNNEST($2) AS out(target_id)",
+        )
+        .bind(message_id as i64)
+        .bind(mentions.iter().map(|m| *m as i64).collect_vec())
+        .execute(self.transaction())
+        .await?;
+
+        let new = sqlx::query!(
+            r#"UPDATE messages
+            SET content = $1, embeds = $2::JSONB, edited_at = NOW()
+            WHERE id = $3 AND channel_id = $4
+            RETURNING *, embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>""#,
+            content,
+            embeds,
             message_id as i64,
             channel_id as i64,
         )
         .fetch_one(self.transaction())
         .await?;
 
-        let old = construct_message!(message);
-        let payload = CreateMessagePayload {
-            content: payload
-                .content
-                .into_option_or_if_absent_then(|| old.content.clone()),
-            embeds: payload
-                .embeds
-                .into_option_or_if_absent_then(|| Some(old.embeds.clone()))
-                .unwrap_or_default(),
-            nonce: None,
-        };
-
-        let new = self
-            .create_message(channel_id, message_id, old.author_id.unwrap(), payload)
-            .await?;
-        Ok((old, new))
+        Ok((old, construct_message!(new, mentions = mentions)))
     }
 
     /// Deletes a message with the given channel and message ID.
@@ -481,10 +520,11 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         channel_id: Option<u64>,
         message_ids: &[u64],
     ) -> crate::Result<()> {
+        let message_ids = message_ids.iter().map(|id| *id as i64).collect_vec();
         sqlx::query!(
-            "DELETE FROM messages WHERE id = ANY($1::BIGINT[]) AND ($2 IS NULL OR channel_id = $2)",
-            message_ids.iter().map(|id| *id as i64).collect::<Vec<_>>(),
-            channel_id,
+            "DELETE FROM messages WHERE id = ANY($1::BIGINT[]) AND ($2::BIGINT IS NULL OR channel_id = $2)",
+            &message_ids,
+            channel_id.map(|id| id as i64),
         )
         .execute(self.transaction())
         .await?;
@@ -501,43 +541,42 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         guilds: &[Guild],
     ) -> crate::Result<HashMap<u64, Vec<u64>>> {
-        let channel_ids = guilds
+        let mut channel_ids = Vec::new();
+        for (guild, channels) in guilds
             .iter()
-            .flat_map(|g| {
-                g.channels.map(|channels| {
-                    channels
-                        .filter(|c| {
-                            self.fetch_member_permissions(g.id, user_id, Some(c.id))
-                                .contains(
-                                    Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY,
-                                )
-                        })
-                        .map(|c| c.id as i64)
-                })
-            })
-            .flatten()
-            .collect::<Vec<_>>();
+            .filter_map(|g| g.channels.as_ref().map(|c| (g, c)))
+        {
+            for channel in channels {
+                if self
+                    .fetch_member_permissions(guild.partial.id, user_id, Some(channel.id))
+                    .await?
+                    .contains(Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY)
+                {
+                    channel_ids.push(channel.id as i64);
+                }
+            }
+        }
 
-        // TODO: this huge query tends to be very inefficient, optimize?
         let res = sqlx::query!(
-            r"SELECT m.id, m.channel_id
-            FROM messages m
-            JOIN channels c ON m.channel_id = c.id
-            LEFT JOIN channel_acks ca ON m.channel_id = ca.channel_id AND ca.user_id = $1
-            WHERE (
-                ca.last_message_id IS NULL OR m.id > ca.last_message_id
-            )
-            AND (
+            r"SELECT
+                m.message_id AS id,
+                m.channel_id
+            FROM mentions m
+            INNER JOIN channels c ON m.channel_id = c.id
+            LEFT JOIN channel_acks a ON m.channel_id = a.channel_id AND a.user_id = $1
+            WHERE
                 m.channel_id = ANY($2::BIGINT[])
-                OR $1 IN (SELECT user_id FROM channel_recipients WHERE channel_id = c.id)
+            AND (
+                a.last_message_id IS NULL
+                OR m.message_id > a.last_message_id
             )
             AND (
-                $1 = ANY(m.mentions)
-                OR c.guild_id = ANY(m.mentions)
-                OR m.mentions && (SELECT array_agg(role_id) FROM role_data WHERE user_id = $1)
+                m.target_id = $1
+                OR m.target_id = c.guild_id
+                OR m.target_id = ANY(SELECT role_id FROM role_data WHERE user_id = $1)
             )",
             user_id as i64,
-            channel_ids,
+            &channel_ids,
         )
         .fetch_all(self.executor())
         .await?

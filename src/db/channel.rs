@@ -146,16 +146,17 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         kind: ChannelType,
     ) -> crate::Result<()> {
-        let exists = sqlx::query!(
+        let exists =
+            sqlx::query!(
             "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2 AND type = $3)",
             channel_id as i64,
             guild_id as i64,
             kind.name(),
         )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or_default();
+            .fetch_one(self.executor())
+            .await?
+            .exists
+            .unwrap_or_default();
 
         if exists {
             Ok(())
@@ -337,31 +338,32 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             _ => unimplemented!(),
         };
 
-        let channel = match info {
-            ChannelInfo::Guild(info) => {
-                let guild_id = channel.guild_id.ok_or_else(|| Error::InternalError {
-                    what: None,
-                    message: "Guild channel has no guild ID".to_string(),
-                    debug: None,
-                })? as u64;
+        let channel =
+            match info {
+                ChannelInfo::Guild(info) => {
+                    let guild_id = channel.guild_id.ok_or_else(|| Error::InternalError {
+                        what: None,
+                        message: "Guild channel has no guild ID".to_string(),
+                        debug: None,
+                    })? as u64;
 
-                let overwrites = self.fetch_channel_overwrites(channel_id).await?;
+                    let overwrites = self.fetch_channel_overwrites(channel_id).await?;
 
-                Channel::Guild(GuildChannel {
+                    Channel::Guild(GuildChannel {
+                        id: channel_id,
+                        guild_id,
+                        name: channel.name.unwrap_or_default(),
+                        position: channel.position.unwrap_or_default() as u16,
+                        parent_id: channel.parent_id.map(|id| id as u64),
+                        info,
+                        overwrites,
+                    })
+                }
+                ChannelInfo::Dm(info) => Channel::Dm(DmChannel {
                     id: channel_id,
-                    guild_id,
-                    name: channel.name.unwrap_or_default(),
-                    position: channel.position.unwrap_or_default() as u16,
-                    parent_id: channel.parent_id.map(|id| id as u64),
                     info,
-                    overwrites,
-                })
-            }
-            ChannelInfo::Dm(info) => Channel::Dm(DmChannel {
-                id: channel_id,
-                info,
-            }),
-        };
+                }),
+            };
 
         Ok(channel)
     }
