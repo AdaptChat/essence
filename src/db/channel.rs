@@ -923,10 +923,15 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .fetch_mentioned_messages(user_id, guilds)
             .await?
             .into_iter()
-            .map(|(k, mentions)| UnackedChannel {
-                channel_id: k,
-                last_message_id: None,
-                mentions,
+            .map(|(k, mentions)| {
+                (
+                    k,
+                    UnackedChannel {
+                        channel_id: k,
+                        last_message_id: None,
+                        mentions,
+                    },
+                )
             })
             .collect::<HashMap<_, _>>();
 

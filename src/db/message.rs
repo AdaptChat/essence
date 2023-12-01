@@ -44,12 +44,7 @@ macro_rules! construct_message {
             attachments: Vec::with_capacity(0),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
             stars: $data.stars as _,
-            mentions: $data
-                .mentions
-                .unwrap_or_default()
-                .into_iter()
-                .map(|id| id as _)
-                .collect(),
+            mentions: $data.mentions.into_iter().map(|id| id as _).collect(),
             edited_at: $data.edited_at,
         }
     }};
