@@ -943,14 +943,17 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             if let Some(unacked) = unacked.get_mut(&k) {
                 unacked.last_message_id.insert(last_message_id);
             } else {
-                unacked.insert(UnackedChannel {
-                    channel_id: k,
-                    last_message_id: Some(last_message_id),
-                    mentions: Vec::new(),
-                });
+                unacked.insert(
+                    k,
+                    UnackedChannel {
+                        channel_id: k,
+                        last_message_id: Some(last_message_id),
+                        mentions: Vec::new(),
+                    },
+                );
             }
         }
-        Ok(unacked)
+        Ok(unacked.into_values().collect())
     }
 }
 
