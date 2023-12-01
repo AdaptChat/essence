@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        m.revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id ASC LIMIT $5",
+  "query": "UPDATE messages\n            SET content = $1, embeds = $2::JSONB, edited_at = NOW()\n            WHERE id = $3 AND channel_id = $4\n            RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"",
   "describe": {
     "columns": [
       {
@@ -10,58 +10,58 @@
       },
       {
         "ordinal": 1,
-        "name": "revision_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 2,
         "name": "channel_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "author_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "type",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "content",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "embeds",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "flags",
         "type_info": "Int4"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "stars",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "metadata_user_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "metadata_pinned_message_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "metadata_pinned_by",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "edited_at",
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 12,
@@ -71,9 +71,8 @@
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
-        "Int8",
+        "Text",
+        "Jsonb",
         "Int8",
         "Int8"
       ]
@@ -81,18 +80,18 @@
     "nullable": [
       false,
       false,
-      false,
       true,
       false,
       true,
       false,
       false,
       false,
+      true,
       true,
       true,
       true,
       false
     ]
   },
-  "hash": "8b1dd953eed8071a88c11278fbc56ffad3afd4b2176d5bc4f8aaa208038f6b26"
+  "hash": "2f0731d94fdd58989a77d24c2c33154cb2c66f826580539f0e97024a74e5a85b"
 }

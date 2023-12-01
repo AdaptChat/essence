@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        m.revision_id = 0\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id DESC LIMIT $5",
+  "query": "SELECT\n                messages.*,\n                embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\",\n                (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions\n            FROM\n                messages\n            WHERE\n                channel_id = $1\n            AND\n                id = $2\n            ",
   "describe": {
     "columns": [
       {
@@ -10,70 +10,72 @@
       },
       {
         "ordinal": 1,
-        "name": "revision_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 2,
         "name": "channel_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 3,
+        "ordinal": 2,
         "name": "author_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 4,
+        "ordinal": 3,
         "name": "type",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 4,
         "name": "content",
         "type_info": "Text"
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "embeds",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 7,
+        "ordinal": 6,
         "name": "flags",
         "type_info": "Int4"
       },
       {
-        "ordinal": 8,
+        "ordinal": 7,
         "name": "stars",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "metadata_user_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "metadata_pinned_message_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "metadata_pinned_by",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "edited_at",
+        "type_info": "Timestamptz"
       },
       {
         "ordinal": 12,
         "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
         "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "mentions",
+        "type_info": "Int8Array"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
-        "Int8",
-        "Int8",
         "Int8",
         "Int8"
       ]
@@ -81,7 +83,6 @@
     "nullable": [
       false,
       false,
-      false,
       true,
       false,
       true,
@@ -91,8 +92,10 @@
       true,
       true,
       true,
-      false
+      true,
+      false,
+      null
     ]
   },
-  "hash": "107718a3d4275d58f1491d66ec176649b88e2e26f388d62e3b15b01fa626553d"
+  "hash": "7f0be019fa726b399f91f3e8543cb3927300d2390eb73d05fb713af7172f7e06"
 }

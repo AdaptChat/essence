@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM attachments WHERE message_id = $1",
+  "query": "SELECT a.*\n                    FROM attachments a\n                    INNER JOIN messages m ON a.message_id = m.id WHERE\n                        m.channel_id = $1\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id ASC LIMIT $5",
   "describe": {
     "columns": [
       {
@@ -31,6 +31,10 @@
     ],
     "parameters": {
       "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
         "Int8"
       ]
     },
@@ -42,5 +46,5 @@
       true
     ]
   },
-  "hash": "267af2ab394dc71f2fcb7d823e03f21b10c1f7cfb97c834fcaf37cab7ec609d6"
+  "hash": "5153de68036dee44f6031a3b32f7dd3bdac4e7604f0677da5f7c11098371229d"
 }

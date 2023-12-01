@@ -1,12 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5, $6)",
+  "query": "INSERT INTO attachments VALUES ($1, $2, $3, $4, $5)",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Uuid",
-        "Int8",
         "Int8",
         "Text",
         "Int8",
@@ -15,5 +14,5 @@
     },
     "nullable": []
   },
-  "hash": "0dcd4a3f42a8bea300f7ecc6e9f6f4e9491c1f82512b8a96eb8c9368da23b3bf"
+  "hash": "c2439290fb7b970d4fb7eb9d18baf88f7aa42366e030d03f6cd0012d5d79a69a"
 }
