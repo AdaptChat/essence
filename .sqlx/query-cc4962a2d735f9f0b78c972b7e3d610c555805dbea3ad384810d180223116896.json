@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                messages.*,\n                embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\",\n                (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions\n            FROM\n                messages\n            WHERE\n                channel_id = $1\n            AND\n                id = $2\n            ",
+  "query": "SELECT\n                messages.*,\n                embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n            FROM\n                messages\n            WHERE\n                channel_id = $1\n            AND\n                id = $2\n            ",
   "describe": {
     "columns": [
       {
@@ -65,13 +65,13 @@
       },
       {
         "ordinal": 12,
-        "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
-        "type_info": "Jsonb"
+        "name": "mentions",
+        "type_info": "Int8Array"
       },
       {
         "ordinal": 13,
-        "name": "mentions",
-        "type_info": "Int8Array"
+        "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
@@ -94,8 +94,8 @@
       true,
       true,
       false,
-      null
+      false
     ]
   },
-  "hash": "7f0be019fa726b399f91f3e8543cb3927300d2390eb73d05fb713af7172f7e06"
+  "hash": "cc4962a2d735f9f0b78c972b7e3d610c555805dbea3ad384810d180223116896"
 }

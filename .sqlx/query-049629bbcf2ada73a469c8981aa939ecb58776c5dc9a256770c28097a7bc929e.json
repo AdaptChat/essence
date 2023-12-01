@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO messages (id, channel_id, author_id, content, embeds, mentions)\n             VALUES ($1, $2, $3, $4, $5::JSONB, $6::BIGINT[])",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text",
+        "Jsonb",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "049629bbcf2ada73a469c8981aa939ecb58776c5dc9a256770c28097a7bc929e"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\",\n                        (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id DESC LIMIT $5",
+  "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id DESC LIMIT $5",
   "describe": {
     "columns": [
       {
@@ -65,13 +65,13 @@
       },
       {
         "ordinal": 12,
-        "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
-        "type_info": "Jsonb"
+        "name": "mentions",
+        "type_info": "Int8Array"
       },
       {
         "ordinal": 13,
-        "name": "mentions",
-        "type_info": "Int8Array"
+        "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
@@ -97,8 +97,8 @@
       true,
       true,
       false,
-      null
+      false
     ]
   },
-  "hash": "9dc3a0c90e9fcdf3f8ba5bc3c45689e7bf10a09d93c53f09ed71e5397518e7ab"
+  "hash": "db252520c24caf95c43c7ec4a4d4be8cf22d9b0f8665c3afec5d3c909aa3c666"
 }
