@@ -20,7 +20,7 @@ enum BulkFetchMessagesRequest {
 }
 
 macro_rules! construct_message {
-    ($data:ident, mentions = $mentions:expr) => {{
+    ($data:ident) => {{
         Message {
             id: $data.id as _,
             channel_id: $data.channel_id as _,
@@ -44,20 +44,14 @@ macro_rules! construct_message {
             attachments: Vec::with_capacity(0),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
             stars: $data.stars as _,
-            mentions: $mentions,
-            edited_at: $data.edited_at,
-        }
-    }};
-    ($data:ident) => {{
-        construct_message!(
-            $data,
-            mentions = $data
+            mentions: $data
                 .mentions
                 .unwrap_or_default()
                 .into_iter()
                 .map(|id| id as _)
-                .collect()
-        )
+                .collect(),
+            edited_at: $data.edited_at,
+        }
     }};
 }
 
@@ -117,8 +111,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         let mut message = sqlx::query!(
             r#"SELECT
                 messages.*,
-                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>",
-                (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions
+                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
             FROM
                 messages
             WHERE
@@ -176,8 +169,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 query!(
                     r#"SELECT
                         m.*,
-                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>",
-                        (SELECT array_agg(target_id) FROM mentions WHERE message_id = $2) AS mentions
+                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
                     FROM
                         messages m"#,
                     $direction
@@ -243,25 +235,12 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
-        let embeds = serde_json::to_value(payload.embeds.clone()).map_err(|err| {
-            Error::InternalError {
+        let embeds =
+            serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
                 what: Some("embed serialization".to_string()),
                 message: err.to_string(),
                 debug: Some(format!("{err:?}")),
-            }
-        })?;
-
-        sqlx::query!(
-            "INSERT INTO messages (id, channel_id, author_id, content, embeds)
-             VALUES ($1, $2, $3, $4, $5::JSONB)",
-            message_id as i64,
-            channel_id as i64,
-            user_id as i64,
-            payload.content,
-            embeds,
-        )
-        .execute(self.transaction())
-        .await?;
+            })?;
 
         let mut mentions = payload
             .content
@@ -271,12 +250,18 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         mentions.sort_unstable();
         mentions.dedup();
 
-        sqlx::query(
-            "INSERT INTO mentions (message_id, target_id)
-             SELECT $1, out.target_id FROM UNNEST($2) AS out(target_id)",
+        let mentions_i64 = mentions.iter().map(|m| *m as i64).collect_vec();
+
+        sqlx::query!(
+            "INSERT INTO messages (id, channel_id, author_id, content, embeds, mentions)
+             VALUES ($1, $2, $3, $4, $5::JSONB, $6::BIGINT[])",
+            message_id as i64,
+            channel_id as i64,
+            user_id as i64,
+            payload.content,
+            embeds,
+            &mentions_i64,
         )
-        .bind(message_id as i64)
-        .bind(mentions.iter().map(|m| *m as i64).collect_vec())
         .execute(self.transaction())
         .await?;
 
@@ -466,37 +451,27 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         })?;
 
         let mentions = content.as_deref().map(extract_mentions).unwrap_or_default();
-        // delete old mentions
-        sqlx::query!(
-            "DELETE FROM mentions WHERE message_id = $1",
-            message_id as i64,
-        )
-        .execute(self.transaction())
-        .await?;
-        // insert new mentions
-        sqlx::query(
-            "INSERT INTO mentions (message_id, target_id)
-             SELECT $1, out.target_id FROM UNNEST($2) AS out(target_id)",
-        )
-        .bind(message_id as i64)
-        .bind(mentions.iter().map(|m| *m as i64).collect_vec())
-        .execute(self.transaction())
-        .await?;
-
+        let mentions_i64 = mentions.iter().map(|m| *m as i64).collect_vec();
         let new = sqlx::query!(
             r#"UPDATE messages
-            SET content = $1, embeds = $2::JSONB, edited_at = NOW()
-            WHERE id = $3 AND channel_id = $4
+            SET 
+                content = $1,
+                embeds = $2::JSONB, 
+                edited_at = NOW(), 
+                mentions = $3::BIGINT[]
+            WHERE 
+                id = $4 AND channel_id = $5
             RETURNING *, embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>""#,
             content,
             embeds,
+            &mentions_i64,
             message_id as i64,
             channel_id as i64,
         )
         .fetch_one(self.transaction())
         .await?;
 
-        Ok((old, construct_message!(new, mentions = mentions)))
+        Ok((old, construct_message!(new)))
     }
 
     /// Deletes a message with the given channel and message ID.
@@ -585,9 +560,12 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 OR m.message_id > a.last_message_id
             )
             AND (
-                m.target_id = $1
-                OR m.target_id = c.guild_id
-                OR m.target_id = ANY(SELECT role_id FROM role_data WHERE user_id = $1)
+                $1 = ANY(m.targets)
+                OR c.guild_id = ANY(m.targets)
+                OR m.targets && (
+                    SELECT array_agg(role_id) FROM role_data 
+                    WHERE guild_id = c.guild_id AND user_id = $1
+                )
             )",
             user_id as i64,
             &channel_ids,
