@@ -277,6 +277,23 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         self.construct_channel_with_record(channel).await.map(Some)
     }
 
+    /// Fetches the ID of the last message sent in this channel, or `None` if no messages have been
+    /// sent so far.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the last message ID.
+    async fn fetch_last_message_id(&self, channel_id: u64) -> crate::Result<Option<u64>> {
+        let out = sqlx::query!(
+            "SELECT id FROM messages WHERE channel_id = $1 ORDER BY id DESC LIMIT 1",
+            channel_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|r| r.id as u64);
+
+        Ok(out)
+    }
+
     /// Constructs a channel from the database with the given information.
     ///
     /// # Errors
@@ -296,13 +313,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     nsfw: channel.nsfw.unwrap_or_default(),
                     locked: channel.locked.unwrap_or_default(),
                     slowmode: channel.slowmode.unwrap_or_default() as u32,
-                    last_message_id: sqlx::query!(
-                        "SELECT id FROM messages WHERE channel_id = $1 ORDER BY id DESC LIMIT 1",
-                        channel_id as i64,
-                    )
-                    .fetch_optional(self.executor())
-                    .await?
-                    .map(|r| r.id as u64),
+                    last_message_id: self.fetch_last_message_id(channel_id).await?,
                 };
 
                 ChannelInfo::Guild(match kind {
@@ -352,32 +363,32 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             _ => unimplemented!(),
         };
 
-        let channel =
-            match info {
-                ChannelInfo::Guild(info) => {
-                    let guild_id = channel.guild_id.ok_or_else(|| Error::InternalError {
-                        what: None,
-                        message: "Guild channel has no guild ID".to_string(),
-                        debug: None,
-                    })? as u64;
+        let channel = match info {
+            ChannelInfo::Guild(info) => {
+                let guild_id = channel.guild_id.ok_or_else(|| Error::InternalError {
+                    what: None,
+                    message: "Guild channel has no guild ID".to_string(),
+                    debug: None,
+                })? as u64;
 
-                    let overwrites = self.fetch_channel_overwrites(channel_id).await?;
+                let overwrites = self.fetch_channel_overwrites(channel_id).await?;
 
-                    Channel::Guild(GuildChannel {
-                        id: channel_id,
-                        guild_id,
-                        name: channel.name.unwrap_or_default(),
-                        position: channel.position.unwrap_or_default() as u16,
-                        parent_id: channel.parent_id.map(|id| id as u64),
-                        info,
-                        overwrites,
-                    })
-                }
-                ChannelInfo::Dm(info) => Channel::Dm(DmChannel {
+                Channel::Guild(GuildChannel {
                     id: channel_id,
+                    guild_id,
+                    name: channel.name.unwrap_or_default(),
+                    position: channel.position.unwrap_or_default() as u16,
+                    parent_id: channel.parent_id.map(|id| id as u64),
                     info,
-                }),
-            };
+                    overwrites,
+                })
+            }
+            ChannelInfo::Dm(info) => Channel::Dm(DmChannel {
+                id: channel_id,
+                info,
+                last_message_id: self.fetch_last_message_id(channel_id).await?,
+            }),
+        };
 
         Ok(channel)
     }
@@ -753,6 +764,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     recipient_ids,
                 },
             },
+            last_message_id: None,
         })
     }
 

@@ -92,6 +92,18 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
         .map(|_| ())
     }
 
+    /// Deletes all stale push notification registration keys using a SQL function.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with deleting the keys.
+    async fn delete_stale_push_keys(&mut self) -> sqlx::Result<()> {
+        sqlx::query!("SELECT delete_stale_keys()::TEXT").fetch_one(self.transaction()).await.map(|_| ())
+    }
+
     /// Deletes all tokens associated with the given user ID.
     ///
     /// # Note

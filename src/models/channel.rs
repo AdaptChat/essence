@@ -301,6 +301,9 @@ pub struct DmChannel {
     /// Information about the channel.
     #[serde(flatten)]
     pub info: DmChannelInfo,
+    /// The ID of the last message sent in this channel. This is `None` if no messages have been
+    /// sent in this channel, and is sometimes always none in partial contexts.
+    pub last_message_id: Option<u64>,
 }
 
 /// Represents any channel.
