@@ -110,6 +110,9 @@ pub struct ClientUser {
     /// Controls who can request to add the client as a friend.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub friend_request_privacy: PrivacyConfiguration,
+    /// Onboarding flags that indicate which onboarding steps the user has completed.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub onboarding_flags: UserOnboardingFlags,
 }
 
 impl std::ops::Deref for ClientUser {
@@ -152,6 +155,19 @@ bitflags::bitflags! {
 }
 
 serde_for_bitflags!(i16: PrivacyConfiguration);
+
+bitflags::bitflags! {
+    /// A bitmask of onboarding and tutorial steps that a user has completed.
+    #[derive(Default)]
+    pub struct UserOnboardingFlags: i64 {
+        // Learn Adapt
+        const CONNECT_WITH_FRIENDS = 1 << 0;
+        const CREATE_A_COMMUNITY = 1 << 1;
+        const DISCOVER_COMMUNITIES = 1 << 2;
+    }
+}
+
+serde_for_bitflags!(i64: UserOnboardingFlags);
 
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]

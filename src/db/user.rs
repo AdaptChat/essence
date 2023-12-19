@@ -1,4 +1,5 @@
 use super::DbExt;
+use crate::models::UserOnboardingFlags;
 use crate::{
     db::get_pool,
     error::UserInteractionType,
@@ -46,6 +47,7 @@ macro_rules! fetch_client_user {
                 friend_request_privacy: PrivacyConfiguration::from_bits_truncate(
                     r.friend_request_privacy,
                 ),
+                onboarding_flags: UserOnboardingFlags::from_bits_truncate(r.onboarding_flags),
             });
 
         Ok(result)

@@ -11,14 +11,6 @@ use crate::{
 use itertools::Itertools;
 use std::collections::HashMap;
 
-enum BulkFetchMessagesRequest {
-    History {
-        channel_id: u64,
-        query: MessageHistoryQuery,
-    },
-    Ids(Vec<u64>),
-}
-
 macro_rules! construct_message {
     ($data:ident) => {{
         Message {
@@ -202,17 +194,81 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             }};
         }
         Ok(if query.oldest_first {
-            let mut attachments: HashMap<u64, Vec<Attachment>> = query!(@attachments "ASC");
-            let mut messages = query!(@messages "ASC");
-            for message in &mut messages {
-                if let Some(attachments) = attachments.remove(&message.id) {
-                    message.attachments = attachments;
-                }
-            }
-            messages
+            query!("ASC")
         } else {
             query!("DESC")
         })
+    }
+
+    /// Fetches a list of messages by ID from the database in bulk.
+    ///
+    /// # Note
+    /// This returns messages from newest to oldest, despite the order of the IDs.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the messages.
+    async fn bulk_fetch_messages(
+        &self,
+        channel_ids: Option<&[i64]>,
+        message_ids: &[u64],
+        limit: Option<u64>,
+    ) -> crate::Result<Vec<Message>> {
+        let message_ids = message_ids.iter().map(|id| *id as i64).collect_vec();
+        let mut messages = sqlx::query!(
+            r#"SELECT
+                messages.*,
+                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+            FROM
+                messages
+            WHERE
+                id = ANY($1::BIGINT[])
+            AND
+                ($2::BIGINT[] IS NULL OR channel_id = ANY($2::BIGINT[]))
+            ORDER BY id DESC
+            LIMIT $3"#,
+            &message_ids,
+            channel_ids,
+            limit.map(|limit| limit as i64),
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|m| construct_message!(m))
+        .collect_vec();
+
+        let mut attachments = sqlx::query!(
+            r#"SELECT a.* FROM attachments a
+            INNER JOIN
+                messages m ON a.message_id = m.id
+            WHERE
+                m.id = ANY($1::BIGINT[])
+            AND
+                ($2::BIGINT[] IS NULL OR m.channel_id = ANY($2::BIGINT[]))"#,
+            &message_ids,
+            channel_ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|attachment| {
+            (
+                attachment.message_id as u64,
+                Attachment {
+                    id: attachment.id as _,
+                    alt: attachment.alt,
+                    filename: attachment.filename,
+                    size: attachment.size as _,
+                },
+            )
+        })
+        .into_group_map();
+
+        for message in &mut messages {
+            if let Some(attachments) = attachments.remove(&message.id) {
+                message.attachments = attachments;
+            }
+        }
+        Ok(messages)
     }
 
     /// Sends a message in the given channel.
@@ -517,15 +573,16 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
-    /// Fetches the IDs of all unacked messages that mention the user with the given ID.
+    /// Fetches the IDs of all viewable channels by the user with the given ID. Note that since this
+    /// is used internally, this returns `i64` instead of `u64`.
     ///
     /// # Errors
-    /// * If an error occurs with fetching the messages.
-    async fn fetch_mentioned_messages(
+    /// * If an error occurs with fetching the channels.
+    async fn fetch_observable_channel_ids(
         &self,
         user_id: u64,
         guilds: &[Guild],
-    ) -> crate::Result<HashMap<u64, Vec<u64>>> {
+    ) -> crate::Result<Vec<u64>> {
         let mut channel_ids = Vec::new();
         for (guild, channels) in guilds
             .iter()
@@ -537,10 +594,28 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                     .await?
                     .contains(Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY)
                 {
-                    channel_ids.push(channel.id as i64);
+                    channel_ids.push(channel.id);
                 }
             }
         }
+        Ok(channel_ids)
+    }
+
+    /// Fetches the IDs of all unacked messages that mention the user with the given ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the messages.
+    async fn fetch_mentioned_messages(
+        &self,
+        user_id: u64,
+        guilds: &[Guild],
+    ) -> crate::Result<HashMap<u64, Vec<u64>>> {
+        let channel_ids = self
+            .fetch_observable_channel_ids(user_id, guilds)
+            .await?
+            .into_iter()
+            .map(|id| id as i64)
+            .collect_vec();
 
         let res = sqlx::query!(
             r"SELECT m.id, m.channel_id FROM messages m

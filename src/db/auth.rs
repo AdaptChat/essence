@@ -101,7 +101,10 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with deleting the keys.
     async fn delete_stale_push_keys(&mut self) -> sqlx::Result<()> {
-        sqlx::query!("SELECT delete_stale_keys()::TEXT").fetch_one(self.transaction()).await.map(|_| ())
+        sqlx::query!("SELECT delete_stale_keys()::TEXT")
+            .fetch_one(self.transaction())
+            .await
+            .map(|_| ())
     }
 
     /// Deletes all tokens associated with the given user ID.
