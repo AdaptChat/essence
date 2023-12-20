@@ -74,6 +74,9 @@ pub enum OutboundMessage {
         relationships: Vec<Relationship>,
         /// A list of unacknowledged messages, organized by channel ID.
         unacked: Vec<UnackedChannel>,
+        /// A list of resolved message data for unacknowledged messages where the client user is
+        /// mentioned, limited to 100 messages.
+        inbox: Vec<Message>,
     },
     /// Sent by harmony when an observable user is updated.
     UserUpdate {
