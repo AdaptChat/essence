@@ -62,6 +62,11 @@
         "ordinal": 11,
         "name": "display_name",
         "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "onboarding_flags",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
@@ -81,7 +86,8 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
   "hash": "70d099ae314dac684c56e77d811351a55d090c29f869d4811131020c5f894017"
