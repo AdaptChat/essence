@@ -573,8 +573,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
-    /// Fetches the IDs of all viewable channels by the user with the given ID. Note that since this
-    /// is used internally, this returns `i64` instead of `u64`.
+    /// Fetches the IDs of all viewable channels by the user with the given ID.
     ///
     /// # Errors
     /// * If an error occurs with fetching the channels.
