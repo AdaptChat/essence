@@ -9,6 +9,7 @@ use crate::{
     ws::UnackedChannel,
     Error, NotFoundExt,
 };
+use futures_util::future::TryJoinAll;
 use itertools::Itertools;
 use std::{collections::HashMap, str::FromStr};
 
@@ -99,7 +100,7 @@ macro_rules! construct_guild_channel {
 }
 
 use crate::cache::ChannelInspection;
-use crate::db::get_pool;
+use crate::db::{get_pool, GuildDbExt};
 use crate::http::channel::{
     CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload,
 };
@@ -292,6 +293,53 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .map(|r| r.id as u64);
 
         Ok(out)
+    }
+
+    /// Fetches the IDs of all users that can view and receive messages from this channel.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the user IDs.
+    async fn fetch_channel_recipients(&self, channel_id: u64) -> crate::Result<Vec<u64>> {
+        let inspection =
+            self.inspect_channel(channel_id)
+                .await?
+                .ok_or_else(|| Error::NotFound {
+                    entity: "channel".to_string(),
+                    message: format!("Channel with ID {channel_id} not found"),
+                })?;
+
+        if inspection.channel_type.is_dm() {
+            return sqlx::query!(
+                "SELECT user_id FROM channel_recipients WHERE channel_id = $1",
+                channel_id as i64,
+            )
+            .fetch_all(self.executor())
+            .await
+            .map(|r| r.into_iter().map(|r| r.user_id as u64).collect())
+            .map_err(Into::into);
+        }
+
+        let guild_id = inspection.guild_id.unwrap_or(0); // silent-ish fail
+        let user_ids = sqlx::query!(
+            "SELECT id FROM members WHERE guild_id = $1",
+            guild_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| r.id as u64)
+        .map(|u| async move {
+            self.fetch_member_permissions(guild_id, u, Some(channel_id))
+                .await
+                .map(|p| (u, p))
+        })
+        .collect::<TryJoinAll<_>>()
+        .await?
+        .into_iter()
+        .filter_map(|(u, p): (_, Permissions)| p.contains(Permissions::VIEW_CHANNEL).then_some(u))
+        .collect();
+
+        Ok(user_ids)
     }
 
     /// Constructs a channel from the database with the given information.
