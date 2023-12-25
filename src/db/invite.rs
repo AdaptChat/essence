@@ -43,7 +43,10 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
             return Ok(None);
         };
 
-        Ok(Some(construct_invite!(i, self.fetch_partial_guild(i.guild_id as u64).await?)))
+        Ok(Some(construct_invite!(
+            i,
+            self.fetch_partial_guild(i.guild_id as u64).await?
+        )))
     }
 
     /// Fetches all invites within a given guild.

@@ -1,5 +1,6 @@
 mod auth;
 mod channel;
+mod emoji;
 mod guild;
 mod invite;
 mod member;
@@ -9,6 +10,7 @@ mod user;
 
 pub use auth::AuthDbExt;
 pub use channel::ChannelDbExt;
+pub use emoji::EmojiDbExt;
 pub use guild::GuildDbExt;
 pub use invite::InviteDbExt;
 pub use member::MemberDbExt;

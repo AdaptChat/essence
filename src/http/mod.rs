@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod channel;
+pub mod emoji;
 pub mod guild;
 pub mod invite;
 pub mod member;

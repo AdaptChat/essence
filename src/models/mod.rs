@@ -1,6 +1,7 @@
 //! Common object models consumed by Adapt's services.
 
 pub mod channel;
+pub mod emoji;
 pub mod guild;
 pub mod invite;
 pub mod message;
@@ -10,6 +11,7 @@ pub mod role;
 pub mod user;
 
 pub use channel::*;
+pub use emoji::*;
 pub use guild::*;
 pub use invite::*;
 pub use message::*;
@@ -37,6 +39,8 @@ pub enum ModelType {
     Role = 5,
     /// The model is used internally, e.g. a nonce.
     Internal = 6,
+    /// The model is an emoji.
+    Emoji = 7,
     /// Unknown model.
     Unknown = 31,
 }
@@ -53,6 +57,7 @@ impl ModelType {
             4 => Self::Attachment,
             5 => Self::Role,
             6 => Self::Internal,
+            7 => Self::Emoji,
             _ => Self::Unknown,
         }
     }
@@ -71,6 +76,7 @@ impl fmt::Display for ModelType {
                 Self::Attachment => "attachment",
                 Self::Role => "role",
                 Self::Internal => "internal",
+                Self::Emoji => "emoji",
                 Self::Unknown => "unknown",
             }
         )
