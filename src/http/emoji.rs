@@ -15,8 +15,6 @@ pub struct CreateEmojiPayload {
     /// The image should be represented as a
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
     pub image: String,
-    /// The user who created the emoji.
-    pub created_by: u64,
 }
 
 /// The payload sent to modify an emoji.
