@@ -11,19 +11,20 @@ use utoipa::ToSchema;
 pub struct CreateEmojiPayload {
     /// The name of the emoji.
     pub name: String,
-    /// The guild id the emoji belongs to.
-    pub guild_id: u64,
+    /// The emoji image.
+    /// The image should be represented as a
+    /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
+    pub image: String,
     /// The user who created the emoji.
     pub created_by: u64,
 }
 
 /// The payload sent to modify an emoji.
+/// The image of an emoji is immutable, users should create a new emoji instead.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct UpdateEmojiPayload {
-    /// The id of the emoji.
-    pub id: u64,
     /// The new name of the emoji.
     pub name: String,
 }
