@@ -95,3 +95,5 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 }
+
+impl<'t, T> EmojiDbExt<'t> for T where T: DbExt<'t> {}
