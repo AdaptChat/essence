@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO push_registration_keys (user_id, registration_key) VALUES ($1, $2)\n            ON CONFLICT (registration_key) DO UPDATE SET created_at = CURRENT_TIMESTAMP",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "12a763c278d4cca87643302a7748b279f057bb0ee4ee4be56564e51b84b2b9c6"
+}

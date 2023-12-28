@@ -176,7 +176,8 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
         key: impl AsRef<str> + Send,
     ) -> crate::Result<()> {
         sqlx::query!(
-            "INSERT INTO push_registration_keys (user_id, registration_key) VALUES ($1, $2)",
+            r"INSERT INTO push_registration_keys (user_id, registration_key) VALUES ($1, $2)
+            ON CONFLICT (registration_key) DO UPDATE SET created_at = CURRENT_TIMESTAMP",
             user_id as i64,
             key.as_ref(),
         )
