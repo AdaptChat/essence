@@ -154,16 +154,17 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         kind: ChannelType,
     ) -> crate::Result<()> {
-        let exists = sqlx::query!(
+        let exists =
+            sqlx::query!(
             "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2 AND type = $3)",
             channel_id as i64,
             guild_id as i64,
             kind.name(),
         )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or_default();
+            .fetch_one(self.executor())
+            .await?
+            .exists
+            .unwrap_or_default();
 
         if exists {
             Ok(())
@@ -569,10 +570,12 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
 
         let mut resolved = Vec::with_capacity(channels.len());
         for channel in channels {
-            resolved.push(match self.construct_channel_with_record(channel).await? {
-                Channel::Dm(dm) => dm,
-                Channel::Guild(_) => continue,
-            });
+            resolved.push(
+                match self.construct_channel_with_record(channel).await.ok() {
+                    Some(Channel::Dm(dm)) => dm,
+                    _ => continue,
+                },
+            );
         }
 
         Ok(resolved)
