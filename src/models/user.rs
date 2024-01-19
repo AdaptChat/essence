@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[cfg(feature = "db")]
 use crate::db::{DbRelationship, DbRelationshipType};
 use crate::serde_for_bitflags;
@@ -113,7 +115,32 @@ pub struct ClientUser {
     /// Onboarding flags that indicate which onboarding steps the user has completed.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub onboarding_flags: UserOnboardingFlags,
+    /// A bitmask for the user settings.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub settings: Settings,
+    /// A map for notification settings override.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub notification_override: HashMap<u64, NotificationFlags>,
 }
+
+bitflags::bitflags! {
+    #[derive(Default)]
+    pub struct Settings: i32 {
+        const NOTIFICATION = 1 << 0;
+    }
+}
+
+bitflags::bitflags! {
+    #[derive(Default)]
+    pub struct NotificationFlags: i16 {
+        const ALL_MENTIONS = 1 << 0;
+        const DIRECT_MENTIONS = 1 << 1;
+        const HIGHLIGHTS = 1 << 2;
+    }
+}
+
+serde_for_bitflags!(i32: Settings);
+serde_for_bitflags!(i16: NotificationFlags);
 
 impl std::ops::Deref for ClientUser {
     type Target = User;

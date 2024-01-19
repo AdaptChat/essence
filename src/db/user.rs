@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use super::DbExt;
-use crate::models::UserOnboardingFlags;
+use crate::models::{NotificationFlags, Settings, UserOnboardingFlags};
 use crate::{
     db::get_pool,
     error::UserInteractionType,
@@ -698,6 +700,108 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?
         .rows_affected())
+    }
+
+    async fn fetch_user_settings(&self, user_id: u64) -> crate::Result<Settings> {
+        let settings = sqlx::query!("SELECT settings FROM users WHERE id = $1", user_id as i64)
+            .fetch_one(self.executor())
+            .await?
+            .settings;
+
+        Ok(Settings::from_bits_truncate(settings))
+    }
+
+    async fn update_user_settings(
+        &mut self,
+        user_id: u64,
+        settings: Settings,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            "UPDATE users SET settings = $1 WHERE id = $2",
+            settings.bits(),
+            user_id as i64
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
+    async fn fetch_notification_settings(
+        &self,
+        user_id: u64,
+    ) -> crate::Result<HashMap<u64, NotificationFlags>> {
+        Ok(sqlx::query!(
+            "SELECT target_id, flags FROM notification_settings WHERE user_id = $1",
+            user_id as i64
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| {
+            (
+                r.target_id as u64,
+                NotificationFlags::from_bits_truncate(r.flags),
+            )
+        })
+        .collect())
+    }
+
+    async fn fetch_notification_settings_in_target(
+        &self,
+        user_id: u64,
+        target_id: u64,
+    ) -> crate::Result<Option<NotificationFlags>> {
+        Ok(sqlx::query!(
+            "SELECT flags FROM notification_settings WHERE user_id = $1 AND target_id = $2",
+            user_id as i64,
+            target_id as i64
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|r| NotificationFlags::from_bits_truncate(r.flags)))
+    }
+
+    async fn update_notification_settings(
+        &mut self,
+        user_id: u64,
+        target_id: u64,
+        flags: NotificationFlags,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            r#"INSERT INTO 
+                notification_settings 
+            VALUES 
+                ($1, $2, $3) 
+            ON CONFLICT 
+                (user_id, target_id) 
+            DO UPDATE SET 
+                flags = $3
+            "#,
+            user_id as i64,
+            target_id as i64,
+            flags.bits()
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
+    async fn remove_notification_settings(
+        &mut self,
+        user_id: u64,
+        target_id: u64,
+    ) -> crate::Result<()> {
+        sqlx::query!(
+            "DELETE FROM notification_settings WHERE user_id = $1 AND target_id = $2",
+            user_id as i64,
+            target_id as i64
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
     }
 }
 

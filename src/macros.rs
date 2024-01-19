@@ -91,6 +91,7 @@ macro_rules! serde_for_bitflags {
     };
 
     (u32: $t:ty) => { serde_for_bitflags!(@serde_unsigned(u32) $t => Int32); };
+    (i32: $t:ty) => { serde_for_bitflags!(@serde_signed(i32) $t => Int32); };
     (i16: $t:ty) => { serde_for_bitflags!(@serde_signed(i16) $t => Int32); };
     (i64: $t:ty) => { serde_for_bitflags!(@serde_signed(i64) $t => Int64); };
 }
