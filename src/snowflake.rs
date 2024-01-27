@@ -19,6 +19,7 @@
 
 use crate::models::ModelType;
 use regex::Regex;
+use sqlx::{Encode, Postgres, encode::IsNull, Type, postgres::PgTypeInfo};
 use std::{
     sync::{
         atomic::{AtomicU8, Ordering::Relaxed},
@@ -140,6 +141,18 @@ impl SnowflakeReader {
     #[must_use]
     pub const fn increment(&self) -> u8 {
         (self.0 & 0b1111_1111) as u8
+    }
+}
+
+impl From<u64> for SnowflakeReader {
+    fn from(value: u64) -> Self {
+        Self(value)
+    }
+}
+
+impl From<i64> for SnowflakeReader {
+    fn from(value: i64) -> Self {
+        Self(value as u64)
     }
 }
 

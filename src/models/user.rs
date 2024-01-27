@@ -133,9 +133,10 @@ bitflags::bitflags! {
 bitflags::bitflags! {
     #[derive(Default)]
     pub struct NotificationFlags: i16 {
-        const ALL_MENTIONS = 1 << 0;
-        const DIRECT_MENTIONS = 1 << 1;
-        const HIGHLIGHTS = 1 << 2;
+        const ALL = 1 << 0;
+        const ALL_MENTIONS = 1 << 1;
+        const DIRECT_MENTIONS = 1 << 2;
+        const HIGHLIGHTS = 1 << 3;
     }
 }
 

@@ -36,8 +36,8 @@ macro_rules! fetch_user {
 }
 
 macro_rules! fetch_client_user {
-    ($self:ident, $query:literal, $($arg:expr),* $(,)?) => {{
-        let result = sqlx::query!($query, $($arg),*)
+    ($self:ident, $where:literal, $($arg:expr),* $(,)?) => {{
+        let mut result = sqlx::query!("SELECT * FROM users WHERE " + $where, $($arg),*)
             .fetch_optional($self.executor())
             .await?
             .map(|r| ClientUser {
@@ -50,7 +50,20 @@ macro_rules! fetch_client_user {
                     r.friend_request_privacy,
                 ),
                 onboarding_flags: UserOnboardingFlags::from_bits_truncate(r.onboarding_flags),
+                settings: Settings::from_bits_truncate(r.settings),
+                notification_override: HashMap::new(),
             });
+        
+        if let Some(client) = result.as_mut() {
+            client.notification_override = {
+                sqlx::query!("SELECT target_id, notif_flags FROM notification_settings WHERE user_id = $1", client.id as i64)
+                    .fetch_all($self.executor())
+                    .await?
+                    .into_iter()
+                    .map(|r| (r.target_id as u64, NotificationFlags::from_bits_truncate(r.notif_flags)))
+                    .collect()
+            };
+        }
 
         Ok(result)
     }};
@@ -158,7 +171,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the client user.
     async fn fetch_client_user_by_id(&self, id: u64) -> sqlx::Result<Option<ClientUser>> {
-        fetch_client_user!(self, "SELECT * FROM users WHERE id = $1", id as i64)
+        fetch_client_user!(self, "id = $1", id as i64)
     }
 
     /// Fetches the flags of a user by their user ID.
@@ -203,7 +216,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         &self,
         email: impl AsRef<str> + Send,
     ) -> sqlx::Result<Option<ClientUser>> {
-        fetch_client_user!(self, "SELECT * FROM users WHERE email = $1", email.as_ref())
+        fetch_client_user!(self, "email = $1", email.as_ref())
     }
 
     /// Returns `true` if the given email is taken.
@@ -732,7 +745,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         user_id: u64,
     ) -> crate::Result<HashMap<u64, NotificationFlags>> {
         Ok(sqlx::query!(
-            "SELECT target_id, flags FROM notification_settings WHERE user_id = $1",
+            "SELECT target_id, notif_flags FROM notification_settings WHERE user_id = $1",
             user_id as i64
         )
         .fetch_all(self.executor())
@@ -741,7 +754,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         .map(|r| {
             (
                 r.target_id as u64,
-                NotificationFlags::from_bits_truncate(r.flags),
+                NotificationFlags::from_bits_truncate(r.notif_flags),
             )
         })
         .collect())
@@ -753,13 +766,13 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         target_id: u64,
     ) -> crate::Result<Option<NotificationFlags>> {
         Ok(sqlx::query!(
-            "SELECT flags FROM notification_settings WHERE user_id = $1 AND target_id = $2",
+            "SELECT notif_flags FROM notification_settings WHERE user_id = $1 AND target_id = $2",
             user_id as i64,
             target_id as i64
         )
         .fetch_optional(self.executor())
         .await?
-        .map(|r| NotificationFlags::from_bits_truncate(r.flags)))
+        .map(|r| NotificationFlags::from_bits_truncate(r.notif_flags)))
     }
 
     async fn update_notification_settings(
@@ -776,7 +789,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             ON CONFLICT 
                 (user_id, target_id) 
             DO UPDATE SET 
-                flags = $3
+                notif_flags = $3
             "#,
             user_id as i64,
             target_id as i64,
@@ -802,6 +815,13 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         .await?;
 
         Ok(())
+    }
+
+    async fn can_push(&self, user_id: u64, target_id: Option<u64>) -> crate::Result<bool> {
+        let enabled = self.fetch_user_settings(user_id).await?.contains(Settings::NOTIFICATION);
+        // TODO: Check override and target.
+
+        Ok(enabled)
     }
 }
 
