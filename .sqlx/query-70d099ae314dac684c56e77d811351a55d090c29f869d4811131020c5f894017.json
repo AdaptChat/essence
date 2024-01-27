@@ -67,6 +67,11 @@
         "ordinal": 12,
         "name": "onboarding_flags",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "settings",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -87,6 +92,7 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },

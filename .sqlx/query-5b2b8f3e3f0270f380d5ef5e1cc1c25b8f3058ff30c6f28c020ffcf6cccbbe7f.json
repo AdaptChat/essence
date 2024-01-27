@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT notif_flags FROM notification_settings WHERE user_id = $1 AND target_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "notif_flags",
+        "type_info": "Int2"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5b2b8f3e3f0270f380d5ef5e1cc1c25b8f3058ff30c6f28c020ffcf6cccbbe7f"
+}

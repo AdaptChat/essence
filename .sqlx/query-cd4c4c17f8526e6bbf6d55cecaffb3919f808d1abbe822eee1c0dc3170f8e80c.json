@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM notification_settings WHERE user_id = $1 AND target_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd4c4c17f8526e6bbf6d55cecaffb3919f808d1abbe822eee1c0dc3170f8e80c"
+}
