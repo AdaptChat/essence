@@ -19,7 +19,6 @@
 
 use crate::models::ModelType;
 use regex::Regex;
-use sqlx::{Encode, Postgres, encode::IsNull, Type, postgres::PgTypeInfo};
 use std::{
     sync::{
         atomic::{AtomicU8, Ordering::Relaxed},

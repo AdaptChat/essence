@@ -68,6 +68,8 @@ pub enum OutboundMessage {
         guilds: Vec<Guild>,
         /// A list of DM channels that the session's user is a member of.
         dm_channels: Vec<DmChannel>,
+        /// A list of channels or guilds favorited and shown in the user's home sidebar.
+        favorites: Vec<u64>,
         /// An initial array of all presences observed by the user.
         presences: Vec<Presence>,
         /// A list of relationships associated with the user.

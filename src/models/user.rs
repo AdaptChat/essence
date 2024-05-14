@@ -115,7 +115,7 @@ pub struct ClientUser {
     /// Onboarding flags that indicate which onboarding steps the user has completed.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub onboarding_flags: UserOnboardingFlags,
-    /// A bitmask for the user settings.
+    /// Bitmask of client settings.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub settings: Settings,
     /// A map for notification settings override.
@@ -126,7 +126,10 @@ pub struct ClientUser {
 bitflags::bitflags! {
     #[derive(Default)]
     pub struct Settings: i32 {
-        const NOTIFICATION = 1 << 0;
+        /// Whether the user wants to receive push notifications.
+        const NOTIFICATIONS = 1 << 0;
+        /// Whether the user wants to always show guilds in the sidebar.
+        const ALWAYS_SHOW_GUILDS_IN_SIDEBAR = 1 << 1;
     }
 }
 
@@ -197,6 +200,19 @@ bitflags::bitflags! {
 
 serde_for_bitflags!(i64: UserOnboardingFlags);
 
+/// A section to include in a user's sidebar.
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[serde(rename_all = "snake_case")]
+pub enum SidebarSection {
+    /// Show unmuted channels that recently had activity. (Unread messages)
+    UnreadMessages,
+    /// Show channels you recently accessed.
+    RecentChannels,
+}
+
 /// Represents the type of relationship a user has with another user.
 #[derive(Copy, Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
@@ -240,7 +256,7 @@ pub struct Relationship {
 }
 
 #[cfg(feature = "db")]
-impl Relationship {
+impl crate::models::Relationship {
     /// Creates a new relationship from a database row.
     /// This is used internally by the database module.
     #[inline]

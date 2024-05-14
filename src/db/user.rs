@@ -53,7 +53,7 @@ macro_rules! fetch_client_user {
                 settings: Settings::from_bits_truncate(r.settings),
                 notification_override: HashMap::new(),
             });
-        
+
         if let Some(client) = result.as_mut() {
             client.notification_override = {
                 sqlx::query!("SELECT target_id, notif_flags FROM notification_settings WHERE user_id = $1", client.id as i64)
@@ -224,13 +224,14 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with the database.
     async fn is_email_taken(&self, email: impl AsRef<str> + Send) -> sqlx::Result<bool> {
-        let result = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
-            email.as_ref()
-        )
-        .fetch_one(self.executor())
-        .await?
-        .exists;
+        let result =
+            sqlx::query!(
+                "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)",
+                email.as_ref()
+            )
+            .fetch_one(self.executor())
+            .await?
+            .exists;
 
         Ok(result.unwrap())
     }
@@ -244,14 +245,15 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         username: impl AsRef<str> + Send,
         exclude: u64,
     ) -> sqlx::Result<bool> {
-        let result = sqlx::query!(
-            "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) AND id != $2)",
-            username.as_ref(),
-            exclude as i64,
-        )
-        .fetch_one(self.executor())
-        .await?
-        .exists;
+        let result =
+            sqlx::query!(
+                "SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1) AND id != $2)",
+                username.as_ref(),
+                exclude as i64,
+            )
+            .fetch_one(self.executor())
+            .await?
+            .exists;
 
         Ok(result.unwrap())
     }
@@ -467,16 +469,17 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         let relationship = self
             .assert_user_is_not_blocked_by(user_id, target_id)
             .await?;
-        let privacy = match interaction {
-            UserInteractionType::Dm => self.fetch_dm_privacy_configuration(user_id).await?,
-            UserInteractionType::GroupDm => {
-                self.fetch_group_dm_privacy_configuration(user_id).await?
-            }
-            UserInteractionType::FriendRequest => {
-                self.fetch_friend_request_privacy_configuration(user_id)
-                    .await?
-            }
-        };
+        let privacy =
+            match interaction {
+                UserInteractionType::Dm => self.fetch_dm_privacy_configuration(user_id).await?,
+                UserInteractionType::GroupDm => {
+                    self.fetch_group_dm_privacy_configuration(user_id).await?
+                }
+                UserInteractionType::FriendRequest => {
+                    self.fetch_friend_request_privacy_configuration(user_id)
+                        .await?
+                }
+            };
 
         if privacy.contains(PrivacyConfiguration::EVERYONE)
             // Friends
@@ -818,7 +821,10 @@ pub trait UserDbExt<'t>: DbExt<'t> {
     }
 
     async fn can_push(&self, user_id: u64, target_id: Option<u64>) -> crate::Result<bool> {
-        let enabled = self.fetch_user_settings(user_id).await?.contains(Settings::NOTIFICATION);
+        let enabled = self
+            .fetch_user_settings(user_id)
+            .await?
+            .contains(Settings::NOTIFICATIONS);
         // TODO: Check override and target.
 
         Ok(enabled)
