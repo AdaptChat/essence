@@ -1,4 +1,7 @@
-use crate::{models::PermissionPair, Error};
+use crate::{
+    models::{Message, PermissionPair},
+    Error,
+};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 #[cfg(feature = "utoipa")]
@@ -6,6 +9,20 @@ use utoipa::{
     openapi::{Array, ArrayBuilder, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
     ToSchema,
 };
+
+/// Either a fully resolved message or just its ID.
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
+pub enum MaybePartialMessage {
+    /// The full message.
+    Full(Message),
+    /// Just the ID of the message.
+    Id { id: u64 },
+}
 
 /// Represents common information found in text-based guild channels.
 #[derive(Clone, Debug, Default, Serialize)]
@@ -25,7 +42,7 @@ pub struct TextBasedGuildChannelInfo {
     pub slowmode: u32,
     /// The ID of the last message sent in this channel. This is `None` if no messages have been
     /// sent in this channel, and is sometimes always none in partial contexts.
-    pub last_message_id: Option<u64>,
+    pub last_message: Option<MaybePartialMessage>,
 }
 
 /// An intermediate representation of a channel's type. This is never used directly, but is used
@@ -64,11 +81,13 @@ impl FromStr for ChannelType {
             "merged" => Ok(Self::Merged),
             "dm" => Ok(Self::Dm),
             "group" => Ok(Self::Group),
-            _ => Err(Error::InternalError {
-                what: None,
-                message: "Database returned invalid channel type".to_string(),
-                debug: None,
-            }),
+            _ => {
+                Err(Error::InternalError {
+                    what: None,
+                    message: "Database returned invalid channel type".to_string(),
+                    debug: None,
+                })
+            }
         }
     }
 }
@@ -299,9 +318,9 @@ pub struct DmChannel {
     /// Information about the channel.
     #[serde(flatten)]
     pub info: DmChannelInfo,
-    /// The ID of the last message sent in this channel. This is `None` if no messages have been
-    /// sent in this channel, and is sometimes always none in partial contexts.
-    pub last_message_id: Option<u64>,
+    /// The last message sent in this channel. This is `None` if no messages have been sent in this
+    /// channel, and is sometimes always none in partial contexts.
+    pub last_message: Option<Message>,
 }
 
 /// Represents any channel.
@@ -310,6 +329,7 @@ pub struct DmChannel {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(untagged)]
+#[allow(clippy::large_enum_variant)]
 pub enum Channel {
     /// A guild channel.
     Guild(GuildChannel),

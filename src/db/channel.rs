@@ -1,9 +1,11 @@
+#[allow(unused_imports)]
+use crate::models::Embed;
 use crate::{
     cache,
-    db::{DbExt, MessageDbExt},
+    db::{message::construct_message, DbExt, MessageDbExt},
     models::{
         Channel, ChannelInfo, ChannelType, DmChannel, DmChannelInfo, Guild, GuildChannel,
-        GuildChannelInfo, PermissionOverwrite, PermissionPair, Permissions,
+        GuildChannelInfo, Message, PermissionOverwrite, PermissionPair, Permissions,
         TextBasedGuildChannelInfo,
     },
     ws::UnackedChannel,
@@ -77,7 +79,9 @@ macro_rules! construct_guild_channel {
                         nsfw: $data.nsfw.unwrap_or_default(),
                         locked: $data.locked.unwrap_or_default(),
                         slowmode: $data.slowmode.unwrap_or_default() as u32,
-                        last_message_id: $data.last_message_id.map(|id| id as u64),
+                        last_message: $data
+                            .last_message_id
+                            .map(|id| MaybePartialMessage::Id { id: id as _ }),
                     };
 
                     match kind {
@@ -104,6 +108,7 @@ use crate::db::{get_pool, GuildDbExt};
 use crate::http::channel::{
     CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload,
 };
+use crate::models::MaybePartialMessage;
 #[allow(clippy::redundant_pub_crate)] // false positive
 pub(crate) use {construct_guild_channel, query_guild_channels};
 
@@ -154,16 +159,17 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         kind: ChannelType,
     ) -> crate::Result<()> {
-        let exists = sqlx::query!(
+        let exists =
+            sqlx::query!(
             "SELECT EXISTS(SELECT 1 FROM channels WHERE id = $1 AND guild_id = $2 AND type = $3)",
             channel_id as i64,
             guild_id as i64,
             kind.name(),
         )
-        .fetch_one(self.executor())
-        .await?
-        .exists
-        .unwrap_or_default();
+            .fetch_one(self.executor())
+            .await?
+            .exists
+            .unwrap_or_default();
 
         if exists {
             Ok(())
@@ -277,21 +283,33 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         self.construct_channel_with_record(channel).await.map(Some)
     }
 
-    /// Fetches the ID of the last message sent in this channel, or `None` if no messages have been
-    /// sent so far.
+    /// Fetches the last message sent in this channel, or `None` if no messages have been sent so
+    /// far.
     ///
     /// # Errors
-    /// * If an error occurs with fetching the last message ID.
-    async fn fetch_last_message_id(&self, channel_id: u64) -> crate::Result<Option<u64>> {
-        let out = sqlx::query!(
-            "SELECT id FROM messages WHERE channel_id = $1 ORDER BY id DESC LIMIT 1",
+    /// * If an error occurs with fetching the last message.
+    async fn fetch_last_message(&self, channel_id: u64) -> crate::Result<Option<Message>> {
+        let mut message = sqlx::query!(
+            r#"SELECT
+                messages.*,
+                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+            FROM
+                messages
+            WHERE
+                channel_id = $1
+            ORDER BY id DESC
+            LIMIT 1
+            "#,
             channel_id as i64,
         )
         .fetch_optional(self.executor())
         .await?
-        .map(|r| r.id as u64);
+        .map(|m| construct_message!(m));
 
-        Ok(out)
+        if let Some(message) = message.as_mut() {
+            message.attachments = self.fetch_message_attachments(message.id).await?;
+        }
+        Ok(message)
     }
 
     /// Fetches the IDs of all users that can view and receive messages from this channel.
@@ -360,7 +378,10 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     nsfw: channel.nsfw.unwrap_or_default(),
                     locked: channel.locked.unwrap_or_default(),
                     slowmode: channel.slowmode.unwrap_or_default() as u32,
-                    last_message_id: self.fetch_last_message_id(channel_id).await?,
+                    last_message: self
+                        .fetch_last_message(channel_id)
+                        .await?
+                        .map(MaybePartialMessage::Full),
                 };
 
                 ChannelInfo::Guild(match kind {
@@ -433,7 +454,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             ChannelInfo::Dm(info) => Channel::Dm(DmChannel {
                 id: channel_id,
                 info,
-                last_message_id: self.fetch_last_message_id(channel_id).await?,
+                last_message: self.fetch_last_message(channel_id).await?,
             }),
         };
 
@@ -813,7 +834,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                     recipient_ids,
                 },
             },
-            last_message_id: None,
+            last_message: None,
         })
     }
 

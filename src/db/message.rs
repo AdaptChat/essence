@@ -13,6 +13,8 @@ use std::collections::HashMap;
 
 macro_rules! construct_message {
     ($data:ident) => {{
+        use $crate::models::{Message, MessageFlags, MessageInfo};
+
         Message {
             id: $data.id as _,
             channel_id: $data.channel_id as _,
@@ -41,6 +43,8 @@ macro_rules! construct_message {
         }
     }};
 }
+
+pub(crate) use construct_message;
 
 #[async_trait::async_trait]
 pub trait MessageDbExt<'t>: DbExt<'t> {
@@ -286,12 +290,13 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
-        let embeds =
-            serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
+        let embeds = serde_json::to_value(payload.embeds.clone()).map_err(|err| {
+            Error::InternalError {
                 what: Some("embed serialization".to_string()),
                 message: err.to_string(),
                 debug: Some(format!("{err:?}")),
-            })?;
+            }
+        })?;
 
         let mut mentions = payload
             .content
