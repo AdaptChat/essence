@@ -163,6 +163,13 @@ pub enum OutboundMessage {
         /// The role after it was modified.
         after: Role,
     },
+    /// Sent by harmony when role positions are updated.
+    RolePositionsUpdate {
+        /// The ID of the guild that the role positions were updated in.
+        guild_id: u64,
+        /// A list of role IDs in the order that they should be displayed.
+        role_ids: Vec<u64>,
+    },
     /// Sent by harmny when a role is deleted.
     RoleDelete {
         /// The ID of the role that was deleted.
