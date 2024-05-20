@@ -1,7 +1,5 @@
 #![cfg_attr(feature = "db", feature(let_chains))]
 #![cfg_attr(feature = "db", feature(trait_alias))]
-#![cfg_attr(feature = "async-trait", feature(async_fn_in_trait))]
-#![cfg_attr(feature = "async-trait", allow(incomplete_features))]
 #![allow(
     clippy::module_name_repetitions,
     clippy::cast_possible_truncation,

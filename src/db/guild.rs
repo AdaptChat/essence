@@ -330,12 +330,11 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             None
         };
 
-        let roles =
-            if query.roles {
-                Some(self.fetch_all_roles_in_guild(guild_id).await?)
-            } else {
-                None
-            };
+        let roles = if query.roles {
+            Some(self.fetch_all_roles_in_guild(guild_id).await?)
+        } else {
+            None
+        };
 
         let members = if query.members {
             Some(self.fetch_all_members_in_guild(guild_id).await?)
@@ -564,15 +563,14 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        let joined_at =
-            sqlx::query!(
-                "INSERT INTO members (id, guild_id) VALUES ($1, $2) RETURNING joined_at",
-                owner_id as i64,
-                guild_id as i64,
-            )
-            .fetch_one(self.transaction())
-            .await?
-            .joined_at;
+        let joined_at = sqlx::query!(
+            "INSERT INTO members (id, guild_id) VALUES ($1, $2) RETURNING joined_at",
+            owner_id as i64,
+            guild_id as i64,
+        )
+        .fetch_one(self.transaction())
+        .await?
+        .joined_at;
 
         let role_flags = RoleFlags::DEFAULT;
         let allowed_permissions = Permissions::DEFAULT;
@@ -637,12 +635,11 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             ..Role::default()
         };
 
-        let channel =
-            GuildChannel {
-                id: channel_id,
-                guild_id,
-                ..GuildChannel::default()
-            };
+        let channel = GuildChannel {
+            id: channel_id,
+            guild_id,
+            ..GuildChannel::default()
+        };
 
         let member = Member {
             user: MaybePartialUser::Partial { id: owner_id },
