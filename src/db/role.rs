@@ -389,6 +389,85 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         Ok(role)
     }
 
+    /// Edits the ordering of roles in the given guild in bulk. A slice of role IDs must be provided
+    /// as ``role_ids`` from lowest to highest position. **All** roles **except the default role**
+    /// must be provided in the slice.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the roles.
+    /// * If the guild does not exist.
+    /// * If any of the roles with IDs in ``role_ids`` do not exist.
+    /// * If the default role is included in the slice.
+    /// * If the length of ``role_ids`` does not match the number of roles in the guild, i.e.
+    ///  ``role_ids.len() != number of roles in the guild`` (excluding default role).
+    async fn edit_role_positions(&mut self, guild_id: u64, role_ids: &[u64]) -> crate::Result<()> {
+        let pool = get_pool();
+        pool.assert_guild_exists(guild_id).await?;
+
+        let default_role_id = with_model_type(guild_id, ModelType::Role);
+        let roles = sqlx::query!(
+            "SELECT id, position FROM roles WHERE guild_id = $1 AND id != $2",
+            guild_id as i64,
+            default_role_id as i64,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        if roles.len() != role_ids.len() {
+            return Err(Error::InvalidField {
+                field: "role_ids".to_string(),
+                message: format!(
+                    "Expected to reorder {} roles, but {} were provided",
+                    roles.len(),
+                    role_ids.len(),
+                ),
+            });
+        }
+
+        let mut ids = Vec::with_capacity(roles.len());
+        let mut positions = Vec::with_capacity(roles.len());
+
+        for (i, &role_id) in role_ids.iter().enumerate() {
+            let role = roles
+                .iter()
+                .find(|r| r.id as u64 == role_id)
+                .ok_or_else(|| Error::NotFound {
+                    entity: "role".to_string(),
+                    message: format!(
+                        "Role with ID {role_id} is the default role or does not exist"
+                    ),
+                })?;
+
+            let position = (i + 1) as i16;
+            if role.position != position {
+                ids.push(role_id as i64);
+                positions.push(position);
+            }
+        }
+
+        sqlx::query(
+            r"UPDATE
+                roles
+            SET
+                position = p.position
+            FROM
+                (SELECT UNNEST($1::BIGINT[]) AS id, UNNEST($2::SMALLINT[]) AS position) AS p
+            WHERE
+                roles.id = p.id
+            ",
+        )
+        .bind(&ids)
+        .bind(&positions)
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
     /// Deletes the role with the given ID in the given guild.
     ///
     /// # Note
