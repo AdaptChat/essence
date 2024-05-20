@@ -391,7 +391,8 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
 
     /// Edits the ordering of roles in the given guild in bulk. A slice of role IDs must be provided
     /// as ``role_ids`` from lowest to highest position. **All** roles **except the default role**
-    /// must be provided in the slice.
+    /// must be provided in the slice. Although roles ``>=`` than the invoker's top role **must**
+    /// be included in the slice, they **must** remain in their original positions (unless owner).
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -404,9 +405,17 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     /// * If the default role is included in the slice.
     /// * If the length of ``role_ids`` does not match the number of roles in the guild, i.e.
     ///  ``role_ids.len() != number of roles in the guild`` (excluding default role).
-    async fn edit_role_positions(&mut self, guild_id: u64, role_ids: &[u64]) -> crate::Result<()> {
+    /// * If a role in ``role_ids`` which is higher than or equal to the invoker's top role is not
+    ///   in its original position, unless the invoker owns the guild.
+    async fn edit_role_positions(
+        &mut self,
+        guild_id: u64,
+        role_ids: &[u64],
+        user_id: u64,
+    ) -> crate::Result<()> {
         let pool = get_pool();
-        pool.assert_guild_exists(guild_id).await?;
+        let (top_role_id, top_role_position) = pool.fetch_top_role(guild_id, user_id).await?;
+        let is_owner = pool.is_guild_owner(guild_id, user_id).await?;
 
         let default_role_id = with_model_type(guild_id, ModelType::Role);
         let roles = sqlx::query!(
@@ -444,6 +453,17 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
 
             let position = (i + 1) as i16;
             if role.position != position {
+                if !is_owner && role.position >= top_role_position as _ {
+                    return Err(Error::RoleTooLow {
+                        guild_id,
+                        top_role_id,
+                        top_role_position,
+                        desired_position: role.position as _,
+                        message: String::from(
+                            "You can only change the position of roles lower than your top role.",
+                        ),
+                    });
+                }
                 ids.push(role_id as i64);
                 positions.push(position);
             }
