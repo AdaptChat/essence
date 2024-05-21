@@ -340,11 +340,12 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         guild_id: u64,
         role_id: u64,
         payload: EditRolePayload,
-    ) -> crate::Result<Role> {
-        let mut role = get_pool()
+    ) -> crate::Result<(Role, Role)> {
+        let old = get_pool()
             .fetch_role(guild_id, role_id)
             .await?
             .ok_or_not_found("role", "role not found")?;
+        let mut role = old.clone();
 
         if let Some(name) = payload.name {
             role.name = name;
@@ -386,7 +387,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .await?;
 
         cache::clear_member_permissions(guild_id).await?;
-        Ok(role)
+        Ok((old, role))
     }
 
     /// Edits the ordering of roles in the given guild in bulk. A slice of role IDs must be provided
