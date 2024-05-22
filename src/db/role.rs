@@ -293,15 +293,19 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             flags.insert(RoleFlags::MENTIONABLE);
         }
 
-        sqlx::query!("UPDATE roles SET position = position + 1 WHERE position > 0")
-            .execute(self.transaction())
-            .await?;
+        sqlx::query!(
+            "UPDATE roles SET position = position + 1 WHERE guild_id = $1 AND position >= $2",
+            guild_id as i64,
+            payload.position as i16,
+        )
+        .execute(self.transaction())
+        .await?;
 
         sqlx::query!(
             r#"INSERT INTO roles
                 (id, guild_id, name, color, allowed_permissions, denied_permissions, position, flags)
             VALUES
-                ($1, $2, $3, $4, $5, $6, 1, $7)
+                ($1, $2, $3, $4, $5, $6, $7, $8)
             "#,
             role_id as i64,
             guild_id as i64,
@@ -309,6 +313,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             payload.color.map(|color| color as i32),
             payload.permissions.allow.bits(),
             payload.permissions.deny.bits(),
+            payload.position as i16,
             flags.bits() as i32,
         )
         .execute(self.transaction())
@@ -509,7 +514,8 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .position;
 
         sqlx::query!(
-            "UPDATE roles SET position = position - 1 WHERE position > $1",
+            "UPDATE roles SET position = position - 1 WHERE guild_id = $1 AND position > $2",
+            guild_id as i64,
             position as i16,
         )
         .execute(self.transaction())

@@ -162,13 +162,13 @@ serde_for_bitflags!(i64: Permissions);
 impl Default for Permissions {
     #[inline]
     fn default() -> Self {
-        Self::DEFAULT
+        Self::empty()
     }
 }
 
 /// Represents a pair of permissions, one representing allowed permissions and the other
 /// representing denied permissions. This is so that any permission that is represented as
-/// "neutral" where it is neither allowed or denied remains easily overwritten by lower
+/// "neutral" where it is neither allowed/denied remains easily overwritten by lower
 /// roles or members.
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
@@ -177,4 +177,26 @@ pub struct PermissionPair {
     pub allow: Permissions,
     /// The denied permissions.
     pub deny: Permissions,
+}
+
+impl PermissionPair {
+    /// Creates a new empty permission pair with no allowed or denied permissions.
+    #[inline]
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self {
+            allow: Permissions::empty(),
+            deny: Permissions::empty(),
+        }
+    }
+
+    /// Creates a permission pair that allows default permissions.
+    #[inline]
+    #[must_use]
+    pub const fn allow_default() -> Self {
+        Self {
+            allow: Permissions::DEFAULT,
+            deny: Permissions::empty(),
+        }
+    }
 }

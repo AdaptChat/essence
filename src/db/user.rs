@@ -817,7 +817,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
-    async fn can_push(&self, user_id: u64, target_id: Option<u64>) -> crate::Result<bool> {
+    async fn can_push(&self, user_id: u64, _target_id: Option<u64>) -> crate::Result<bool> {
         let enabled = self
             .fetch_user_settings(user_id)
             .await?
