@@ -1,4 +1,3 @@
-use crate::db::{get_pool, GuildDbExt};
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
@@ -7,6 +6,10 @@ use crate::{
     models::{Attachment, Guild, Message, MessageFlags, MessageInfo, Permissions},
     snowflake::extract_mentions,
     Error, NotFoundExt,
+};
+use crate::{
+    db::{get_pool, GuildDbExt},
+    models::MessageReference,
 };
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -40,6 +43,7 @@ macro_rules! construct_message {
             stars: $data.stars as _,
             mentions: $data.mentions.into_iter().map(|id| id as _).collect(),
             edited_at: $data.edited_at,
+            references: Vec::new(),
         }
     }};
 }
@@ -87,6 +91,32 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .collect())
     }
 
+    /// Fetches what this message references.
+    ///
+    /// # Errors
+    /// * Error while fetching references.
+    /// * Error while fetching message.
+    /// * Message not found.
+    async fn fetch_message_references(
+        &self,
+        message_id: u64,
+    ) -> crate::Result<Vec<MessageReference>> {
+        Ok(sqlx::query!(
+            "SELECT * FROM message_references WHERE target_id = $1",
+            message_id as i64
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|reference| MessageReference {
+            message_id: reference.message_id as u64,
+            channel_id: reference.channel_id as u64,
+            guild_id: reference.guild_id.map(|x| x as u64),
+            mention_author: reference.mention_author,
+        })
+        .collect())
+    }
+
     /// Fetches a message from the database with the given ID in the given channel.
     ///
     /// # Errors
@@ -119,6 +149,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
 
         if let Some(message) = message.as_mut() {
             message.attachments = self.fetch_message_attachments(message_id).await?;
+            message.references = self.fetch_message_references(message_id).await?;
         }
         Ok(message)
     }
@@ -186,12 +217,38 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 ))
                 .into_group_map()
             }};
+            (@references $direction:literal) => {{
+                query!(
+                    "SELECT r.* 
+                    FROM message_references r 
+                    INNER JOIN messages m ON r.message_id = m.id",
+                    $direction
+                )
+                .map(|reference| (
+                    reference.message_id as u64,
+                    MessageReference {
+                        message_id: reference.target_id as _,
+                        channel_id: reference.channel_id as _,
+                        guild_id: reference.guild_id.map(|x| x as _),
+                        mention_author: reference.mention_author
+                    }
+                ))
+                .into_group_map()
+            }};
             ($direction:literal) => {{
                 let mut attachments: HashMap<u64, Vec<_>> = query!(@attachments $direction);
+                let mut references: HashMap<u64, Vec<_>> = query!(@references $direction);
                 let mut messages = query!(@messages $direction);
+
                 for message in &mut messages {
                     if let Some(attachments) = attachments.remove(&message.id) {
                         message.attachments = attachments;
+                    }
+                }
+
+                for message in &mut messages {
+                    if let Some(references) = references.remove(&message.id) {
+                        message.references = references;
                     }
                 }
                 messages
@@ -290,13 +347,12 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         user_id: u64,
         payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
-        let embeds = serde_json::to_value(payload.embeds.clone()).map_err(|err| {
-            Error::InternalError {
+        let embeds =
+            serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
                 what: Some("embed serialization".to_string()),
                 message: err.to_string(),
                 debug: Some(format!("{err:?}")),
-            }
-        })?;
+            })?;
 
         let mut mentions = payload
             .content
@@ -321,6 +377,19 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        for reference in &payload.references {
+            sqlx::query!(
+                "INSERT INTO message_references VALUES ($1, $2, $3, $4, $5)",
+                reference.message_id as i64,
+                message_id as i64,
+                reference.channel_id as i64,
+                reference.guild_id.map(|x| x as i64),
+                reference.mention_author,
+            )
+            .execute(self.transaction())
+            .await?;
+        }
+
         Ok(Message {
             id: message_id,
             channel_id,
@@ -334,6 +403,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             stars: 0,
             mentions,
             edited_at: None,
+            references: payload.references,
         })
     }
 
@@ -426,6 +496,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             stars: 0,
             mentions: Vec::new(),
             edited_at: None,
+            references: Vec::new(),
         })
     }
 

@@ -177,6 +177,23 @@ pub enum MemberOrUser {
     User(User),
 }
 
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+pub struct MessageReference {
+    pub message_id: u64,
+    pub channel_id: u64,
+    pub guild_id: Option<u64>,
+    #[serde(default = "ret_true")]
+    pub mention_author: bool,
+}
+
+#[inline]
+const fn ret_true() -> bool {
+    true
+}
+
 /// Represents a text or system message in a channel.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
@@ -218,6 +235,8 @@ pub struct Message {
     /// been edited.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub edited_at: Option<DateTime<Utc>>,
+    /// A list of messages that this message references.
+    pub references: Vec<MessageReference>,
 }
 
 bitflags::bitflags! {
@@ -232,6 +251,8 @@ bitflags::bitflags! {
         const CROSSPOST = 1 << 2;
         /// This message has been published to subscribed channels in an announcement channel.
         const PUBLISHED = 1 << 3;
+        /// This message is temporary, only visible to its target user, and not stored.
+        const EPHEMERAL = 1 << 4;
     }
 }
 

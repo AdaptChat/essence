@@ -1,4 +1,4 @@
-use crate::models::Embed;
+use crate::models::{Embed, MessageReference};
 use crate::Maybe;
 use serde::Deserialize;
 #[cfg(feature = "client")]
@@ -21,6 +21,9 @@ pub struct CreateMessagePayload {
     /// A nonce to include with the message. This is not stored and can be used to identify the
     /// message later on (it is relayed through the websocket).
     pub nonce: Option<String>,
+    /// Message(s) that this message replies to.
+    #[serde(default)]
+    pub references: Vec<MessageReference>,
 }
 
 /// Payload sent to edit a message.
