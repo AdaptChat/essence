@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM message_references WHERE target_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "target_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "guild_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "mention_author",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "781cc4da8c29318de7021bb4351e48385507fd798e71c770006436a5ec565279"
+}
