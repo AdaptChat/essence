@@ -293,15 +293,19 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             flags.insert(RoleFlags::MENTIONABLE);
         }
 
-        sqlx::query!("UPDATE roles SET position = position + 1 WHERE position > 0")
-            .execute(self.transaction())
-            .await?;
+        sqlx::query!(
+            "UPDATE roles SET position = position + 1 WHERE guild_id = $1 AND position >= $2",
+            guild_id as i64,
+            payload.position as i16,
+        )
+        .execute(self.transaction())
+        .await?;
 
         sqlx::query!(
             r#"INSERT INTO roles
                 (id, guild_id, name, color, allowed_permissions, denied_permissions, position, flags)
             VALUES
-                ($1, $2, $3, $4, $5, $6, 1, $7)
+                ($1, $2, $3, $4, $5, $6, $7, $8)
             "#,
             role_id as i64,
             guild_id as i64,
@@ -309,6 +313,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             payload.color.map(|color| color as i32),
             payload.permissions.allow.bits(),
             payload.permissions.deny.bits(),
+            payload.position as i16,
             flags.bits() as i32,
         )
         .execute(self.transaction())
@@ -340,11 +345,12 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         guild_id: u64,
         role_id: u64,
         payload: EditRolePayload,
-    ) -> crate::Result<Role> {
-        let mut role = get_pool()
+    ) -> crate::Result<(Role, Role)> {
+        let old = get_pool()
             .fetch_role(guild_id, role_id)
             .await?
             .ok_or_not_found("role", "role not found")?;
+        let mut role = old.clone();
 
         if let Some(name) = payload.name {
             role.name = name;
@@ -386,7 +392,106 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .await?;
 
         cache::clear_member_permissions(guild_id).await?;
-        Ok(role)
+        Ok((old, role))
+    }
+
+    /// Edits the ordering of roles in the given guild in bulk. A slice of role IDs must be provided
+    /// as ``role_ids`` from lowest to highest position. **All** roles **except the default role**
+    /// must be provided in the slice. Although roles ``>=`` than the invoker's top role **must**
+    /// be included in the slice, they **must** remain in their original positions (unless owner).
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with editing the roles.
+    /// * If the guild does not exist.
+    /// * If any of the roles with IDs in ``role_ids`` do not exist.
+    /// * If the default role is included in the slice.
+    /// * If the length of ``role_ids`` does not match the number of roles in the guild, i.e.
+    ///  ``role_ids.len() != number of roles in the guild`` (excluding default role).
+    /// * If a role in ``role_ids`` which is higher than or equal to the invoker's top role is not
+    ///   in its original position, unless the invoker owns the guild.
+    async fn edit_role_positions(
+        &mut self,
+        guild_id: u64,
+        role_ids: &[u64],
+        user_id: u64,
+    ) -> crate::Result<()> {
+        let pool = get_pool();
+        let (top_role_id, top_role_position) = pool.fetch_top_role(guild_id, user_id).await?;
+        let is_owner = pool.is_guild_owner(guild_id, user_id).await?;
+
+        let default_role_id = with_model_type(guild_id, ModelType::Role);
+        let roles = sqlx::query!(
+            "SELECT id, position FROM roles WHERE guild_id = $1 AND id != $2",
+            guild_id as i64,
+            default_role_id as i64,
+        )
+        .fetch_all(pool)
+        .await?;
+
+        if roles.len() != role_ids.len() {
+            return Err(Error::InvalidField {
+                field: "role_ids".to_string(),
+                message: format!(
+                    "Expected to reorder {} roles, but {} were provided",
+                    roles.len(),
+                    role_ids.len(),
+                ),
+            });
+        }
+
+        let mut ids = Vec::with_capacity(roles.len());
+        let mut positions = Vec::with_capacity(roles.len());
+
+        for (i, &role_id) in role_ids.iter().enumerate() {
+            let role = roles
+                .iter()
+                .find(|r| r.id as u64 == role_id)
+                .ok_or_else(|| Error::NotFound {
+                    entity: "role".to_string(),
+                    message: format!(
+                        "Role with ID {role_id} is the default role or does not exist"
+                    ),
+                })?;
+
+            let position = (i + 1) as i16;
+            if role.position != position {
+                if !is_owner && role.position >= top_role_position as _ {
+                    return Err(Error::RoleTooLow {
+                        guild_id,
+                        top_role_id,
+                        top_role_position,
+                        desired_position: role.position as _,
+                        message: String::from(
+                            "You can only change the position of roles lower than your top role.",
+                        ),
+                    });
+                }
+                ids.push(role_id as i64);
+                positions.push(position);
+            }
+        }
+
+        sqlx::query(
+            r"UPDATE
+                roles
+            SET
+                position = p.position
+            FROM
+                (SELECT UNNEST($1::BIGINT[]) AS id, UNNEST($2::SMALLINT[]) AS position) AS p
+            WHERE
+                roles.id = p.id
+            ",
+        )
+        .bind(&ids)
+        .bind(&positions)
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
     }
 
     /// Deletes the role with the given ID in the given guild.
@@ -409,7 +514,8 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .position;
 
         sqlx::query!(
-            "UPDATE roles SET position = position - 1 WHERE position > $1",
+            "UPDATE roles SET position = position - 1 WHERE guild_id = $1 AND position > $2",
+            guild_id as i64,
             position as i16,
         )
         .execute(self.transaction())

@@ -661,7 +661,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     }
 
     /// Edits the guild with the given ID with the given payload. Validation should be done before
-    /// calling this function. Returns a [`PartialGuild`] with updated fields on success.
+    /// calling this function. Returns a tuple of two [`PartialGuild`]s on success: the first
+    /// element is the original guild and the second element is the guild with updated fields.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -674,11 +675,12 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         &mut self,
         guild_id: u64,
         payload: EditGuildPayload,
-    ) -> crate::Result<PartialGuild> {
-        let mut guild = get_pool()
+    ) -> crate::Result<(PartialGuild, PartialGuild)> {
+        let old = get_pool()
             .fetch_partial_guild(guild_id)
             .await?
             .ok_or_not_found("guild", format!("Guild with ID {guild_id} does not exist"))?;
+        let mut guild = old.clone();
 
         if let Some(name) = payload.name {
             guild.name = name;
@@ -714,7 +716,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        Ok(guild)
+        Ok((old, guild))
     }
 
     /// Deletes a guild from the database with the given ID.

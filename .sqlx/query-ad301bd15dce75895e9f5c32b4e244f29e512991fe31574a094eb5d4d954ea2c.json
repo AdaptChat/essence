@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE roles SET position = position + 1 WHERE guild_id = $1 AND position >= $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ad301bd15dce75895e9f5c32b4e244f29e512991fe31574a094eb5d4d954ea2c"
+}

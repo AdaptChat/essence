@@ -5,8 +5,8 @@ use crate::snowflake::{epoch_time, EPOCH_MILLIS};
 use argon2_async::{set_config, Config};
 use base64::{
     alphabet::URL_SAFE,
-    decode_engine, encode_engine,
-    engine::fast_portable::{FastPortable, NO_PAD},
+    engine::general_purpose::{GeneralPurpose, NO_PAD},
+    Engine,
 };
 #[cfg(feature = "auth")]
 use std::sync::OnceLock;
@@ -39,7 +39,7 @@ pub fn get_system_rng() -> &'static SystemRandom {
     RNG.get_or_init(SystemRandom::new)
 }
 
-const ENGINE: FastPortable = FastPortable::from(&URL_SAFE, NO_PAD);
+const ENGINE: GeneralPurpose = GeneralPurpose::new(&URL_SAFE, NO_PAD);
 
 /// Generates a new token for the given user ID.
 ///
@@ -54,7 +54,7 @@ const ENGINE: FastPortable = FastPortable::from(&URL_SAFE, NO_PAD);
 /// * Section 1 is the ID of the user that generated this token, cast as a string, and then encoded
 /// using base64. (pseudocode: `to_base64(to_string(user_id))`)
 /// * Section 2 is the timestamp of when the token was generated represented as milliseconds since
-/// the Adapt epoch (see [`crate::snowflake::EPOCH_MILLIS`]), cast as a string, and then encoded
+/// the Adapt epoch (see [`EPOCH_MILLIS`]), cast as a string, and then encoded
 /// using base64. (pseudocode: `to_base64(to_string(unix_timestamp_millis - EPOCH_MILLIS))`)
 /// * Section 3 is 32 random bytes encoded using base64.
 ///
@@ -63,16 +63,16 @@ const ENGINE: FastPortable = FastPortable::from(&URL_SAFE, NO_PAD);
 #[must_use]
 #[cfg(feature = "auth")]
 pub fn generate_token(user_id: u64) -> String {
-    let mut token = encode_engine(user_id.to_string().as_bytes(), &ENGINE);
+    let mut token = ENGINE.encode(user_id.to_string().as_bytes());
 
     token.push('.');
-    token.push_str(&encode_engine(epoch_time().to_string().as_bytes(), &ENGINE));
+    token.push_str(&ENGINE.encode(epoch_time().to_string().as_bytes()));
     token.push('.');
     token.push_str(&{
         let dest = &mut [0_u8; 32];
         get_system_rng().fill(dest).expect("could not fill bytes");
 
-        encode_engine(dest, &ENGINE)
+        ENGINE.encode(dest)
     });
     token
 }
@@ -95,7 +95,8 @@ impl<'a> TokenReader<'a> {
     #[inline]
     #[must_use]
     pub fn user_id(&self) -> Option<u64> {
-        decode_engine(self.0, &ENGINE)
+        ENGINE
+            .decode(self.0)
             .ok()
             .and_then(|b| String::from_utf8(b).ok())
             .and_then(|s| s.parse().ok())
@@ -105,7 +106,8 @@ impl<'a> TokenReader<'a> {
     #[inline]
     #[must_use]
     pub fn timestamp_millis(&self) -> Option<u64> {
-        decode_engine(self.1, &ENGINE)
+        ENGINE
+            .decode(self.1)
             .ok()
             .and_then(|b| String::from_utf8(b).ok())
             .and_then(|s| s.parse().ok())

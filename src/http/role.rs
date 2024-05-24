@@ -6,6 +6,11 @@ use serde::Serialize;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
+#[inline]
+fn default_position() -> u16 {
+    1
+}
+
 /// Payload sent to create a new role in a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
@@ -16,8 +21,12 @@ pub struct CreateRolePayload {
     /// The color of the role. Leave empty for the default/inherited color.
     pub color: Option<u32>,
     /// The permissions users with this role will have.
-    #[serde(default)]
+    #[serde(default = "PermissionPair::empty")]
     pub permissions: PermissionPair,
+    /// The position the role should be in. Must be at least (and defaults to) ``1`` and at most
+    /// the position of your top role (unless you are owner).
+    #[serde(default = "default_position")]
+    pub position: u16,
     /// Whether the role should be hoisted.
     #[serde(default)]
     pub hoisted: bool,
