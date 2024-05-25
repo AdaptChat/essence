@@ -137,11 +137,12 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         guild_id: u64,
         user_id: u64,
         payload: EditMemberPayload,
-    ) -> crate::Result<Member> {
+    ) -> crate::Result<(Member, Member)> {
         let mut member = get_pool()
             .fetch_member_by_id(guild_id, user_id)
             .await?
             .ok_or_not_found("member", "member not found")?;
+        let old = member.clone();
 
         member.nick = payload.nick.into_option_or_if_absent(member.nick);
 
@@ -199,7 +200,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             );
         }
 
-        Ok(member)
+        Ok((old, member))
     }
 
     /// Edits a member in the database with the given guild, user ID, and a
@@ -226,6 +227,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             },
         )
         .await
+        .map(|(_, m)| m)
     }
 
     /// Creates a member in the database with the given guild and user ID. If the user is already
