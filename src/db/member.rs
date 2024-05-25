@@ -169,7 +169,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
                 r"INSERT INTO
                     role_data
                 SELECT
-                    $1, $2, out.*
+                    out.*, $1, $2
                 FROM
                     UNNEST($3)
                 AS
@@ -179,8 +179,8 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
                 ON CONFLICT DO NOTHING
                 ",
             )
-            .bind(guild_id as i64)
             .bind(user_id as i64)
+            .bind(guild_id as i64)
             .bind(roles.into_iter().map(|r| r as i64).collect::<Vec<_>>())
             .fetch_all(self.transaction())
             .await?;
