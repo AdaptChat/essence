@@ -7,7 +7,7 @@ use serde::Serialize;
 use utoipa::ToSchema;
 
 #[inline]
-fn default_position() -> u16 {
+const fn default_position() -> u16 {
     1
 }
 

@@ -3,7 +3,7 @@ use crate::{
     db::DbExt,
     http::role::CreateRolePayload,
     models::{Role, RoleFlags},
-    Error, NotFoundExt,
+    Error,
 };
 
 macro_rules! construct_role {
@@ -343,14 +343,11 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     async fn edit_role(
         &mut self,
         guild_id: u64,
-        role_id: u64,
+        mut role: Role,
         payload: EditRolePayload,
     ) -> crate::Result<(Role, Role)> {
-        let old = get_pool()
-            .fetch_role(guild_id, role_id)
-            .await?
-            .ok_or_not_found("role", "role not found")?;
-        let mut role = old.clone();
+        let old = role.clone();
+        let role_id = role.id;
 
         if let Some(name) = payload.name {
             role.name = name;

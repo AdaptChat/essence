@@ -448,6 +448,7 @@ impl Channel {
 /// Represents any channel info.
 #[derive(Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
+#[allow(clippy::large_enum_variant)]
 #[serde(untagged)]
 pub enum ChannelInfo {
     /// A guild channel.
