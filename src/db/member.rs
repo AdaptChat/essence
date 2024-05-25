@@ -175,7 +175,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
                 AS
                     out(role_id)
                 WHERE
-                    role_id IN (SELECT id FROM roles WHERE guild_id = $1)
+                    role_id IN (SELECT id FROM roles WHERE guild_id = $2)
                 ON CONFLICT DO NOTHING
                 ",
             )
