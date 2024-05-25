@@ -177,14 +177,18 @@ pub enum MemberOrUser {
     User(User),
 }
 
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
+/// Represents partial message data about a referenced message.
+#[derive(Clone, Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 pub struct MessageReference {
+    /// The ID this message is referencing.
     pub message_id: u64,
+    /// The ID of the channel the referenced message is in.
     pub channel_id: u64,
+    /// The ID of the guild the referenced message is in, if any.
     pub guild_id: Option<u64>,
+    /// Whether to mention the author of the referenced message.
     #[serde(default = "ret_true")]
     pub mention_author: bool,
 }
