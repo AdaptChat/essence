@@ -1,4 +1,4 @@
-use crate::models::PermissionPair;
+use crate::models::{ExtendedColor, PermissionPair};
 use crate::Maybe;
 use serde::Deserialize;
 #[cfg(feature = "client")]
@@ -19,7 +19,10 @@ pub struct CreateRolePayload {
     /// The name of the role.
     pub name: String,
     /// The color of the role. Leave empty for the default/inherited color.
-    pub color: Option<u32>,
+    pub color: Option<ExtendedColor>,
+    /// The icon of the role represented as a
+    /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
+    pub icon: Option<String>,
     /// The permissions users with this role will have.
     #[serde(default = "PermissionPair::empty")]
     pub permissions: PermissionPair,
@@ -46,8 +49,14 @@ pub struct EditRolePayload {
     /// to leave it alone
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
-    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<u32>))]
-    pub color: Maybe<u32>,
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<ExtendedColor>))]
+    pub color: Maybe<ExtendedColor>,
+    /// The new icon of the role. Explicitly setting this to `None` will clear the icon.
+    /// This should be a [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme).
+    #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>, format = "byte"))]
+    pub icon: Maybe<String>,
     /// The permissions users with this role will have. Both `allow` and `deny` should be specified
     /// if this field is specified.
     pub permissions: Option<PermissionPair>,

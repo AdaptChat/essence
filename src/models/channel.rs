@@ -1,3 +1,4 @@
+use crate::models::ExtendedColor;
 use crate::{
     models::{Message, PermissionPair},
     Error,
@@ -207,6 +208,10 @@ pub struct GuildChannel {
     pub info: GuildChannelInfo,
     /// The name of the channel.
     pub name: String,
+    /// The accent color of the channel, used in the UI, or ``None`` if the channel has no color.
+    pub color: Option<ExtendedColor>,
+    /// The URL to the icon of the channel, if any.
+    pub icon: Option<String>,
     /// The position of the channel in the channel list. A lower value means appearing "higher" in
     /// the UI, basically think of this as a 0-indexed listing of the channels from top-to-bottom.
     ///
@@ -245,6 +250,8 @@ impl Default for GuildChannel {
             guild_id: 0,
             info: GuildChannelInfo::Text(TextBasedGuildChannelInfo::default()),
             name: "general".to_string(),
+            color: None,
+            icon: None,
             position: 0,
             overwrites: Vec::new(),
             parent_id: None,

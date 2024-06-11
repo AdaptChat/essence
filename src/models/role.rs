@@ -1,4 +1,4 @@
-use crate::models::PermissionPair;
+use crate::models::{ExtendedColor, PermissionPair};
 use crate::serde_for_bitflags;
 #[cfg(feature = "client")]
 use serde::Deserialize;
@@ -18,9 +18,11 @@ pub struct Role {
     pub guild_id: u64,
     /// The name of the role.
     pub name: String,
-    /// The color of the role. This is an integer between 0 and 16777215, or ``None`` if the role
-    /// has no color (in which case it inherits the color).
-    pub color: Option<u32>,
+    /// The color of the role, or ``None`` if the role has no color (in which case it inherits the
+    /// color).
+    pub color: Option<ExtendedColor>,
+    /// The URL of the role's icon, if any, displayed alongside member names in chat.
+    pub icon: Option<String>,
     /// The permissions users with this role have.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub permissions: PermissionPair,
@@ -47,6 +49,11 @@ bitflags::bitflags! {
         const MENTIONABLE = 1 << 2;
         /// Whether the role is the default role for everyone.
         const DEFAULT = 1 << 3;
+        /// If this role has an icon, this represents whether this icon should be displayed
+        /// cumulatively with other icons of higher roles. The role icons to displayed for a given
+        /// member, consist of the icon of the highest role the member has that has an icon and all
+        /// roles below it that also have icons and have this flag set to true.
+        const CUMULATIVE = 1 << 4;
     }
 }
 

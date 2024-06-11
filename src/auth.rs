@@ -52,10 +52,10 @@ const ENGINE: GeneralPurpose = GeneralPurpose::new(&URL_SAFE, NO_PAD);
 /// Tokens are made of three sections, each separated by a period (`.`):
 ///
 /// * Section 1 is the ID of the user that generated this token, cast as a string, and then encoded
-/// using base64. (pseudocode: `to_base64(to_string(user_id))`)
+///   using base64. (pseudocode: `to_base64(to_string(user_id))`)
 /// * Section 2 is the timestamp of when the token was generated represented as milliseconds since
-/// the Adapt epoch (see [`EPOCH_MILLIS`]), cast as a string, and then encoded
-/// using base64. (pseudocode: `to_base64(to_string(unix_timestamp_millis - EPOCH_MILLIS))`)
+///   the Adapt epoch (see [`EPOCH_MILLIS`]), cast as a string, and then encoded
+///   using base64. (pseudocode: `to_base64(to_string(unix_timestamp_millis - EPOCH_MILLIS))`)
 /// * Section 3 is 32 random bytes encoded using base64.
 ///
 /// # See Also

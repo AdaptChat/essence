@@ -98,7 +98,7 @@ pub struct ClientUser {
     ///
     /// This will never be present:
     /// * The **field** will exist if the `db` feature enabled, otherwise this field is not
-    /// present and guarded by a `cfg` attribute.
+    ///   present and guarded by a `cfg` attribute.
     /// * The **value** will always be `None` unless it is internally returned by the database.
     #[serde(skip)]
     #[cfg(feature = "db")]

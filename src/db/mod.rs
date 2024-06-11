@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_pub_crate)]
+
 mod auth;
 mod channel;
 mod emoji;

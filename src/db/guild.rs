@@ -1,11 +1,9 @@
+use crate::db::role::{query_roles, RoleRecord};
 use crate::{
     cache,
     db::{
-        channel::{construct_guild_channel, query_guild_channels},
-        get_pool,
-        member::construct_member,
-        role::construct_role,
-        ChannelDbExt, DbExt, MemberDbExt, RoleDbExt,
+        channel::query_channels, get_pool, member::construct_member, ChannelDbExt, DbExt,
+        MemberDbExt, RoleDbExt,
     },
     http::guild::{CreateGuildPayload, EditGuildPayload, GetGuildQuery},
     models::{
@@ -406,7 +404,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             )
             .await?;
 
-            let channels = query_guild_channels!(
+            let channels = query_channels!(
                 "guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
                 user_id as i64
             )
@@ -414,13 +412,13 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             .await?
             .into_iter()
             .map(|r| {
-                construct_guild_channel!(
-                    r,
+                let id = r.id as u64;
+                r.into_guild_channel(
                     overwrites
-                        .get_mut(&(r.id as u64))
+                        .get_mut(&id)
                         .unwrap_or(&mut None)
                         .take()
-                        .unwrap_or_default()
+                        .unwrap_or_default(),
                 )
             })
             .collect::<crate::Result<Vec<_>>>()?
@@ -435,22 +433,17 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         }
 
         if query.roles {
-            let roles = sqlx::query!(
-                r#"SELECT
-                    *
-                FROM
-                    roles
-                WHERE
-                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)
+            let roles = query_roles!(
+                r#"guild_id IN (SELECT guild_id FROM members WHERE id = $1)
                 ORDER BY
                     position ASC
                 "#,
-                user_id as i64,
+                user_id as i64
             )
             .fetch_all(self.executor())
             .await?
             .into_iter()
-            .map(|r| construct_role!(r))
+            .map(RoleRecord::into_role)
             .into_group_map_by(|r| r.guild_id);
 
             for (guild_id, roles) in roles {
@@ -580,8 +573,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             r#"INSERT INTO roles
                 (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)
             VALUES
-                ($1, $2, 'Default', $3, 0, $4, $5)
-            RETURNING *;
+                ($1, $2, 'Default', $3, 0, $4, $5);
             "#,
             role_id as i64,
             guild_id as i64,
@@ -589,7 +581,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             allowed_permissions.bits(),
             denied_permissions.bits(),
         )
-        .fetch_one(self.transaction())
+        .execute(self.transaction())
         .await?;
 
         // NOTE: we intentionally do not insert the default role into the role_data table as they

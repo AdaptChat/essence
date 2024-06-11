@@ -29,7 +29,7 @@ regex = { version = "1", optional = true }
 futures-util = "0"
 
 [dependencies.sqlx]
-version = "0.7"
+version = "0.8.0-alpha.0"
 features = ["postgres", "macros", "runtime-tokio-rustls", "chrono", "json", "uuid"]
 optional = true
 
@@ -46,3 +46,7 @@ db = ["dep:async-trait", "dep:itertools", "dep:sqlx", "dep:tokio", "snowflakes",
 snowflakes = ["regex"]
 token-parsing = ["dep:base64", "snowflakes"]
 webserver = ["auth", "bincode", "db", "utoipa", "utoipa/axum_extras", "utoipa/yaml"]
+
+[patch.crates-io.sqlx]
+git = "https://github.com/benluelo/sqlx.git"
+branch = "fix-encode-decode-derives"

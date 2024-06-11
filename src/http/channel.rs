@@ -18,17 +18,11 @@ pub enum CreateGuildChannelInfo {
     Text {
         /// The topic of the text channel, if any.
         topic: Option<String>,
-        /// The icon of the channel represented as a
-        /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
-        icon: Option<String>,
     },
     /// An announcement channel.
     Announcement {
         /// The topic of the text channel, if any.
         topic: Option<String>,
-        /// The icon of the channel represented as a
-        /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
-        icon: Option<String>,
     },
     /// A voice channel.
     Voice {
@@ -36,9 +30,6 @@ pub enum CreateGuildChannelInfo {
         /// of `0` is the default and indicates the absence of a user limit.
         #[serde(default)]
         user_limit: u16,
-        /// The icon of the channel represented as a
-        /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
-        icon: Option<String>,
     },
     /// A category channel.
     Category,
@@ -68,7 +59,8 @@ pub struct CreateGuildChannelPayload {
     /// The type of the channel and information specific to it.
     #[serde(flatten)]
     pub info: CreateGuildChannelInfo,
-    /// The icon of the text channel, if any.
+    /// The icon of the channel represented as a
+    /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
     pub icon: Option<String>,
     /// The ID of the category to create the channel in, if any.
     pub parent_id: Option<u64>,
@@ -147,12 +139,12 @@ pub struct EditChannelPositionPayload {
     pub id: u64,
     /// The new position of the channel.
     pub position: u16,
-    /// The new scope of the channel. If left blank, the scope will not be changed. If set to
-    /// `Null`, the channel will be moved to the root of the channel list.
+    /// The new parent category of the channel. If left blank, the scope will not be changed.
+    /// If set to `Null`, the channel will be moved to the root of the channel list.
     #[serde(default)]
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<u64>))]
-    pub scope: Maybe<u64>,
+    pub parent_id: Maybe<u64>,
 }
 
 /// The request body sent to modify channel positions.

@@ -1,35 +1,73 @@
 use crate::{
     cache,
-    db::DbExt,
-    http::role::CreateRolePayload,
-    models::{Role, RoleFlags},
+    db::{get_pool, DbExt, GuildDbExt},
+    http::role::{CreateRolePayload, EditRolePayload},
+    models::{DbGradient, ExtendedColor, ModelType, PermissionPair, Permissions, Role, RoleFlags},
+    snowflake::with_model_type,
     Error,
 };
 
-macro_rules! construct_role {
-    ($data:ident) => {{
-        use $crate::models::{PermissionPair, Permissions, RoleFlags};
-
-        Role {
-            id: $data.id as _,
-            guild_id: $data.guild_id as _,
-            name: $data.name,
-            color: $data.color.map(|color| color as _),
-            position: $data.position as _,
-            permissions: PermissionPair {
-                allow: Permissions::from_bits_truncate($data.allowed_permissions),
-                deny: Permissions::from_bits_truncate($data.denied_permissions),
-            },
-            flags: RoleFlags::from_bits_truncate($data.flags as _),
-        }
+macro_rules! query_roles {
+    ($where:literal $(, $($args:expr),*)?) => {{
+        sqlx::query_as!(
+            crate::db::role::RoleRecord,
+            r#"SELECT
+                id,
+                guild_id,
+                name,
+                icon,
+                color,
+                gradient AS "gradient: crate::models::DbGradient",
+                position,
+                allowed_permissions,
+                denied_permissions,
+                flags
+            FROM roles
+            WHERE
+            "# + $where,
+            $($($args),*)?
+        )
     }};
 }
 
-use crate::db::{get_pool, GuildDbExt};
-use crate::http::role::EditRolePayload;
-use crate::models::ModelType;
-use crate::snowflake::with_model_type;
-pub(crate) use construct_role;
+pub(crate) use query_roles;
+
+pub(crate) struct RoleRecord {
+    pub id: i64,
+    pub guild_id: i64,
+    pub name: String,
+    pub icon: Option<String>,
+    pub color: Option<i32>,
+    pub gradient: Option<DbGradient>,
+    pub position: i16,
+    pub allowed_permissions: i64,
+    pub denied_permissions: i64,
+    pub flags: i64,
+}
+
+impl RoleRecord {
+    pub(crate) fn into_role(self) -> Role {
+        Role {
+            id: self.id as _,
+            guild_id: self.guild_id as _,
+            name: self.name,
+            icon: self.icon,
+            color: ExtendedColor::from_db(self.color, self.gradient.as_ref()),
+            position: self.position as _,
+            permissions: PermissionPair {
+                allow: Permissions::from_bits_truncate(self.allowed_permissions),
+                deny: Permissions::from_bits_truncate(self.denied_permissions),
+            },
+            flags: RoleFlags::from_bits_truncate(self.flags as _),
+        }
+    }
+}
+
+impl From<RoleRecord> for Role {
+    fn from(record: RoleRecord) -> Self {
+        record.into_role()
+    }
+}
 
 #[async_trait::async_trait]
 pub trait RoleDbExt<'t>: DbExt<'t> {
@@ -202,14 +240,10 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with fetching the role. If the role is not found, `Ok(None)` is
     /// returned.
     async fn fetch_role(&self, guild_id: u64, role_id: u64) -> sqlx::Result<Option<Role>> {
-        let role = sqlx::query!(
-            "SELECT * FROM roles WHERE guild_id = $1 AND id = $2",
-            guild_id as i64,
-            role_id as i64,
-        )
-        .fetch_optional(self.executor())
-        .await?
-        .map(|r| construct_role!(r));
+        let role = query_roles!("guild_id = $1 AND id = $2", guild_id as i64, role_id as i64)
+            .fetch_optional(self.executor())
+            .await?
+            .map(RoleRecord::into_role);
 
         Ok(role)
     }
@@ -220,15 +254,12 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with fetching the roles.
     /// * If the guild does not exist.
     async fn fetch_all_roles_in_guild(&self, guild_id: u64) -> sqlx::Result<Vec<Role>> {
-        let roles = sqlx::query!(
-            "SELECT * FROM roles WHERE guild_id = $1 ORDER BY position ASC",
-            guild_id as i64,
-        )
-        .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .map(|r| construct_role!(r))
-        .collect();
+        let roles = query_roles!("guild_id = $1 ORDER BY position ASC", guild_id as i64)
+            .fetch_all(self.executor())
+            .await?
+            .into_iter()
+            .map(Into::into)
+            .collect();
 
         Ok(roles)
     }
@@ -244,12 +275,8 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         member_id: u64,
     ) -> sqlx::Result<Vec<Role>> {
         let default_role_id = with_model_type(guild_id, ModelType::Role);
-        let roles = sqlx::query!(
-            r#"SELECT
-                *
-            FROM
-                roles
-            WHERE
+        let roles = query_roles!(
+            r#"
                 guild_id = $1
             AND (
                 id = $3
@@ -259,12 +286,12 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             "#,
             guild_id as i64,
             member_id as i64,
-            default_role_id as i64,
+            default_role_id as i64
         )
         .fetch_all(self.executor())
         .await?
         .into_iter()
-        .map(|r| construct_role!(r))
+        .map(Into::into)
         .collect();
 
         Ok(roles)
@@ -301,16 +328,21 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        let (color, gradient) = payload.color.map(|c| c.to_db()).unzip();
         sqlx::query!(
-            r#"INSERT INTO roles
-                (id, guild_id, name, color, allowed_permissions, denied_permissions, position, flags)
+            r#"INSERT INTO roles (
+                id, guild_id, name, color, gradient, icon,
+                allowed_permissions, denied_permissions, position, flags
+            )
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8)
+                ($1, $2, $3, $4, $5::gradient_type, $6, $7, $8, $9, $10)
             "#,
             role_id as i64,
             guild_id as i64,
             payload.name,
-            payload.color.map(|color| color as i32),
+            color.flatten(),
+            gradient.clone().flatten() as _,
+            payload.icon,
             payload.permissions.allow.bits(),
             payload.permissions.deny.bits(),
             payload.position as i16,
@@ -323,7 +355,8 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
             id: role_id,
             guild_id,
             name: payload.name,
-            color: payload.color,
+            icon: payload.icon,
+            color: ExtendedColor::from_db(color.flatten(), gradient.flatten().as_ref()),
             permissions: payload.permissions,
             position: 1,
             flags,
@@ -363,22 +396,25 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         }
         role.color = payload.color.into_option_or_if_absent(role.color);
 
+        let (color, gradient) = role.color.as_ref().map(ExtendedColor::to_db).unzip();
         sqlx::query!(
             r#"UPDATE
                 roles
             SET
                 name = $1,
                 color = $2,
-                allowed_permissions = $3,
-                denied_permissions = $4,
-                flags = $5
+                gradient = $3::gradient_type,
+                allowed_permissions = $4,
+                denied_permissions = $5,
+                flags = $6
             WHERE
-                guild_id = $6
+                guild_id = $7
             AND
-                id = $7
+                id = $8
             "#,
             role.name,
-            role.color.map(|color| color as i32),
+            color.flatten(),
+            gradient.flatten() as _,
             role.permissions.allow.bits(),
             role.permissions.deny.bits(),
             role.flags.bits() as i32,

@@ -1,49 +1,61 @@
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
-    cache,
-    db::{message::construct_message, DbExt, MessageDbExt},
+    cache::{self, ChannelInspection},
+    db::{get_pool, message::construct_message, DbExt, GuildDbExt, MessageDbExt},
+    http::channel::{
+        CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload,
+        EditChannelPayload,
+    },
     models::{
-        Channel, ChannelInfo, ChannelType, DmChannel, DmChannelInfo, Guild, GuildChannel,
-        GuildChannelInfo, Message, PermissionOverwrite, PermissionPair, Permissions,
-        TextBasedGuildChannelInfo,
+        Channel, ChannelType, DbGradient, DmChannel, DmChannelInfo, ExtendedColor, Guild,
+        GuildChannel, GuildChannelInfo, MaybePartialMessage, Message, PermissionOverwrite,
+        PermissionPair, Permissions, TextBasedGuildChannelInfo,
     },
     ws::UnackedChannel,
     Error, NotFoundExt,
 };
 use futures_util::future::TryJoinAll;
 use itertools::Itertools;
+use sqlx::types::Json;
 use std::{collections::HashMap, str::FromStr};
 
-macro_rules! query_guild_channels {
+macro_rules! query_channels {
     ($where:literal $(, $($args:expr),*)?) => {{
-        sqlx::query!(
+        sqlx::query_as!(
+            crate::db::channel::ChannelRecord,
             r#"SELECT
-                id,
+                c.id,
                 guild_id AS "guild_id!",
+                c.type AS kind,
                 name AS "name!",
-                type AS kind,
                 position AS "position!",
                 parent_id,
-                icon,
                 topic,
+                icon,
+                color,
+                gradient AS "gradient: crate::models::DbGradient",
+                slowmode,
                 nsfw,
                 locked,
-                slowmode,
                 user_limit,
-                (
-                    SELECT m.id FROM messages m
-                    WHERE m.channel_id = c.id
-                    ORDER BY id DESC LIMIT 1
-                ) AS last_message_id
+                owner_id,
+                row_to_json(m) AS "last_message: sqlx::types::Json<crate::models::Message>"
             FROM
                 channels c
+            LEFT JOIN messages m ON m.id = (
+                SELECT m.id FROM messages m
+                WHERE m.channel_id = c.id
+                ORDER BY id DESC LIMIT 1
+            )
             WHERE
             "# + $where,
             $($($args),*)?
         )
     }};
 }
+
+pub(crate) use query_channels;
 
 macro_rules! query_guild_channel_next_position {
     ($(@clause $clause:literal,)? $($args:expr),*) => {{
@@ -62,70 +74,117 @@ macro_rules! query_guild_channel_next_position {
     }}
 }
 
-macro_rules! construct_guild_channel {
-    ($data:ident, $overwrites:expr) => {{
-        use std::str::FromStr;
-        use $crate::models::channel::*;
-
-        let kind = ChannelType::from_str(&$data.kind)?;
-
-        Ok(GuildChannel {
-            id: $data.id as _,
-            guild_id: $data.guild_id as _,
-            info: match kind {
-                ChannelType::Text | ChannelType::Announcement => {
-                    let info = TextBasedGuildChannelInfo {
-                        topic: $data.topic,
-                        nsfw: $data.nsfw.unwrap_or_default(),
-                        locked: $data.locked.unwrap_or_default(),
-                        slowmode: $data.slowmode.unwrap_or_default() as u32,
-                        last_message: $data
-                            .last_message_id
-                            .map(|id| MaybePartialMessage::Id { id: id as _ }),
-                    };
-
-                    match kind {
-                        ChannelType::Text => GuildChannelInfo::Text(info),
-                        ChannelType::Announcement => GuildChannelInfo::Announcement(info),
-                        _ => unreachable!(),
-                    }
-                }
-                ChannelType::Voice => GuildChannelInfo::Voice {
-                    user_limit: $data.user_limit.unwrap_or_default() as _,
-                },
-                _ => GuildChannelInfo::Category,
-            },
-            name: $data.name,
-            position: $data.position as u16,
-            overwrites: $overwrites,
-            parent_id: $data.parent_id.map(|id| id as u64),
-        })
-    }};
+pub(crate) struct ChannelRecord {
+    pub id: i64,
+    pub guild_id: Option<i64>,
+    pub kind: String,
+    pub name: Option<String>,
+    pub position: Option<i16>,
+    pub parent_id: Option<i64>,
+    pub topic: Option<String>,
+    pub icon: Option<String>,
+    pub color: Option<i32>,
+    pub gradient: Option<DbGradient>,
+    pub slowmode: Option<i32>,
+    pub nsfw: Option<bool>,
+    pub locked: Option<bool>,
+    pub user_limit: Option<i16>,
+    pub owner_id: Option<i64>,
+    pub last_message: Option<Json<Message>>,
 }
 
-use crate::cache::ChannelInspection;
-use crate::db::{get_pool, GuildDbExt};
-use crate::http::channel::{
-    CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload, EditChannelPayload,
-};
-use crate::models::MaybePartialMessage;
-#[allow(clippy::redundant_pub_crate)] // false positive
-pub(crate) use {construct_guild_channel, query_guild_channels};
+impl ChannelRecord {
+    fn extended_color(&self) -> Option<ExtendedColor> {
+        ExtendedColor::from_db(self.color, self.gradient.as_ref())
+    }
 
-pub struct ChannelRecord {
-    id: i64,
-    guild_id: Option<i64>,
-    r#type: String,
-    name: Option<String>,
-    position: Option<i16>,
-    parent_id: Option<i64>,
-    topic: Option<String>,
-    icon: Option<String>,
-    slowmode: Option<i32>,
-    nsfw: Option<bool>,
-    locked: Option<bool>,
-    user_limit: Option<i16>,
-    owner_id: Option<i64>,
+    pub(crate) fn into_guild_channel(
+        mut self,
+        overwrites: Vec<PermissionOverwrite>,
+    ) -> crate::Result<GuildChannel> {
+        let channel_id = self.id as u64;
+        let kind = ChannelType::from_str(&self.kind)?;
+        let info = match kind {
+            _ if kind.is_guild_text_based() => {
+                let info = TextBasedGuildChannelInfo {
+                    topic: self.topic.take(),
+                    nsfw: self.nsfw.unwrap_or_default(),
+                    locked: self.locked.unwrap_or_default(),
+                    slowmode: self.slowmode.unwrap_or_default() as u32,
+                    last_message: self
+                        .last_message
+                        .take()
+                        .map(|m| MaybePartialMessage::Full(m.0)),
+                };
+
+                match kind {
+                    ChannelType::Text => GuildChannelInfo::Text(info),
+                    ChannelType::Announcement => GuildChannelInfo::Announcement(info),
+                    _ => unreachable!(),
+                }
+            }
+            ChannelType::Voice => GuildChannelInfo::Voice {
+                user_limit: self.user_limit.unwrap_or_default() as u16,
+            },
+            ChannelType::Category => GuildChannelInfo::Category,
+            _ if kind.is_dm() => unreachable!("This method should not be called for DM channels"),
+            _ => unimplemented!(),
+        };
+
+        let guild_id = self.guild_id.ok_or_else(|| Error::InternalError {
+            what: None,
+            message: "Guild channel has no guild ID".to_string(),
+            debug: None,
+        })? as u64;
+
+        Ok(GuildChannel {
+            id: channel_id,
+            guild_id,
+            color: self.extended_color(),
+            icon: self.icon.clone(),
+            position: self.position.unwrap_or_default() as u16,
+            parent_id: self.parent_id.map(|id| id as u64),
+            name: self.name.unwrap_or_default(),
+            info,
+            overwrites,
+        })
+    }
+
+    pub(crate) fn into_dm_channel(self, recipients: Vec<u64>) -> crate::Result<DmChannel> {
+        let channel_id = self.id as u64;
+        let kind = ChannelType::from_str(&self.kind)?;
+        let info = match kind {
+            ChannelType::Dm => {
+                if recipients.len() != 2 {
+                    return Err(Error::InternalError {
+                        what: None,
+                        message: "DM channel has invalid number of recipients".to_string(),
+                        debug: None,
+                    });
+                }
+                DmChannelInfo::Dm {
+                    recipient_ids: (recipients[0], recipients[1]),
+                }
+            }
+            ChannelType::Group => DmChannelInfo::Group {
+                name: self.name.clone().unwrap_or_default(),
+                icon: self.icon,
+                topic: self.topic,
+                owner_id: self.owner_id.unwrap_or_default() as u64,
+                recipient_ids: recipients,
+            },
+            _ if kind.is_guild() => {
+                unreachable!("This method should not be called for guild channels")
+            }
+            _ => unimplemented!(),
+        };
+
+        Ok(DmChannel {
+            id: channel_id,
+            info,
+            last_message: self.last_message.map(|m| m.0),
+        })
+    }
 }
 
 #[async_trait::async_trait]
@@ -268,13 +327,9 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
     /// returned.
     async fn fetch_channel(&self, channel_id: u64) -> crate::Result<Option<Channel>> {
-        let Some(channel) = sqlx::query_as!(
-            ChannelRecord,
-            "SELECT * FROM channels WHERE id = $1",
-            channel_id as i64
-        )
-        .fetch_optional(self.executor())
-        .await?
+        let Some(channel) = query_channels!("c.id = $1", channel_id as i64)
+            .fetch_optional(self.executor())
+            .await?
         else {
             return Ok(None);
         };
@@ -363,101 +418,29 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the channel. If the channel is not found, `Ok(None)` is
     /// returned.
-    #[allow(clippy::too_many_lines)]
+    #[allow(clippy::too_many_lines, private_interfaces)]
     async fn construct_channel_with_record(
         &self,
         channel: ChannelRecord,
     ) -> crate::Result<Channel> {
         let channel_id = channel.id as u64;
-        let kind = ChannelType::from_str(&channel.r#type)?;
-        let info = match kind {
-            _ if kind.is_guild_text_based() => {
-                let info = TextBasedGuildChannelInfo {
-                    topic: channel.topic,
-                    nsfw: channel.nsfw.unwrap_or_default(),
-                    locked: channel.locked.unwrap_or_default(),
-                    slowmode: channel.slowmode.unwrap_or_default() as u32,
-                    last_message: self
-                        .fetch_last_message(channel_id)
-                        .await?
-                        .map(MaybePartialMessage::Full),
-                };
+        let kind = ChannelType::from_str(&channel.kind)?;
 
-                ChannelInfo::Guild(match kind {
-                    ChannelType::Text => GuildChannelInfo::Text(info),
-                    ChannelType::Announcement => GuildChannelInfo::Announcement(info),
-                    _ => unreachable!(),
-                })
-            }
-            ChannelType::Voice => ChannelInfo::Guild(GuildChannelInfo::Voice {
-                user_limit: channel.user_limit.unwrap_or_default() as u16,
-            }),
-            ChannelType::Category => ChannelInfo::Guild(GuildChannelInfo::Category),
-            _ if kind.is_dm() => {
-                let recipients: Vec<u64> = sqlx::query!(
-                    "SELECT user_id FROM channel_recipients WHERE channel_id = $1",
-                    channel.id,
-                )
-                .fetch_all(self.executor())
-                .await?
-                .into_iter()
-                .map(|r| r.user_id as u64)
-                .collect();
-
-                ChannelInfo::Dm(match kind {
-                    ChannelType::Dm => {
-                        if recipients.len() != 2 {
-                            return Err(Error::InternalError {
-                                what: None,
-                                message: "DM channel has invalid number of recipients".to_string(),
-                                debug: None,
-                            });
-                        }
-                        DmChannelInfo::Dm {
-                            recipient_ids: (recipients[0], recipients[1]),
-                        }
-                    }
-                    ChannelType::Group => DmChannelInfo::Group {
-                        name: channel.name.clone().unwrap_or_default(),
-                        icon: channel.icon,
-                        topic: channel.topic,
-                        owner_id: channel.owner_id.unwrap_or_default() as u64,
-                        recipient_ids: recipients,
-                    },
-                    _ => unreachable!(),
-                })
-            }
-            _ => unimplemented!(),
-        };
-
-        let channel = match info {
-            ChannelInfo::Guild(info) => {
-                let guild_id = channel.guild_id.ok_or_else(|| Error::InternalError {
-                    what: None,
-                    message: "Guild channel has no guild ID".to_string(),
-                    debug: None,
-                })? as u64;
-
-                let overwrites = self.fetch_channel_overwrites(channel_id).await?;
-
-                Channel::Guild(GuildChannel {
-                    id: channel_id,
-                    guild_id,
-                    name: channel.name.unwrap_or_default(),
-                    position: channel.position.unwrap_or_default() as u16,
-                    parent_id: channel.parent_id.map(|id| id as u64),
-                    info,
-                    overwrites,
-                })
-            }
-            ChannelInfo::Dm(info) => Channel::Dm(DmChannel {
-                id: channel_id,
-                info,
-                last_message: self.fetch_last_message(channel_id).await?,
-            }),
-        };
-
-        Ok(channel)
+        Ok(if kind.is_guild() {
+            let overwrites = self.fetch_channel_overwrites(channel_id).await?;
+            Channel::Guild(channel.into_guild_channel(overwrites)?)
+        } else {
+            let recipients: Vec<u64> = sqlx::query!(
+                "SELECT user_id FROM channel_recipients WHERE channel_id = $1",
+                channel.id,
+            )
+            .fetch_all(self.executor())
+            .await?
+            .into_iter()
+            .map(|r| r.user_id as u64)
+            .collect();
+            Channel::Dm(channel.into_dm_channel(recipients)?)
+        })
     }
 
     /// Fetches channel overwrites in bulk with a custom WHERE clause.
@@ -545,7 +528,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the channels.
     async fn fetch_all_channels_in_guild(&self, guild_id: u64) -> crate::Result<Vec<GuildChannel>> {
-        let channels = query_guild_channels!("guild_id = $1", guild_id as i64)
+        let channels: Vec<ChannelRecord> = query_channels!("guild_id = $1", guild_id as i64)
             .fetch_all(self.executor())
             .await?;
 
@@ -556,13 +539,13 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         let channels = channels
             .into_iter()
             .map(|c| {
-                construct_guild_channel!(
-                    c,
+                let id = c.id as u64;
+                c.into_guild_channel(
                     overwrites
-                        .get_mut(&(c.id as u64))
+                        .get_mut(&id)
                         .unwrap_or(&mut None)
                         .take()
-                        .unwrap_or_default()
+                        .unwrap_or_default(),
                 )
             })
             .collect::<crate::Result<Vec<_>>>()?;
@@ -575,25 +558,36 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If an error occurs with fetching the channels.
     async fn fetch_all_dm_channels_for_user(&self, user_id: u64) -> crate::Result<Vec<DmChannel>> {
-        let channels = sqlx::query_as!(
-            ChannelRecord,
-            r#"SELECT * FROM channels
-            WHERE (type = 'dm' OR type = 'group')
-            AND id IN (
+        let channels = query_channels!(
+            "(c.type = 'dm' OR c.type = 'group')
+            AND c.id IN (
                 SELECT channel_id FROM channel_recipients WHERE user_id = $1
-            )"#,
-            user_id as i64,
+            )",
+            user_id as i64
         )
         .fetch_all(self.executor())
         .await?;
 
+        let ids = channels.iter().map(|c| c.id).collect::<Vec<_>>();
+        let recipients: HashMap<u64, Vec<_>> = sqlx::query!(
+            "SELECT channel_id, user_id FROM channel_recipients WHERE channel_id = ANY($1::BIGINT[])",
+            &ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .into_group_map_by(|r| r.channel_id as u64);
+
         let mut resolved = Vec::with_capacity(channels.len());
         for channel in channels {
+            let channel_id = channel.id as u64;
             resolved.push(
-                match self.construct_channel_with_record(channel).await.ok() {
-                    Some(Channel::Dm(dm)) => dm,
-                    _ => continue,
-                },
+                channel.into_dm_channel(
+                    recipients
+                        .get(&channel_id)
+                        .map(|r| r.iter().map(|r| r.user_id as u64).collect())
+                        .unwrap_or_default(),
+                )?,
             );
         }
 
@@ -616,15 +610,11 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         payload: CreateGuildChannelPayload,
     ) -> crate::Result<GuildChannel> {
-        let (topic, icon, user_limit) = match &payload.info {
-            CreateGuildChannelInfo::Text { topic, icon }
-            | CreateGuildChannelInfo::Announcement { topic, icon } => {
-                (topic.as_ref(), icon.as_ref(), None)
-            }
-            CreateGuildChannelInfo::Voice { user_limit, icon } => {
-                (None, icon.as_ref(), Some(user_limit))
-            }
-            CreateGuildChannelInfo::Category => (None, None, None),
+        let (topic, user_limit) = match &payload.info {
+            CreateGuildChannelInfo::Text { topic }
+            | CreateGuildChannelInfo::Announcement { topic } => (topic.as_ref(), None),
+            CreateGuildChannelInfo::Voice { user_limit } => (None, Some(user_limit)),
+            CreateGuildChannelInfo::Category => (None, None),
         };
 
         let kind = payload.info.channel_type();
@@ -663,7 +653,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             position as i16,
             postgres_parent_id,
             topic,
-            icon,
+            payload.icon,
             user_limit.map(|&limit| limit as i16),
         )
         .execute(self.transaction())
@@ -725,6 +715,8 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             guild_id,
             info,
             name: payload.name,
+            color: None,
+            icon: payload.icon,
             position,
             parent_id: payload.parent_id,
             overwrites: payload.overwrites.unwrap_or_default(),
@@ -757,9 +749,8 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                 }
 
                 let db_immut = get_pool();
-                if let Some(channel) = sqlx::query_as!(
-                    ChannelRecord,
-                    r#"SELECT * FROM channels WHERE type = 'dm' AND id IN (
+                if let Some(channel) = query_channels!(
+                    "c.type = 'dm' AND c.id IN (
                         SELECT channel_id
                         FROM channel_recipients
                         WHERE user_id = $1
@@ -768,9 +759,9 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                             FROM channel_recipients
                             WHERE user_id = $2
                         )
-                    )"#,
+                    )",
                     user_id as i64,
-                    recipient_id as i64,
+                    recipient_id as i64
                 )
                 .fetch_optional(db_immut)
                 .await?

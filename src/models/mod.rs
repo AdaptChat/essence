@@ -1,6 +1,7 @@
 //! Common object models consumed by Adapt's services.
 
 pub mod channel;
+pub mod color;
 pub mod emoji;
 pub mod guild;
 pub mod invite;
@@ -11,6 +12,7 @@ pub mod role;
 pub mod user;
 
 pub use channel::*;
+pub use color::*;
 pub use emoji::*;
 pub use guild::*;
 pub use invite::*;

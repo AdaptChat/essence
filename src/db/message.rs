@@ -583,7 +583,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             r#"UPDATE messages
             SET 
                 content = $1,
-                embeds = $2::JSONB, 
+                embeds = $2::JSONB,
                 edited_at = NOW(), 
                 mentions = $3::BIGINT[]
             WHERE 
