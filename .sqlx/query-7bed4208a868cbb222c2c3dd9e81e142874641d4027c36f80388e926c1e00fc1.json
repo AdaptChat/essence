@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO roles\n                (id, guild_id, name, flags, position, allowed_permissions, denied_permissions)\n            VALUES\n                ($1, $2, 'Default', $3, 0, $4, $5);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int4",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7bed4208a868cbb222c2c3dd9e81e142874641d4027c36f80388e926c1e00fc1"
+}

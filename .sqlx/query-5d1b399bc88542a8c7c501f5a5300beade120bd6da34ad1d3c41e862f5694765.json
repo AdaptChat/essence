@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE messages\n            SET \n                content = $1,\n                embeds = $2::JSONB, \n                edited_at = NOW(), \n                mentions = $3::BIGINT[]\n            WHERE \n                id = $4 AND channel_id = $5\n            RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"",
+  "query": "UPDATE messages\n            SET \n                content = $1,\n                embeds = $2::JSONB,\n                edited_at = NOW(), \n                mentions = $3::BIGINT[]\n            WHERE \n                id = $4 AND channel_id = $5\n            RETURNING *, embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"",
   "describe": {
     "columns": [
       {
@@ -100,5 +100,5 @@
       false
     ]
   },
-  "hash": "686edba7edc89880b802131d391f9e45cc6172d6235a2c1f7a18a513bcd43c2c"
+  "hash": "5d1b399bc88542a8c7c501f5a5300beade120bd6da34ad1d3c41e862f5694765"
 }

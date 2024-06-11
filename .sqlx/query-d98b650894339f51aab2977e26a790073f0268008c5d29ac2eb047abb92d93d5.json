@@ -1,0 +1,152 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                c.id,\n                guild_id AS \"guild_id!\",\n                c.type AS kind,\n                name AS \"name!\",\n                position AS \"position!\",\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id,\n                row_to_json(m) AS \"last_message: sqlx::types::Json<crate::models::Message>\"\n            FROM\n                channels c\n            LEFT JOIN messages m ON m.id = (\n                SELECT m.id FROM messages m\n                WHERE m.channel_id = c.id\n                ORDER BY id DESC LIMIT 1\n            )\n            WHERE\n            c.type = 'dm' AND c.id IN (\n                        SELECT channel_id\n                        FROM channel_recipients\n                        WHERE user_id = $1\n                        AND channel_id IN (\n                            SELECT channel_id\n                            FROM channel_recipients\n                            WHERE user_id = $2\n                        )\n                    )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "position!",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "topic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "color",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 9,
+        "name": "gradient: crate::models::DbGradient",
+        "type_info": {
+          "Custom": {
+            "name": "gradient_type",
+            "kind": {
+              "Composite": [
+                [
+                  "angle",
+                  "Float4"
+                ],
+                [
+                  "stops",
+                  {
+                    "Custom": {
+                      "name": "_gradient_stop",
+                      "kind": {
+                        "Array": {
+                          "Custom": {
+                            "name": "gradient_stop",
+                            "kind": {
+                              "Composite": [
+                                [
+                                  "position",
+                                  "Float4"
+                                ],
+                                [
+                                  "color",
+                                  "Int4"
+                                ]
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "slowmode",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "user_limit",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 14,
+        "name": "owner_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "last_message: sqlx::types::Json<crate::models::Message>",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "d98b650894339f51aab2977e26a790073f0268008c5d29ac2eb047abb92d93d5"
+}

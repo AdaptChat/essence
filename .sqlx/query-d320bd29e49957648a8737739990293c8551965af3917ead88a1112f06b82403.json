@@ -1,0 +1,115 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                id,\n                guild_id,\n                name,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                position,\n                allowed_permissions,\n                denied_permissions,\n                flags\n            FROM roles\n            WHERE\n            guild_id = $1 ORDER BY position ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "guild_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "color",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 5,
+        "name": "gradient: crate::models::DbGradient",
+        "type_info": {
+          "Custom": {
+            "name": "gradient_type",
+            "kind": {
+              "Composite": [
+                [
+                  "angle",
+                  "Float4"
+                ],
+                [
+                  "stops",
+                  {
+                    "Custom": {
+                      "name": "_gradient_stop",
+                      "kind": {
+                        "Array": {
+                          "Custom": {
+                            "name": "gradient_stop",
+                            "kind": {
+                              "Composite": [
+                                [
+                                  "position",
+                                  "Float4"
+                                ],
+                                [
+                                  "color",
+                                  "Int4"
+                                ]
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "position",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "allowed_permissions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "denied_permissions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "flags",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d320bd29e49957648a8737739990293c8551965af3917ead88a1112f06b82403"
+}
