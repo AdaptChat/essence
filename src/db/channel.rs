@@ -9,15 +9,14 @@ use crate::{
     },
     models::{
         Channel, ChannelType, DbGradient, DmChannel, DmChannelInfo, ExtendedColor, Guild,
-        GuildChannel, GuildChannelInfo, MaybePartialMessage, Message, PermissionOverwrite,
-        PermissionPair, Permissions, TextBasedGuildChannelInfo,
+        GuildChannel, GuildChannelInfo, Message, PermissionOverwrite, PermissionPair, Permissions,
+        TextBasedGuildChannelInfo,
     },
     ws::UnackedChannel,
     Error, NotFoundExt,
 };
 use futures_util::future::TryJoinAll;
 use itertools::Itertools;
-use sqlx::types::Json;
 use std::{collections::HashMap, str::FromStr};
 
 macro_rules! query_channels {
@@ -39,15 +38,9 @@ macro_rules! query_channels {
                 nsfw,
                 locked,
                 user_limit,
-                owner_id,
-                row_to_json(m) AS "last_message: sqlx::types::Json<crate::models::Message>"
+                owner_id
             FROM
                 channels c
-            LEFT JOIN messages m ON m.id = (
-                SELECT m.id FROM messages m
-                WHERE m.channel_id = c.id
-                ORDER BY id DESC LIMIT 1
-            )
             WHERE
             "# + $where,
             $($($args),*)?
@@ -90,7 +83,6 @@ pub(crate) struct ChannelRecord {
     pub locked: Option<bool>,
     pub user_limit: Option<i16>,
     pub owner_id: Option<i64>,
-    pub last_message: Option<Json<Message>>,
 }
 
 impl ChannelRecord {
@@ -101,6 +93,7 @@ impl ChannelRecord {
     pub(crate) fn into_guild_channel(
         mut self,
         overwrites: Vec<PermissionOverwrite>,
+        last_message: Option<Message>,
     ) -> crate::Result<GuildChannel> {
         let channel_id = self.id as u64;
         let kind = ChannelType::from_str(&self.kind)?;
@@ -111,10 +104,7 @@ impl ChannelRecord {
                     nsfw: self.nsfw.unwrap_or_default(),
                     locked: self.locked.unwrap_or_default(),
                     slowmode: self.slowmode.unwrap_or_default() as u32,
-                    last_message: self
-                        .last_message
-                        .take()
-                        .map(|m| MaybePartialMessage::Full(m.0)),
+                    last_message,
                 };
 
                 match kind {
@@ -150,7 +140,11 @@ impl ChannelRecord {
         })
     }
 
-    pub(crate) fn into_dm_channel(self, recipients: Vec<u64>) -> crate::Result<DmChannel> {
+    pub(crate) fn into_dm_channel(
+        self,
+        recipients: Vec<u64>,
+        last_message: Option<Message>,
+    ) -> crate::Result<DmChannel> {
         let channel_id = self.id as u64;
         let kind = ChannelType::from_str(&self.kind)?;
         let info = match kind {
@@ -182,7 +176,7 @@ impl ChannelRecord {
         Ok(DmChannel {
             id: channel_id,
             info,
-            last_message: self.last_message.map(|m| m.0),
+            last_message,
         })
     }
 }
@@ -426,9 +420,10 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         let channel_id = channel.id as u64;
         let kind = ChannelType::from_str(&channel.kind)?;
 
+        let last_message = self.fetch_last_message(channel_id).await?;
         Ok(if kind.is_guild() {
             let overwrites = self.fetch_channel_overwrites(channel_id).await?;
-            Channel::Guild(channel.into_guild_channel(overwrites)?)
+            Channel::Guild(channel.into_guild_channel(overwrites, last_message)?)
         } else {
             let recipients: Vec<u64> = sqlx::query!(
                 "SELECT user_id FROM channel_recipients WHERE channel_id = $1",
@@ -439,7 +434,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .into_iter()
             .map(|r| r.user_id as u64)
             .collect();
-            Channel::Dm(channel.into_dm_channel(recipients)?)
+            Channel::Dm(channel.into_dm_channel(recipients, last_message)?)
         })
     }
 
@@ -523,6 +518,35 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .collect())
     }
 
+    /// Fetches a mapping of channel_ids to the last messages sent in those channels.
+    ///
+    /// # Note
+    /// Channel IDs are passed as signed integers akin to how they are represented in the database.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the last messages.
+    async fn fetch_last_message_map(
+        &self,
+        channel_ids: &[i64],
+    ) -> crate::Result<HashMap<u64, Message>> {
+        let message_ids: Vec<u64> = sqlx::query!(
+            r#"SELECT id FROM messages
+            WHERE channel_id = ANY($1::BIGINT[])
+            AND id IN (
+                SELECT MAX(id) FROM messages GROUP BY channel_id
+            )"#,
+            channel_ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|m| m.id as u64)
+        .collect();
+
+        let messages = self.bulk_fetch_messages(None, &message_ids, None).await?;
+        Ok(messages.into_iter().map(|m| (m.channel_id, m)).collect())
+    }
+
     /// Fetches all channels in a guild.
     ///
     /// # Errors
@@ -536,6 +560,9 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             .fetch_channel_overwrites_where("guild_id = $1", guild_id)
             .await?;
 
+        let channel_ids: Vec<_> = channels.iter().map(|c| c.id).collect();
+        let mut last_messages = self.fetch_last_message_map(&channel_ids).await?;
+
         let channels = channels
             .into_iter()
             .map(|c| {
@@ -546,6 +573,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                         .unwrap_or(&mut None)
                         .take()
                         .unwrap_or_default(),
+                    last_messages.remove(&id),
                 )
             })
             .collect::<crate::Result<Vec<_>>>()?;
@@ -577,6 +605,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .await?
         .into_iter()
         .into_group_map_by(|r| r.channel_id as u64);
+        let mut last_messages = self.fetch_last_message_map(&ids).await?;
 
         let mut resolved = Vec::with_capacity(channels.len());
         for channel in channels {
@@ -587,6 +616,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                         .get(&channel_id)
                         .map(|r| r.iter().map(|r| r.user_id as u64).collect())
                         .unwrap_or_default(),
+                    last_messages.remove(&channel_id),
                 )?,
             );
         }

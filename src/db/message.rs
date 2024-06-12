@@ -38,7 +38,7 @@ macro_rules! construct_message {
             },
             content: $data.content,
             embeds: $data.embeds_ser.0,
-            attachments: Vec::with_capacity(0),
+            attachments: Vec::with_capacity(10),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
             stars: $data.stars as _,
             mentions: $data.mentions.into_iter().map(|id| id as _).collect(),
@@ -324,9 +324,39 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         })
         .into_group_map();
 
+        let mut references = sqlx::query!(
+            r#"SELECT r.* FROM message_references r
+            INNER JOIN
+                messages m ON r.message_id = m.id
+            WHERE
+                m.id = ANY($1::BIGINT[])
+            AND
+                ($2::BIGINT[] IS NULL OR m.channel_id = ANY($2::BIGINT[]))"#,
+            &message_ids,
+            channel_ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|reference| {
+            (
+                reference.message_id as u64,
+                MessageReference {
+                    message_id: reference.target_id as _,
+                    channel_id: reference.channel_id as _,
+                    guild_id: reference.guild_id.map(|x| x as _),
+                    mention_author: reference.mention_author,
+                },
+            )
+        })
+        .into_group_map();
+
         for message in &mut messages {
             if let Some(attachments) = attachments.remove(&message.id) {
                 message.attachments = attachments;
+            }
+            if let Some(references) = references.remove(&message.id) {
+                message.references = references;
             }
         }
         Ok(messages)

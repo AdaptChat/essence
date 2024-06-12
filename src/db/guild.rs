@@ -404,26 +404,32 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             )
             .await?;
 
-            let channels = query_channels!(
+            let out = query_channels!(
                 "guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
                 user_id as i64
             )
             .fetch_all(self.executor())
-            .await?
-            .into_iter()
-            .map(|r| {
-                let id = r.id as u64;
-                r.into_guild_channel(
-                    overwrites
-                        .get_mut(&id)
-                        .unwrap_or(&mut None)
-                        .take()
-                        .unwrap_or_default(),
-                )
-            })
-            .collect::<crate::Result<Vec<_>>>()?
-            .into_iter()
-            .into_group_map_by(|c| c.guild_id);
+            .await?;
+
+            let channel_ids: Vec<_> = out.iter().map(|r| r.id).collect();
+            let mut last_messages = self.fetch_last_message_map(&channel_ids).await?;
+
+            let channels = out
+                .into_iter()
+                .map(|r| {
+                    let id = r.id as u64;
+                    r.into_guild_channel(
+                        overwrites
+                            .get_mut(&id)
+                            .unwrap_or(&mut None)
+                            .take()
+                            .unwrap_or_default(),
+                        last_messages.remove(&id),
+                    )
+                })
+                .collect::<crate::Result<Vec<_>>>()?
+                .into_iter()
+                .into_group_map_by(|c| c.guild_id);
 
             for (guild_id, channels) in channels {
                 if let Some(guild) = guilds.get_mut(&guild_id) {
