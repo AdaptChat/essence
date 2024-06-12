@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id FROM messages\n            WHERE channel_id = ANY($1::BIGINT[])\n            AND id IN (\n                SELECT MAX(id) FROM messages GROUP BY channel_id\n            )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6eeea4a00ea6e58225ab43bb26d462ff50f676b90025520e2daf441d42470e34"
+}

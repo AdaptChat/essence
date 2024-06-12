@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT r.* FROM message_references r\n            INNER JOIN\n                messages m ON r.message_id = m.id\n            WHERE\n                m.id = ANY($1::BIGINT[])\n            AND\n                ($2::BIGINT[] IS NULL OR m.channel_id = ANY($2::BIGINT[]))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "target_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "channel_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "guild_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "mention_author",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "d4e262167ec82273bf18e6136ad7498596f439a8784b63cb308c990f3564ff78"
+}

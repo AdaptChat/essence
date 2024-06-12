@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                c.id,\n                guild_id AS \"guild_id!\",\n                c.type AS kind,\n                name AS \"name!\",\n                position AS \"position!\",\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id,\n                row_to_json(m) AS \"last_message: sqlx::types::Json<crate::models::Message>\"\n            FROM\n                channels c\n            LEFT JOIN messages m ON m.id = (\n                SELECT m.id FROM messages m\n                WHERE m.channel_id = c.id\n                ORDER BY id DESC LIMIT 1\n            )\n            WHERE\n            c.type = 'dm' AND c.id IN (\n                        SELECT channel_id\n                        FROM channel_recipients\n                        WHERE user_id = $1\n                        AND channel_id IN (\n                            SELECT channel_id\n                            FROM channel_recipients\n                            WHERE user_id = $2\n                        )\n                    )",
+  "query": "SELECT\n                c.id,\n                guild_id AS \"guild_id!\",\n                c.type AS kind,\n                name AS \"name!\",\n                position AS \"position!\",\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
   "describe": {
     "columns": [
       {
@@ -116,16 +116,10 @@
         "ordinal": 14,
         "name": "owner_id",
         "type_info": "Int8"
-      },
-      {
-        "ordinal": 15,
-        "name": "last_message: sqlx::types::Json<crate::models::Message>",
-        "type_info": "Json"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8",
         "Int8"
       ]
     },
@@ -144,9 +138,8 @@
       true,
       true,
       true,
-      true,
-      null
+      true
     ]
   },
-  "hash": "d98b650894339f51aab2977e26a790073f0268008c5d29ac2eb047abb92d93d5"
+  "hash": "b954b829e501a7466c4d7c1ded987c25b19e82f681637288aeae91f334ff16d8"
 }
