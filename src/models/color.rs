@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "db")]
 use sqlx::postgres::PgTypeInfo;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -27,6 +28,54 @@ pub struct Gradient {
     pub stops: Vec<GradientStop>,
 }
 
+impl Gradient {
+    /// Validates the gradient by ensuring that the stops are sorted by position and that the
+    /// positions are between 0 and 1.
+    pub fn validate(&self) -> crate::Result<()> {
+        if !(0.0..std::f32::consts::TAU).contains(&self.angle) {
+            return Err(crate::Error::InvalidField {
+                field: "angle".to_string(),
+                message: "Gradient angle must be in radians, between 0 and 2 * PI".to_string(),
+            });
+        }
+
+        if self.stops.is_empty() {
+            return Err(crate::Error::InvalidField {
+                field: "stops".to_string(),
+                message: "Gradient must have at least one stop".to_string(),
+            });
+        }
+
+        if self.stops.len() > 8 {
+            return Err(crate::Error::InvalidField {
+                field: "stops".to_string(),
+                message: "Gradient may only have at most 8 stops".to_string(),
+            });
+        }
+
+        let mut last = 0.0;
+        for stop in &self.stops {
+            if stop.position < 0.0 || stop.position > 1.0 {
+                return Err(crate::Error::InvalidField {
+                    field: "stops".to_string(),
+                    message: "Gradient stop position must be between 0 and 1".to_string(),
+                });
+            }
+
+            if stop.position < last {
+                return Err(crate::Error::InvalidField {
+                    field: "stops".to_string(),
+                    message: "Gradient stops must be sorted by position".to_string(),
+                });
+            }
+
+            last = stop.position;
+        }
+
+        Ok(())
+    }
+}
+
 /// A color that can either be solid or a linear gradient. Individual colors are specified as
 /// integers between 0 and 16777215.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -48,6 +97,7 @@ pub(crate) struct DbGradientStop {
     color: i32,
 }
 
+#[cfg(feature = "db")]
 impl sqlx::postgres::PgHasArrayType for DbGradientStop {
     fn array_type_info() -> PgTypeInfo {
         PgTypeInfo::with_name("gradient_stop[]")
