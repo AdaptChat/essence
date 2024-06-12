@@ -1,0 +1,62 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO roles (\n                id, guild_id, name, color, gradient, icon,\n                allowed_permissions, denied_permissions, position, flags\n            )\n            VALUES\n                ($1, $2, $3, $4, $5::gradient_type, $6, $7, $8, $9, $10)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int4",
+        {
+          "Custom": {
+            "name": "gradient_type",
+            "kind": {
+              "Composite": [
+                [
+                  "angle",
+                  "Float4"
+                ],
+                [
+                  "stops",
+                  {
+                    "Custom": {
+                      "name": "_gradient_stop",
+                      "kind": {
+                        "Array": {
+                          "Custom": {
+                            "name": "gradient_stop",
+                            "kind": {
+                              "Composite": [
+                                [
+                                  "position",
+                                  "Float4"
+                                ],
+                                [
+                                  "color",
+                                  "Int4"
+                                ]
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "Text",
+        "Int8",
+        "Int8",
+        "Int2",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1748414e2fc855a25015c486d305474a8e172cc8d00dc760f867f5b5b4dbf1df"
+}
