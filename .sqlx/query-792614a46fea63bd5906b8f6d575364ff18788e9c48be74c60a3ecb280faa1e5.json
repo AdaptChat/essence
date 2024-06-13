@@ -1,10 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE\n                roles\n            SET\n                name = $1,\n                color = $2,\n                gradient = $3::gradient_type,\n                allowed_permissions = $4,\n                denied_permissions = $5,\n                flags = $6\n            WHERE\n                guild_id = $7\n            AND\n                id = $8\n            ",
+  "query": "UPDATE\n                roles\n            SET\n                name = $1,\n                icon = $2,\n                color = $3,\n                gradient = $4::gradient_type,\n                allowed_permissions = $5,\n                denied_permissions = $6,\n                flags = $7\n            WHERE\n                guild_id = $8\n            AND\n                id = $9\n            ",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
+        "Text",
         "Text",
         "Int4",
         {
@@ -56,5 +57,5 @@
     },
     "nullable": []
   },
-  "hash": "48ec74c4db786224502121b4a6f021e8fb56213430ebf4dd3f96828d506648f8"
+  "hash": "792614a46fea63bd5906b8f6d575364ff18788e9c48be74c60a3ecb280faa1e5"
 }
