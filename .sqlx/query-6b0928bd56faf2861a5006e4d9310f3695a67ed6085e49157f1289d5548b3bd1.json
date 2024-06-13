@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                c.id,\n                guild_id AS \"guild_id!\",\n                c.type AS kind,\n                name AS \"name!\",\n                position AS \"position!\",\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            c.id = $1",
+  "query": "SELECT\n                c.id,\n                guild_id,\n                c.type AS kind,\n                name,\n                position,\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            c.id = $1",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "guild_id!",
+        "name": "guild_id",
         "type_info": "Int8"
       },
       {
@@ -20,12 +20,12 @@
       },
       {
         "ordinal": 3,
-        "name": "name!",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "position!",
+        "name": "position",
         "type_info": "Int2"
       },
       {
@@ -141,5 +141,5 @@
       true
     ]
   },
-  "hash": "cefa152fdefb43d1cf36de27083b79699ea3fa3907d829d984153c7e1f2f3cd5"
+  "hash": "6b0928bd56faf2861a5006e4d9310f3695a67ed6085e49157f1289d5548b3bd1"
 }
