@@ -84,7 +84,10 @@ impl Gradient {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ExtendedColor {
     /// A solid color.
-    Solid(u32),
+    Solid {
+        /// The color of the solid color.
+        color: u32,
+    },
     /// A linear gradient of colors.
     Gradient(Gradient),
 }
@@ -93,7 +96,7 @@ impl ExtendedColor {
     /// Validates the color if it is a gradient by ensuring that it is valid.
     pub fn validate(&self) -> crate::Result<()> {
         match self {
-            Self::Solid(_) => Ok(()),
+            Self::Solid { .. } => Ok(()),
             Self::Gradient(gradient) => gradient.validate(),
         }
     }
@@ -147,7 +150,9 @@ impl ExtendedColor {
                     stops,
                 }))
             }
-            (Some(color), _) => Some(Self::Solid(color as u32)),
+            (Some(color), _) => Some(Self::Solid {
+                color: color as u32,
+            }),
             _ => None,
         }
     }
@@ -156,7 +161,7 @@ impl ExtendedColor {
     #[cfg(feature = "db")]
     pub(crate) fn to_db(&self) -> (Option<i32>, Option<DbGradient>) {
         match self {
-            Self::Solid(color) => (Some(*color as i32), None),
+            Self::Solid { color } => (Some(*color as i32), None),
             Self::Gradient(gradient) => {
                 let stops = gradient
                     .stops

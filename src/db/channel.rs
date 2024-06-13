@@ -944,7 +944,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             if let Some(ref overwrites) = payload.overwrites {
                 self.bulk_register_overwrites(guild_id, channel_id, overwrites)
                     .await?;
-                channel.overwrites = overwrites.clone();
+                channel.overwrites.clone_from(overwrites);
             }
 
             channel.color = payload
