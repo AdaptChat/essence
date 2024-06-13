@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                c.id,\n                guild_id AS \"guild_id!\",\n                c.type AS kind,\n                name AS \"name!\",\n                position AS \"position!\",\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
+  "query": "SELECT\n                c.id,\n                guild_id,\n                c.type AS kind,\n                name,\n                position,\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            (c.type = 'dm' OR c.type = 'group')\n            AND c.id IN (\n                SELECT channel_id FROM channel_recipients WHERE user_id = $1\n            )",
   "describe": {
     "columns": [
       {
@@ -10,7 +10,7 @@
       },
       {
         "ordinal": 1,
-        "name": "guild_id!",
+        "name": "guild_id",
         "type_info": "Int8"
       },
       {
@@ -20,12 +20,12 @@
       },
       {
         "ordinal": 3,
-        "name": "name!",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "position!",
+        "name": "position",
         "type_info": "Int2"
       },
       {
@@ -141,5 +141,5 @@
       true
     ]
   },
-  "hash": "b954b829e501a7466c4d7c1ded987c25b19e82f681637288aeae91f334ff16d8"
+  "hash": "c40bfe0b07fb27b457ff395f8bdb7a76142960f6aba9026d542b6935944859a0"
 }
