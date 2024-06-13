@@ -25,10 +25,10 @@ macro_rules! query_channels {
             crate::db::channel::ChannelRecord,
             r#"SELECT
                 c.id,
-                guild_id AS "guild_id!",
+                guild_id,
                 c.type AS kind,
-                name AS "name!",
-                position AS "position!",
+                name,
+                position,
                 parent_id,
                 topic,
                 icon,
