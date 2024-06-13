@@ -651,7 +651,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         .await?;
         sqlx::query(
             r"INSERT INTO
-                channel_overwrites
+                channel_overwrites (channel_id, guild_id, target_id, allow, deny)
             SELECT
                 $1, $2, out.*
             FROM
