@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE channels\n            SET\n                name = $1, topic = $2, icon = $3, user_limit = $4,\n                color = $5, gradient = $6::gradient_type\n            WHERE id = $7",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Int2",
+        "Int4",
+        {
+          "Custom": {
+            "name": "gradient_type",
+            "kind": {
+              "Composite": [
+                [
+                  "angle",
+                  "Float4"
+                ],
+                [
+                  "stops",
+                  {
+                    "Custom": {
+                      "name": "_gradient_stop",
+                      "kind": {
+                        "Array": {
+                          "Custom": {
+                            "name": "gradient_stop",
+                            "kind": {
+                              "Composite": [
+                                [
+                                  "position",
+                                  "Float4"
+                                ],
+                                [
+                                  "color",
+                                  "Int4"
+                                ]
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        },
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "de89924848cceed19770700902151076ff79b806b2721136f004e97484707e10"
+}
