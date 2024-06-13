@@ -611,13 +611,16 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         for channel in channels {
             let channel_id = channel.id as u64;
             resolved.push(
-                channel.into_dm_channel(
+                match channel.into_dm_channel(
                     recipients
                         .get(&channel_id)
                         .map(|r| r.iter().map(|r| r.user_id as u64).collect())
                         .unwrap_or_default(),
                     last_messages.remove(&channel_id),
-                )?,
+                ) {
+                    Ok(channel) => channel,
+                    Err(_) => continue,
+                },
             );
         }
 
