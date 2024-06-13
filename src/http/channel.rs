@@ -1,3 +1,4 @@
+use crate::models::ExtendedColor;
 use crate::{
     models::{ChannelType, PermissionOverwrite},
     Maybe,
@@ -59,6 +60,8 @@ pub struct CreateGuildChannelPayload {
     /// The type of the channel and information specific to it.
     #[serde(flatten)]
     pub info: CreateGuildChannelInfo,
+    /// The optional color of the channel.
+    pub color: Option<ExtendedColor>,
     /// The icon of the channel represented as a
     /// [Data URI scheme](https://en.wikipedia.org/wiki/Data_URI_scheme), if any.
     pub icon: Option<String>,
@@ -117,6 +120,12 @@ pub struct EditChannelPayload {
     #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
     #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<String>))]
     pub topic: Maybe<String>,
+    /// The new color of the channel. Set this to `null` to remove the color and leave empty to
+    /// leave the color (or absence thereof) unchanged. Only takes effect for guild channels.
+    #[serde(default)]
+    #[cfg_attr(feature = "client", serde(skip_serializing_if = "Maybe::is_absent"))]
+    #[cfg_attr(feature = "utoipa", schema(nullable, value_type = Option<ExtendedColor>))]
+    pub color: Maybe<ExtendedColor>,
     /// The new icon of the channel. Explicitly setting this to `None` will clear the icon.
     /// Takes effect for all channels except for user DMs.
     ///
@@ -128,6 +137,11 @@ pub struct EditChannelPayload {
     /// The new user limit of the voice channel. Explicitly setting this to `0` will remove the
     /// current limit, if there is any. Only takes effect for guild voice channels.
     pub user_limit: Option<u16>,
+    /// The new permission overwrites to apply to the channel. If provided, this will completely
+    /// replace the existing overwrites. You may only create overwrites for manageable roles and
+    /// users. You may only modify/set permissions that you have. Only takes effect for guild
+    /// channels.
+    pub overwrites: Option<Vec<PermissionOverwrite>>,
 }
 
 /// The payload used per channel to specify its new position data.

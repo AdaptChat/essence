@@ -13,7 +13,7 @@ use crate::{
         TextBasedGuildChannelInfo,
     },
     ws::UnackedChannel,
-    Error, NotFoundExt,
+    Error, Maybe, NotFoundExt,
 };
 use futures_util::future::TryJoinAll;
 use itertools::Itertools;
@@ -624,6 +624,49 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         Ok(resolved)
     }
 
+    async fn bulk_register_overwrites(
+        &mut self,
+        guild_id: u64,
+        channel_id: u64,
+        overwrites: &[PermissionOverwrite],
+    ) -> crate::Result<()> {
+        let (targets, (allow, deny)) = overwrites
+            .iter()
+            .map(|o| {
+                (
+                    o.id as i64,
+                    (o.permissions.allow.bits(), o.permissions.deny.bits()),
+                )
+            })
+            .unzip::<_, _, Vec<_>, (Vec<_>, Vec<_>)>();
+
+        sqlx::query!(
+            "DELETE FROM channel_overwrites WHERE channel_id = $1",
+            channel_id as i64
+        )
+        .execute(self.transaction())
+        .await?;
+        sqlx::query(
+            r"INSERT INTO
+                channel_overwrites
+            SELECT
+                $1, $2, out.*
+            FROM
+                UNNEST($3, $4, $5)
+            AS
+                out(target_id, allow, deny)",
+        )
+        .bind(channel_id as i64)
+        .bind(guild_id as i64)
+        .bind(targets)
+        .bind(allow)
+        .bind(deny)
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
     /// Creates a new channel in a guild from a payload. Payload must be validated prior to creating
     /// the channel.
     ///
@@ -670,11 +713,17 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             }
         };
 
+        if let Some(ref color) = payload.color {
+            color.validate()?;
+        }
+        let (color, gradient) = payload.color.as_ref().map(ExtendedColor::to_db).unzip();
         sqlx::query!(
-            "INSERT INTO channels
-                (id, guild_id, type, name, position, parent_id, topic, icon, user_limit)
+            "INSERT INTO channels (
+                id, guild_id, type, name, position, parent_id, topic,
+                icon, color, gradient, user_limit
+            )
             VALUES
-                ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::gradient_type, $11)
             ",
             channel_id as i64,
             guild_id as i64,
@@ -684,40 +733,16 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             postgres_parent_id,
             topic,
             payload.icon,
+            color.flatten(),
+            gradient.flatten() as _,
             user_limit.map(|&limit| limit as i16),
         )
         .execute(self.transaction())
         .await?;
 
         if let Some(ref overwrites) = payload.overwrites {
-            let (targets, (allow, deny)) = overwrites
-                .iter()
-                .map(|o| {
-                    (
-                        o.id as i64,
-                        (o.permissions.allow.bits(), o.permissions.deny.bits()),
-                    )
-                })
-                .unzip::<_, _, Vec<_>, (Vec<_>, Vec<_>)>();
-
-            sqlx::query(
-                r"INSERT INTO
-                    channel_overwrites
-                SELECT
-                    $1, $2, out.*
-                FROM
-                    UNNEST($3, $4, $5)
-                AS
-                    out(target_id, allow, deny)
-                ",
-            )
-            .bind(channel_id as i64)
-            .bind(guild_id as i64)
-            .bind(targets)
-            .bind(allow)
-            .bind(deny)
-            .execute(self.transaction())
-            .await?;
+            self.bulk_register_overwrites(guild_id, channel_id, overwrites)
+                .await?;
         }
 
         let info = match payload.info {
@@ -745,7 +770,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             guild_id,
             info,
             name: payload.name,
-            color: None,
+            color: payload.color,
             icon: payload.icon,
             position,
             parent_id: payload.parent_id,
@@ -913,12 +938,43 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             }
         });
 
+        if let Channel::Guild(ref mut channel) = channel {
+            let guild_id = channel.guild_id;
+
+            if let Some(ref overwrites) = payload.overwrites {
+                self.bulk_register_overwrites(guild_id, channel_id, overwrites)
+                    .await?;
+                channel.overwrites = overwrites.clone();
+            }
+
+            channel.color = payload
+                .color
+                .clone()
+                .into_option_or_if_absent(channel.color.clone());
+        }
+
+        if let Maybe::Value(ref color) = payload.color {
+            color.validate()?;
+        }
+        let (color, gradient) = payload
+            .color
+            .into_option()
+            .as_ref()
+            .map(ExtendedColor::to_db)
+            .unzip();
+
         sqlx::query!(
-            "UPDATE channels SET name = $1, topic = $2, icon = $3, user_limit = $4 WHERE id = $5",
+            r"UPDATE channels
+            SET
+                name = $1, topic = $2, icon = $3, user_limit = $4,
+                color = $5, gradient = $6::gradient_type
+            WHERE id = $7",
             channel.name().map(str::trim),
             channel.topic(),
             channel.icon(),
             limit,
+            color.flatten(),
+            gradient.flatten() as _,
             channel_id as i64,
         )
         .execute(self.transaction())

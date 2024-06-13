@@ -4,7 +4,7 @@ use crate::{
     http::role::{CreateRolePayload, EditRolePayload},
     models::{DbGradient, ExtendedColor, ModelType, PermissionPair, Permissions, Role, RoleFlags},
     snowflake::with_model_type,
-    Error,
+    Error, Maybe,
 };
 
 macro_rules! query_roles {
@@ -328,6 +328,9 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        if let Some(ref color) = payload.color {
+            color.validate()?;
+        }
         let (color, gradient) = payload.color.map(|c| c.to_db()).unzip();
         sqlx::query!(
             r#"INSERT INTO roles (
@@ -394,7 +397,11 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         if let Some(hoisted) = payload.hoisted {
             role.flags.set(RoleFlags::HOISTED, hoisted);
         }
+        if let Maybe::Value(ref color) = payload.color {
+            color.validate()?;
+        }
         role.color = payload.color.into_option_or_if_absent(role.color);
+        role.icon = payload.icon.into_option_or_if_absent(role.icon);
 
         let (color, gradient) = role.color.as_ref().map(ExtendedColor::to_db).unzip();
         sqlx::query!(
@@ -402,17 +409,19 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
                 roles
             SET
                 name = $1,
-                color = $2,
-                gradient = $3::gradient_type,
-                allowed_permissions = $4,
-                denied_permissions = $5,
-                flags = $6
+                icon = $2,
+                color = $3,
+                gradient = $4::gradient_type,
+                allowed_permissions = $5,
+                denied_permissions = $6,
+                flags = $7
             WHERE
-                guild_id = $7
+                guild_id = $8
             AND
-                id = $8
+                id = $9
             "#,
             role.name,
+            role.icon,
             color.flatten(),
             gradient.flatten() as _,
             role.permissions.allow.bits(),

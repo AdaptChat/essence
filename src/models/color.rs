@@ -89,6 +89,16 @@ pub enum ExtendedColor {
     Gradient(Gradient),
 }
 
+impl ExtendedColor {
+    /// Validates the color if it is a gradient by ensuring that it is valid.
+    pub fn validate(&self) -> crate::Result<()> {
+        match self {
+            Self::Solid(_) => Ok(()),
+            Self::Gradient(gradient) => gradient.validate(),
+        }
+    }
+}
+
 #[cfg(feature = "db")]
 #[derive(sqlx::Type, Copy, Clone, Debug)]
 #[sqlx(type_name = "gradient_stop")]
