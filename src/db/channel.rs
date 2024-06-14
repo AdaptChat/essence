@@ -709,10 +709,14 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
                 .position as u16
             }
             _ => {
-                query_guild_channel_next_position!(guild_id as i64, postgres_parent_id)
-                    .fetch_one(get_pool())
-                    .await?
-                    .position as u16
+                query_guild_channel_next_position!(
+                    @clause "type <> 'category'",
+                    guild_id as i64,
+                    postgres_parent_id
+                )
+                .fetch_one(get_pool())
+                .await?
+                .position as u16
             }
         };
 
