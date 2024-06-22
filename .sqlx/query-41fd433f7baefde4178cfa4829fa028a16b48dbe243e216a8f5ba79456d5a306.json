@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO users (id, username, display_name, flags)\n            VALUES ($1, $2, $3, $4)\n            RETURNING *",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "password",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "banner",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "bio",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "flags",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 8,
+        "name": "dm_privacy",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 9,
+        "name": "group_dm_privacy",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 10,
+        "name": "friend_request_privacy",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 11,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "onboarding_flags",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "settings",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "41fd433f7baefde4178cfa4829fa028a16b48dbe243e216a8f5ba79456d5a306"
+}
