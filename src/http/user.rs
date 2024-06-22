@@ -1,3 +1,4 @@
+use crate::models::Permissions;
 use crate::Maybe;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
@@ -107,4 +108,44 @@ pub struct EditUserPayload {
 pub struct SendFriendRequestPayload {
     /// The username of the user to add as a friend.
     pub username: String,
+}
+
+/// Payload sent when creating a new bot account.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct CreateBotPayload {
+    /// The unique username of the bot. Must between 2 and 32 characters and only contain
+    /// alphanumeric characters, periods (.), hyphens (-), and underscores (_).
+    ///
+    /// Note that unlike usernames, bot usernames are only unique to you. The full username of the
+    /// bot will be ``owner_username/given_username``, for example ``user123/MyBot``.
+    pub username: String,
+    /// The global display name of the bot. Must be between 2 and 32 characters.
+    pub display_name: Option<String>,
+    /// Whether the bot is public. Public bots can be added by anyone, while private bots can only
+    /// be added by the owner.
+    #[serde(default)]
+    pub public: bool,
+}
+
+/// Payload sent to edit details of a bot account.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct EditBotPayload {
+    /// The inner user payload to edit account details about the bot.
+    #[serde(flatten)]
+    pub user_payload: EditUserPayload,
+    /// Whether the bot should be public. Leave empty to keep the current setting.
+    pub public: Option<bool>,
+    /// The new default permissions the bot should request for when being added to guilds.
+    /// Leave empty to keep the current permissions.
+    pub default_permissions: Option<Permissions>,
+    /// Whether the bot should support being added to guilds.
+    pub guild_enabled: Option<bool>,
+    /// Whether the bot should support being added to group DMs.
+    pub group_dm_enabled: Option<bool>,
+    /// Whether the bot should support global access.
+    pub global_enabled: Option<bool>,
 }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 #[cfg(feature = "db")]
 use crate::db::{DbRelationship, DbRelationshipType};
+use crate::models::Permissions;
 use crate::serde_for_bitflags;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
@@ -256,7 +257,7 @@ pub struct Relationship {
 }
 
 #[cfg(feature = "db")]
-impl crate::models::Relationship {
+impl Relationship {
     /// Creates a new relationship from a database row.
     /// This is used internally by the database module.
     #[inline]
@@ -276,3 +277,39 @@ impl crate::models::Relationship {
         }
     }
 }
+
+/// Represents details about a bot.
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+pub struct Bot {
+    /// The user this bot is associated with.
+    pub user: User,
+    /// The ID of the user who owns this bot.
+    pub owner_id: u64,
+    /// The default permissions the bot has when added to a guild.
+    pub default_permissions: Permissions,
+    /// A bitmask of extra information associated with the bot.
+    pub flags: BotFlags,
+}
+
+bitflags::bitflags! {
+    /// A bitmask of extra information associated with a bot.
+    #[derive(Default)]
+    pub struct BotFlags: u32 {
+        /// The bot is a verified bot account.
+        const VERIFIED = 1 << 0;
+        /// The bot is public. Bots that are not public can only be added by the owner.
+        const PUBLIC = 1 << 1;
+        /// This bot is allowed to be added to guilds.
+        const GUILD_ENABLED = 1 << 2;
+        /// This bot is allowed to be added to group DMs.
+        const GROUP_DM_ENABLED = 1 << 3;
+        /// This bot is allowed to be used anywhere, including guilds, group DMs, and direct DMs.
+        /// Global bots are restricted to ephemeral messages unless authorized in a direct DM.
+        const GLOBAL_ENABLED = 1 << 4;
+    }
+}
+
+serde_for_bitflags!(u32: BotFlags);
