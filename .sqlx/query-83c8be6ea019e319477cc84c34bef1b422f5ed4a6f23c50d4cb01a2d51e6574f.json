@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                COALESCE(MAX(position) + 1, 0) AS \"position!\"\n            FROM\n                channels\n            WHERE\n                guild_id = $1\n            AND\n                (parent_id = $2 OR parent_id IS NULL AND $2 IS NULL)\n            AND type <> 'category'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "position!",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "83c8be6ea019e319477cc84c34bef1b422f5ed4a6f23c50d4cb01a2d51e6574f"
+}
