@@ -289,8 +289,10 @@ pub struct Bot {
     /// The ID of the user who owns this bot.
     pub owner_id: u64,
     /// The default permissions the bot has when added to a guild.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub default_permissions: Permissions,
     /// A bitmask of extra information associated with the bot.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: BotFlags,
 }
 

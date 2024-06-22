@@ -1,5 +1,7 @@
-use crate::models::Permissions;
-use crate::Maybe;
+use crate::{
+    models::{Bot, Permissions},
+    Maybe,
+};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -127,6 +129,18 @@ pub struct CreateBotPayload {
     /// be added by the owner.
     #[serde(default)]
     pub public: bool,
+}
+
+/// Data sent when creating a new bot account.
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct CreateBotResponse {
+    /// The bot that was created.
+    #[serde(flatten)]
+    pub bot: Bot,
+    /// The token to use for authentication.
+    pub token: String,
 }
 
 /// Payload sent to edit details of a bot account.

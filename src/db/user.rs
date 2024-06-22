@@ -1,12 +1,14 @@
 use std::collections::HashMap;
 
 use super::DbExt;
-use crate::models::{NotificationFlags, Settings, UserOnboardingFlags};
 use crate::{
     db::get_pool,
     error::UserInteractionType,
     http::user::EditUserPayload,
-    models::{ClientUser, PrivacyConfiguration, Relationship, RelationshipType, User, UserFlags},
+    models::{
+        Bot, BotFlags, ClientUser, NotificationFlags, Permissions, PrivacyConfiguration,
+        Relationship, RelationshipType, Settings, User, UserFlags, UserOnboardingFlags,
+    },
     Error, NotFoundExt,
 };
 
@@ -825,6 +827,51 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         // TODO: Check override and target.
 
         Ok(enabled)
+    }
+
+    /// Registers a new bot account with the given payload.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with registering the bot.
+    async fn create_bot(
+        &mut self,
+        id: u64,
+        owner_id: u64,
+        qualified_name: impl AsRef<str> + Send,
+        display_name: Option<impl AsRef<str> + Send>,
+        flags: BotFlags,
+    ) -> crate::Result<Bot> {
+        let user = sqlx::query!(
+            r"INSERT INTO users (id, username, display_name, flags)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *",
+            id as i64,
+            qualified_name.as_ref().trim(),
+            display_name.as_ref().map(|s| s.as_ref().trim()),
+            UserFlags::BOT.bits() as i32,
+        )
+        .fetch_one(self.transaction())
+        .await?;
+
+        sqlx::query!(
+            "INSERT INTO bots (user_id, owner_id, flags) VALUES ($1, $2, $3)",
+            id as i64,
+            owner_id as i64,
+            flags.bits() as i32,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(Bot {
+            user: construct_user!(user),
+            owner_id,
+            default_permissions: Permissions::empty(),
+            flags,
+        })
     }
 }
 
