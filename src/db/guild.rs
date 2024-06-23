@@ -364,6 +364,19 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         Ok(guild_ids)
     }
 
+    /// Fetches the guild count of a user.
+    async fn fetch_guild_count(&self, user_id: u64) -> crate::Result<u64> {
+        let guild_count = sqlx::query!(
+            r#"SELECT COUNT(*) AS "count!" FROM members WHERE id = $1"#,
+            user_id as i64,
+        )
+        .fetch_one(self.executor())
+        .await?
+        .count as u64;
+
+        Ok(guild_count)
+    }
+
     /// Fetches all guilds that a user is a member of, abiding by the query.
     ///
     /// # Errors
