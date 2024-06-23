@@ -69,7 +69,7 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
         }
     }
 
-    /// Creates a new token for the given user ID.
+    /// Registers a new token for the given user ID.
     ///
     /// # Note
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
@@ -77,7 +77,7 @@ pub trait AuthDbExt<'t>: DbExt<'t> {
     ///
     /// # Errors
     /// * If an error occurs with creating the token.
-    async fn create_token(
+    async fn register_token(
         &mut self,
         user_id: u64,
         token: impl AsRef<str> + Send,
