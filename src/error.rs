@@ -137,6 +137,13 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// You must be the owner of the bot to perform the requested action.
+    NotBotOwner {
+        /// The ID of the bot you are not the owner of.
+        bot_id: u64,
+        /// The error message.
+        message: String,
+    },
     /// You are not the author of the message you are trying to edit.
     NotMessageAuthor {
         /// The ID of the message you are trying to edit.
@@ -263,6 +270,7 @@ impl Error {
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
             Self::NotMember { .. }
             | Self::NotOwner { .. }
+            | Self::NotBotOwner { .. }
             | Self::NotMessageAuthor { .. }
             | Self::MissingPermissions { .. }
             | Self::RoleTooLow { .. }

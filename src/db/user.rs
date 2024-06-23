@@ -1004,6 +1004,26 @@ pub trait UserDbExt<'t>: DbExt<'t> {
 
         Ok(())
     }
+
+    /// Asserts the user with the given ID is the owner of this bot.
+    async fn assert_user_owns_bot(&self, user_id: u64, bot_id: u64) -> crate::Result<()> {
+        let owner_id = sqlx::query!(
+            "SELECT owner_id FROM bots WHERE user_id = $1",
+            bot_id as i64
+        )
+        .fetch_one(self.executor())
+        .await?
+        .owner_id;
+
+        if owner_id != user_id as i64 {
+            return Err(Error::NotBotOwner {
+                bot_id,
+                message: "You are not the owner of this bot.".to_string(),
+            });
+        }
+
+        Ok(())
+    }
 }
 
 impl<'t, T> UserDbExt<'t> for T where T: DbExt<'t> {}
