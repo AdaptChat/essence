@@ -169,9 +169,9 @@ pub struct EditBotPayload {
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct DeleteBotPayload {
-    /// The password of the bot owner. Not required if the bot is in less than 20 guilds.
+    /// The password of the bot owner.
     #[cfg_attr(feature = "utoipa", schema(format = "password"))]
-    pub password: Option<String>,
+    pub password: String,
 }
 
 /// Payload sent when regenerating a bot's token.
@@ -179,7 +179,7 @@ pub struct DeleteBotPayload {
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct RegenerateBotTokenPayload {
-    /// The password of the bot owner. Not required if the bot is in less than 20 guilds.
+    /// The password of the bot owner.
     #[cfg_attr(feature = "utoipa", schema(format = "password"))]
-    pub password: Option<String>,
+    pub password: String,
 }
