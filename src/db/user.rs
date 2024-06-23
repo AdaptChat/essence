@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use super::DbExt;
+use crate::http::user::EditBotPayload;
 use crate::{
     db::get_pool,
     error::UserInteractionType,
@@ -57,14 +58,16 @@ macro_rules! fetch_client_user {
             });
 
         if let Some(client) = result.as_mut() {
-            client.notification_override = {
-                sqlx::query!("SELECT target_id, notif_flags FROM notification_settings WHERE user_id = $1", client.id as i64)
-                    .fetch_all($self.executor())
-                    .await?
-                    .into_iter()
-                    .map(|r| (r.target_id as u64, NotificationFlags::from_bits_truncate(r.notif_flags)))
-                    .collect()
-            };
+            client.notification_override =
+                sqlx::query!(
+                    "SELECT target_id, notif_flags FROM notification_settings WHERE user_id = $1",
+                    client.id as i64,
+                )
+                .fetch_all($self.executor())
+                .await?
+                .into_iter()
+                .map(|r| (r.target_id as u64, NotificationFlags::from_bits_truncate(r.notif_flags)))
+                .collect();
         }
 
         Ok(result)
@@ -121,6 +124,49 @@ macro_rules! privacy_configuration_method {
             })
         }
     };
+}
+
+macro_rules! query_bots {
+    ($where:literal, $($arg:expr),* $(,)?) => {{
+        sqlx::query!(
+            r#"SELECT
+                u.id AS id,
+                u.username AS username,
+                u.display_name AS display_name,
+                u.avatar AS avatar,
+                u.banner AS banner,
+                u.bio AS bio,
+                u.flags AS flags,
+                b.owner_id AS owner_id,
+                b.default_permissions AS default_permissions,
+                b.flags AS bot_flags
+            FROM
+                users AS u
+            INNER JOIN
+                bots AS b ON u.id = b.user_id
+            WHERE "# + $where,
+            $($arg),*
+        )
+    }};
+}
+
+macro_rules! construct_bot {
+    ($data:ident) => {{
+        Bot {
+            user: User {
+                id: $data.id as _,
+                username: $data.username,
+                display_name: $data.display_name,
+                avatar: $data.avatar,
+                banner: $data.banner,
+                bio: $data.bio,
+                flags: UserFlags::from_bits_truncate($data.flags as _),
+            },
+            owner_id: $data.owner_id as _,
+            default_permissions: Permissions::from_bits_truncate($data.default_permissions),
+            flags: BotFlags::from_bits_truncate($data.bot_flags as _),
+        }
+    }};
 }
 
 #[derive(Copy, Clone, sqlx::Type)]
@@ -872,6 +918,91 @@ pub trait UserDbExt<'t>: DbExt<'t> {
             default_permissions: Permissions::empty(),
             flags,
         })
+    }
+
+    /// Fetches a bot from the database with the given ID.
+    async fn fetch_bot(&self, id: u64) -> crate::Result<Option<Bot>> {
+        let bot = query_bots!("u.id = $1", id as i64)
+            .fetch_optional(self.executor())
+            .await?
+            .map(|b| construct_bot!(b));
+
+        Ok(bot)
+    }
+
+    /// Fetches all bots from the database owned by the user with the given ID.
+    async fn fetch_all_bots_by_user(&self, user_id: u64) -> crate::Result<Vec<Bot>> {
+        let bots = query_bots!("b.owner_id = $1", user_id as i64)
+            .fetch_all(self.executor())
+            .await?
+            .into_iter()
+            .map(|b| construct_bot!(b))
+            .collect();
+
+        Ok(bots)
+    }
+
+    /// Modifies a bot in the database with the given payload. Validation must be done before
+    /// calling this method.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    async fn edit_bot(&mut self, user: User, payload: EditBotPayload) -> crate::Result<Bot> {
+        let bot = sqlx::query!("SELECT * FROM bots WHERE user_id = $1", user.id as i64)
+            .fetch_one(self.transaction())
+            .await?;
+
+        let mut flags = BotFlags::from_bits_truncate(bot.flags as _);
+        macro_rules! toggle {
+            ($($field:ident => $flag:ident),+) => {{
+                $(
+                    if let Some(toggle) = payload.$field {
+                        flags.set(BotFlags::$flag, toggle);
+                    }
+                )+
+            }};
+        }
+
+        toggle! {
+            public => PUBLIC,
+            global_enabled => GLOBAL_ENABLED,
+            group_dm_enabled => GROUP_DM_ENABLED,
+            guild_enabled => GUILD_ENABLED
+        }
+
+        let permissions = payload
+            .default_permissions
+            .map_or(bot.default_permissions, |p| p.bits());
+
+        sqlx::query!(
+            "UPDATE bots SET flags = $1, default_permissions = $2 WHERE user_id = $3",
+            flags.bits() as i32,
+            permissions,
+            user.id as i64
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(Bot {
+            user,
+            owner_id: bot.owner_id as _,
+            default_permissions: Permissions::from_bits_truncate(permissions),
+            flags,
+        })
+    }
+
+    /// Deletes a bot from the database.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    async fn delete_bot(&mut self, id: u64) -> crate::Result<()> {
+        sqlx::query!("DELETE FROM bots WHERE user_id = $1", id as i64)
+            .execute(self.transaction())
+            .await?;
+
+        Ok(())
     }
 }
 
