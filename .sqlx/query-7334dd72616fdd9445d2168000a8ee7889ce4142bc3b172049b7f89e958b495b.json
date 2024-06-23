@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                u.id AS id,\n                u.username AS username,\n                u.display_name AS display_name,\n                u.avatar AS avatar,\n                u.banner AS banner,\n                u.bio AS bio,\n                u.flags AS flags,\n                b.owner_id AS owner_id,\n                b.default_permissions AS default_permissions,\n                b.flags AS bot_flags\n            FROM\n                users AS u\n            INNER JOIN\n                bots AS b ON u.id = b.user_id\n            WHERE u.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "banner",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "bio",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "flags",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "owner_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "default_permissions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "bot_flags",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "7334dd72616fdd9445d2168000a8ee7889ce4142bc3b172049b7f89e958b495b"
+}
