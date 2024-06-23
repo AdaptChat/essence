@@ -163,3 +163,23 @@ pub struct EditBotPayload {
     /// Whether the bot should support global access.
     pub global_enabled: Option<bool>,
 }
+
+/// Payload sent when deleting a bot.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct DeleteBotPayload {
+    /// The password of the bot owner. Not required if the bot is in less than 20 guilds.
+    #[cfg_attr(feature = "utoipa", schema(format = "password"))]
+    pub password: Option<String>,
+}
+
+/// Payload sent when regenerating a bot's token.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct RegenerateBotTokenPayload {
+    /// The password of the bot owner. Not required if the bot is in less than 20 guilds.
+    #[cfg_attr(feature = "utoipa", schema(format = "password"))]
+    pub password: Option<String>,
+}
