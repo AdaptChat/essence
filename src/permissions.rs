@@ -18,7 +18,7 @@ pub fn calculate_permissions(
     overwrites: Option<&[PermissionOverwrite]>,
 ) -> Permissions {
     let roles = roles.as_mut();
-    roles.sort_by_key(|r| r.position);
+    roles.sort_unstable_by_key(|r| r.position);
 
     calculate_permissions_sorted(user_id, roles, overwrites)
 }
