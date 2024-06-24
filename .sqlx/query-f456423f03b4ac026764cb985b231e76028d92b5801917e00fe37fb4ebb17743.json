@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO members (guild_id, id) VALUES ($1, $2)\n            ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at",
+  "query": "INSERT INTO members (guild_id, id, permissions) VALUES ($1, $2, $3)\n            ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,7 @@
     "parameters": {
       "Left": [
         "Int8",
+        "Int8",
         "Int8"
       ]
     },
@@ -19,5 +20,5 @@
       false
     ]
   },
-  "hash": "4000010fc286e6ce22cc622c737f5d15c6f56e1b1e012e4ceb59be90ed51cc3f"
+  "hash": "f456423f03b4ac026764cb985b231e76028d92b5801917e00fe37fb4ebb17743"
 }
