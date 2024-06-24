@@ -247,7 +247,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     }
 
     /// Internally used, see [`Self::assert_member_has_permissions`] instead.
-    async fn assert_member_has_permissions_with(
+    fn assert_member_has_permissions_with(
         &self,
         guild_id: u64,
         member_permissions: Permissions,
@@ -283,7 +283,6 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             .await?;
 
         self.assert_member_has_permissions_with(guild_id, member_permissions, permissions)
-            .await
     }
 
     /// Fetches a partial guild from the database with the given ID.
