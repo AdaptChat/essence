@@ -1,5 +1,5 @@
 use crate::{
-    models::{GuildChannel, Role, User},
+    models::{GuildChannel, Permissions, Role, User},
     serde_for_bitflags,
 };
 use chrono::{DateTime, Utc};
@@ -40,6 +40,9 @@ pub struct Member {
     /// The time that the member joined the guild.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub joined_at: DateTime<Utc>,
+    /// The base permissions granted to the member.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub permissions: Permissions,
 }
 
 impl Member {

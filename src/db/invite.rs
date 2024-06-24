@@ -81,6 +81,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
     /// # Errors
     /// * If no invite is found with the given invite code.
     /// * If an error occurs with creating the invite.
+    #[allow(clippy::default_trait_access)]
     async fn use_invite(
         &mut self,
         user_id: u64,
@@ -107,7 +108,11 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         }
 
         let guild_id = invite.guild_id;
-        Ok((invite, self.create_member(guild_id, user_id).await?))
+        Ok((
+            invite,
+            self.create_member(guild_id, user_id, Default::default())
+                .await?,
+        ))
     }
 
     /// Creates an invite for the given guild.

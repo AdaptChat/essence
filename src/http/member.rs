@@ -1,4 +1,4 @@
-use crate::Maybe;
+use crate::{models::Permissions, Maybe};
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;
@@ -39,4 +39,16 @@ pub struct EditMemberPayload {
     /// The default role will always be added to the member, regardless of whether it is in this
     /// list.
     pub roles: Option<Vec<u64>>,
+    /// The new base permissions granted to the member. Leave empty to keep the current permissions.
+    pub permissions: Option<Permissions>,
+}
+
+/// The payload sent to add a bot to a guild.
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct AddBotPayload {
+    /// The base permissions the bot should be granted in the guild. Leave empty to grant default
+    /// configured permissions set by the bot owner.
+    pub permissions: Option<Permissions>,
 }

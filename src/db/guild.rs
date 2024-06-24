@@ -198,6 +198,13 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             return Ok(Permissions::all());
         }
 
+        let base = sqlx::query!(
+            "SELECT permissions FROM members WHERE id = $1",
+            user_id as i64
+        )
+        .fetch_one(self.executor())
+        .await?
+        .permissions;
         let mut roles = self.fetch_all_roles_for_member(guild_id, user_id).await?;
         let overwrites = match channel_id {
             Some(channel_id) => Some(self.fetch_channel_overwrites(channel_id).await?),
@@ -206,6 +213,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
 
         Ok(crate::calculate_permissions(
             user_id,
+            Permissions::from_bits_truncate(base),
             &mut roles,
             overwrites.as_ref().map(AsRef::as_ref),
         ))
@@ -658,6 +666,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             nick: None,
             roles: Some(vec![role_id]),
             joined_at,
+            permissions: Permissions::empty(),
         };
 
         cache::insert_guild(guild_id).await?;

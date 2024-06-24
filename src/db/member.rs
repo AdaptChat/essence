@@ -9,6 +9,7 @@ macro_rules! query_member {
                 m.guild_id,
                 m.nick AS nick,
                 m.joined_at AS joined_at,
+                m.permissions AS permissions,
                 u.username AS username,
                 u.display_name AS display_name,
                 u.avatar AS avatar,
@@ -43,13 +44,14 @@ macro_rules! construct_member {
             nick: $data.nick,
             roles: $roles,
             joined_at: $data.joined_at,
+            permissions: Permissions::from_bits_truncate($data.permissions),
         }
     }};
 }
 
 use crate::db::{get_pool, UserDbExt};
 use crate::http::member::{EditClientMemberPayload, EditMemberPayload};
-use crate::models::{MaybePartialUser, ModelType};
+use crate::models::{MaybePartialUser, ModelType, Permissions};
 pub(crate) use construct_member;
 
 #[async_trait::async_trait]
@@ -224,6 +226,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             EditMemberPayload {
                 nick: payload.nick,
                 roles: None,
+                permissions: None,
             },
         )
         .await
@@ -243,16 +246,18 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         &mut self,
         guild_id: u64,
         user_id: u64,
+        permissions: Permissions,
     ) -> crate::Result<Option<Member>> {
         let user = get_pool().fetch_user_by_id(user_id).await?.map_or(
             MaybePartialUser::Partial { id: user_id },
             MaybePartialUser::Full,
         );
         let member = sqlx::query!(
-            "INSERT INTO members (guild_id, id) VALUES ($1, $2)
+            "INSERT INTO members (guild_id, id, permissions) VALUES ($1, $2, $3)
             ON CONFLICT (guild_id, id) DO NOTHING RETURNING joined_at",
             guild_id as i64,
             user_id as i64,
+            permissions.bits(),
         )
         .fetch_optional(self.transaction())
         .await?
@@ -262,6 +267,7 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
             nick: None,
             joined_at: m.joined_at,
             roles: None,
+            permissions,
         });
 
         cache::update_member_of_guild(guild_id, user_id).await?;

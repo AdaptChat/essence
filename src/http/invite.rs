@@ -20,7 +20,7 @@ pub struct CreateInvitePayload {
     pub max_age: u32,
 }
 
-/// Query used to provided a guild nonce when using an invite.
+/// Query used to provide a guild nonce when using an invite.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(IntoParams))]
