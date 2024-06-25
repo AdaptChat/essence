@@ -1,16 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE members SET nick = $1 WHERE guild_id = $2 AND id = $3",
+  "query": "UPDATE members SET nick = $1, permissions = $2 WHERE guild_id = $3 AND id = $4",
   "describe": {
     "columns": [],
     "parameters": {
       "Left": [
         "Text",
         "Int8",
+        "Int8",
         "Int8"
       ]
     },
     "nullable": []
   },
-  "hash": "e62d4c1c884643c8de3bece9cdcdf975c87030ac185903f266b144727b90df1e"
+  "hash": "ff450df64b4093cc1ca91dff44ec1caad95537397ed7cc5d083a66e880e17a07"
 }
