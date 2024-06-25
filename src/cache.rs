@@ -83,7 +83,10 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
         })
         .collect::<Vec<String>>();
 
-    con.hdel("essence-tokens", tokens).await.err_into()
+    if !tokens.is_empty() {
+        con.hdel("essence-tokens", tokens).await?;
+    }
+    Ok(())
 }
 
 pub async fn update_user(user: User) -> Result<()> {
