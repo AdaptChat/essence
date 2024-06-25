@@ -147,10 +147,12 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         let old = member.clone();
 
         member.nick = payload.nick.into_option_or_if_absent(member.nick);
+        member.permissions = payload.permissions.unwrap_or(member.permissions);
 
         sqlx::query!(
-            "UPDATE members SET nick = $1 WHERE guild_id = $2 AND id = $3",
+            "UPDATE members SET nick = $1, permissions = $2 WHERE guild_id = $3 AND id = $4",
             member.nick,
+            member.permissions.bits(),
             guild_id as i64,
             user_id as i64,
         )
