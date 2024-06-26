@@ -30,6 +30,7 @@ futures-util = "0"
 
 [dependencies.sqlx]
 git = "https://github.com/benluelo/sqlx.git"
+version = "0.8.0-alpha.0"
 branch = "fix-encode-decode-derives"
 features = ["postgres", "macros", "runtime-tokio-rustls", "chrono", "json", "uuid"]
 optional = true
