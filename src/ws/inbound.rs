@@ -15,6 +15,8 @@ pub enum InboundMessage {
         /// The initial status of the client. Defaults to `online`.
         #[serde(default)]
         status: PresenceStatus,
+        /// Custom status of the client, if any.
+        custom_status: Option<String>,
         /// The device that this client is connecting on.
         device: Device,
     },
@@ -26,5 +28,7 @@ pub enum InboundMessage {
     UpdatePresence {
         /// The new status of the client, if any.
         status: Option<PresenceStatus>,
+        /// The new custom status of the client, if any.
+        custom_status: Option<String>,
     },
 }
