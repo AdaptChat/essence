@@ -115,6 +115,28 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
+    /// Returns whether the given emoji is already an existing reaction on the given message.
+    async fn reaction_exists(&self, message_id: u64, emoji: PartialEmoji) -> crate::Result<bool> {
+        let exists = sqlx::query!(
+            "SELECT EXISTS(
+                SELECT 1 FROM reactions
+                WHERE
+                    message_id = $1
+                    AND emoji_id IS NOT DISTINCT FROM $2
+                    AND emoji_name = $3
+            ) AS exists",
+            message_id as i64,
+            emoji.id.map(|id| id as i64),
+            emoji.name,
+        )
+        .fetch_one(self.executor())
+        .await?
+        .exists
+        .unwrap_or(false);
+
+        Ok(exists)
+    }
+
     /// Fetches all reactions from the message with the given ID.
     async fn fetch_reactions(&self, message_id: u64) -> crate::Result<Vec<Reaction>> {
         let reactions = sqlx::query!(

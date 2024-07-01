@@ -33,6 +33,15 @@ pub struct PartialEmoji {
     pub name: String,
 }
 
+impl From<CustomEmoji> for PartialEmoji {
+    fn from(emoji: CustomEmoji) -> Self {
+        Self {
+            id: Some(emoji.id),
+            name: emoji.name,
+        }
+    }
+}
+
 /// Represents a reaction on a message.
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
