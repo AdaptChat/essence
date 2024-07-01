@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM reactions\n            WHERE\n                message_id = $1 AND user_id = $2\n                AND emoji_id IS NOT DISTINCT FROM $3 AND emoji_name = $4\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "577ef15c9ae2572c9184c7adac7e6a4ea6bc70b05ff104a11706eec46b7e5566"
+}
