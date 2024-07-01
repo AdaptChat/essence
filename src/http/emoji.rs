@@ -24,7 +24,7 @@ pub struct CreateEmojiPayload {
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
-pub struct UpdateEmojiPayload {
+pub struct EditEmojiPayload {
     /// The new name of the emoji.
     pub name: String,
 }
