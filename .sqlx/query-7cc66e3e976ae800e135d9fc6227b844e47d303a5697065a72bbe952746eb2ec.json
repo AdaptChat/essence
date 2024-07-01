@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m WHERE\n                        m.channel_id = $1\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY m.id DESC LIMIT $5",
+  "query": "SELECT\n                        m.*,\n                        embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\"\n                    FROM\n                        messages m\n                    WHERE\n                        m.channel_id = $1\n                    AND\n                        ($2::BIGINT IS NULL OR m.id < $2)\n                    AND\n                        ($3::BIGINT IS NULL OR m.id > $3)\n                    AND\n                        ($4::BIGINT IS NULL OR m.author_id = $4)\n                    ORDER BY id DESC LIMIT $5",
   "describe": {
     "columns": [
       {
@@ -40,36 +40,31 @@
       },
       {
         "ordinal": 7,
-        "name": "stars",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 8,
         "name": "metadata_user_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 9,
+        "ordinal": 8,
         "name": "metadata_pinned_message_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "metadata_pinned_by",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "edited_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "mentions",
         "type_info": "Int8Array"
       },
       {
-        "ordinal": 13,
+        "ordinal": 12,
         "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
         "type_info": "Jsonb"
       }
@@ -91,7 +86,6 @@
       true,
       false,
       false,
-      false,
       true,
       true,
       true,
@@ -100,5 +94,5 @@
       false
     ]
   },
-  "hash": "db252520c24caf95c43c7ec4a4d4be8cf22d9b0f8665c3afec5d3c909aa3c666"
+  "hash": "7cc66e3e976ae800e135d9fc6227b844e47d303a5697065a72bbe952746eb2ec"
 }
