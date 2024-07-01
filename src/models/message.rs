@@ -1,4 +1,4 @@
-use super::{Member, User};
+use super::{Member, Reaction, User};
 use crate::serde_for_bitflags;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -226,8 +226,8 @@ pub struct Message {
     /// A bitmask of message flags to indicate special properties of the message.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub flags: MessageFlags,
-    /// The amount of stars this message has received.
-    pub stars: u32,
+    /// The reactions received on this message.
+    pub reactions: Vec<Reaction>,
     /// A list of snowflake IDs of users and/or roles that this message mentions. If this message
     /// also mentions everyone/here in a guild, then the guild ID is also included in this list.
     ///

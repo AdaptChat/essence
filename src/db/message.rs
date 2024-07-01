@@ -1,15 +1,13 @@
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
-    db::DbExt,
+    db::{get_pool, DbExt, EmojiDbExt, GuildDbExt},
     http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
-    models::{Attachment, Guild, Message, MessageFlags, MessageInfo, Permissions},
+    models::{
+        Attachment, Guild, Message, MessageFlags, MessageInfo, MessageReference, Permissions,
+    },
     snowflake::extract_mentions,
     Error, NotFoundExt,
-};
-use crate::{
-    db::{get_pool, GuildDbExt},
-    models::MessageReference,
 };
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -40,7 +38,7 @@ macro_rules! construct_message {
             embeds: $data.embeds_ser.0,
             attachments: Vec::with_capacity(10),
             flags: MessageFlags::from_bits_truncate($data.flags as _),
-            stars: $data.stars as _,
+            reactions: Vec::new(),
             mentions: $data.mentions.into_iter().map(|id| id as _).collect(),
             edited_at: $data.edited_at,
             references: Vec::new(),
@@ -48,6 +46,8 @@ macro_rules! construct_message {
     }};
 }
 
+use crate::db::emoji::construct_reaction;
+use crate::models::{PartialEmoji, Reaction};
 pub(crate) use construct_message;
 
 #[async_trait::async_trait]
@@ -150,8 +150,85 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         if let Some(message) = message.as_mut() {
             message.attachments = self.fetch_message_attachments(message_id).await?;
             message.references = self.fetch_message_references(message_id).await?;
+            message.reactions = self.fetch_reactions(message_id).await?;
         }
         Ok(message)
+    }
+
+    async fn populate_messages(&self, messages: &mut [Message]) -> crate::Result<()> {
+        let ids = messages.iter().map(|m| m.id as i64).collect_vec();
+
+        let mut attachments = sqlx::query!(
+            r#"SELECT * FROM attachments WHERE message_id = ANY($1::BIGINT[])"#,
+            &ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|attachment| {
+            (
+                attachment.message_id as u64,
+                Attachment {
+                    id: attachment.id as _,
+                    alt: attachment.alt,
+                    filename: attachment.filename,
+                    size: attachment.size as _,
+                },
+            )
+        })
+        .into_group_map();
+
+        let mut references = sqlx::query!(
+            "SELECT * FROM message_references WHERE message_id = ANY($1::BIGINT[])",
+            &ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|reference| {
+            (
+                reference.message_id as u64,
+                MessageReference {
+                    message_id: reference.target_id as _,
+                    channel_id: reference.channel_id as _,
+                    guild_id: reference.guild_id.map(|x| x as _),
+                    mention_author: reference.mention_author,
+                },
+            )
+        })
+        .into_group_map();
+
+        let mut reactions = sqlx::query!(
+            r#"SELECT
+                message_id,
+                emoji_id,
+                emoji_name,
+                array_agg(user_id) AS user_ids,
+                array_agg(created_at) AS created_at
+            FROM reactions
+            WHERE
+                message_id = ANY($1::BIGINT[])
+            GROUP BY (message_id, emoji_id, emoji_name)"#,
+            &ids,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| construct_reaction!(r))
+        .into_group_map_by(|r| r.message_id);
+
+        for message in messages {
+            if let Some(attachments) = attachments.remove(&message.id) {
+                message.attachments = attachments;
+            }
+            if let Some(references) = references.remove(&message.id) {
+                message.references = references;
+            }
+            if let Some(reactions) = reactions.remove(&message.id) {
+                message.reactions = reactions;
+            }
+        }
+        Ok(())
     }
 
     /// Fetches message history from a channel with the given query.
@@ -163,10 +240,15 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         query: MessageHistoryQuery,
     ) -> crate::Result<Vec<Message>> {
-        macro_rules! query {
-            ($base:literal, $direction:literal) => {{
+        macro_rules! fetch_messages {
+            ($direction:literal) => {{
                 sqlx::query!(
-                    $base + r#" WHERE
+                    r#"SELECT
+                        m.*,
+                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
+                    FROM
+                        messages m
+                    WHERE
                         m.channel_id = $1
                     AND
                         ($2::BIGINT IS NULL OR m.id < $2)
@@ -174,7 +256,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                         ($3::BIGINT IS NULL OR m.id > $3)
                     AND
                         ($4::BIGINT IS NULL OR m.author_id = $4)
-                    ORDER BY m.id "#
+                    ORDER BY id "#
                         + $direction
                         + " LIMIT $5",
                     channel_id as i64,
@@ -186,79 +268,18 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 .fetch_all(self.executor())
                 .await?
                 .into_iter()
-            }};
-            (@messages $direction:literal) => {{
-                query!(
-                    r#"SELECT
-                        m.*,
-                        embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>"
-                    FROM
-                        messages m"#,
-                    $direction
-                )
                 .map(|m| construct_message!(m))
-                .collect::<Vec<_>>()
-            }};
-            (@attachments $direction:literal) => {{
-                query!(
-                    r"SELECT a.*
-                    FROM attachments a
-                    INNER JOIN messages m ON a.message_id = m.id",
-                    $direction
-                )
-                .map(|attachment| (
-                    attachment.message_id as u64,
-                    Attachment {
-                        id: attachment.id as _,
-                        alt: attachment.alt,
-                        filename: attachment.filename,
-                        size: attachment.size as _,
-                    },
-                ))
-                .into_group_map()
-            }};
-            (@references $direction:literal) => {{
-                query!(
-                    "SELECT r.* 
-                    FROM message_references r 
-                    INNER JOIN messages m ON r.message_id = m.id",
-                    $direction
-                )
-                .map(|reference| (
-                    reference.message_id as u64,
-                    MessageReference {
-                        message_id: reference.target_id as _,
-                        channel_id: reference.channel_id as _,
-                        guild_id: reference.guild_id.map(|x| x as _),
-                        mention_author: reference.mention_author
-                    }
-                ))
-                .into_group_map()
-            }};
-            ($direction:literal) => {{
-                let mut attachments: HashMap<u64, Vec<_>> = query!(@attachments $direction);
-                let mut references: HashMap<u64, Vec<_>> = query!(@references $direction);
-                let mut messages = query!(@messages $direction);
-
-                for message in &mut messages {
-                    if let Some(attachments) = attachments.remove(&message.id) {
-                        message.attachments = attachments;
-                    }
-                }
-
-                for message in &mut messages {
-                    if let Some(references) = references.remove(&message.id) {
-                        message.references = references;
-                    }
-                }
-                messages
+                .collect_vec()
             }};
         }
-        Ok(if query.oldest_first {
-            query!("ASC")
+
+        let mut messages: Vec<Message> = if query.oldest_first {
+            fetch_messages!("ASC")
         } else {
-            query!("DESC")
-        })
+            fetch_messages!("DESC")
+        };
+        self.populate_messages(&mut messages).await?;
+        Ok(messages)
     }
 
     /// Fetches a list of messages by ID from the database in bulk.
@@ -297,68 +318,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         .map(|m| construct_message!(m))
         .collect_vec();
 
-        let mut attachments = sqlx::query!(
-            r#"SELECT a.* FROM attachments a
-            INNER JOIN
-                messages m ON a.message_id = m.id
-            WHERE
-                m.id = ANY($1::BIGINT[])
-            AND
-                ($2::BIGINT[] IS NULL OR m.channel_id = ANY($2::BIGINT[]))"#,
-            &message_ids,
-            channel_ids,
-        )
-        .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .map(|attachment| {
-            (
-                attachment.message_id as u64,
-                Attachment {
-                    id: attachment.id as _,
-                    alt: attachment.alt,
-                    filename: attachment.filename,
-                    size: attachment.size as _,
-                },
-            )
-        })
-        .into_group_map();
-
-        let mut references = sqlx::query!(
-            r#"SELECT r.* FROM message_references r
-            INNER JOIN
-                messages m ON r.message_id = m.id
-            WHERE
-                m.id = ANY($1::BIGINT[])
-            AND
-                ($2::BIGINT[] IS NULL OR m.channel_id = ANY($2::BIGINT[]))"#,
-            &message_ids,
-            channel_ids,
-        )
-        .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .map(|reference| {
-            (
-                reference.message_id as u64,
-                MessageReference {
-                    message_id: reference.target_id as _,
-                    channel_id: reference.channel_id as _,
-                    guild_id: reference.guild_id.map(|x| x as _),
-                    mention_author: reference.mention_author,
-                },
-            )
-        })
-        .into_group_map();
-
-        for message in &mut messages {
-            if let Some(attachments) = attachments.remove(&message.id) {
-                message.attachments = attachments;
-            }
-            if let Some(references) = references.remove(&message.id) {
-                message.references = references;
-            }
-        }
+        self.populate_messages(&mut messages).await?;
         Ok(messages)
     }
 
@@ -430,7 +390,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             embeds: payload.embeds,
             attachments: Vec::new(),
             flags: MessageFlags::empty(),
-            stars: 0,
+            reactions: Vec::new(),
             mentions,
             edited_at: None,
             references: payload.references,
@@ -523,7 +483,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
             embeds: Vec::new(),
             attachments: Vec::new(),
             flags: MessageFlags::empty(),
-            stars: 0,
+            reactions: Vec::new(),
             mentions: Vec::new(),
             edited_at: None,
             references: Vec::new(),

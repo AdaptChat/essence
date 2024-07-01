@@ -1,0 +1,2 @@
+ALTER TABLE reactions
+    ALTER COLUMN created_at DROP DEFAULT;

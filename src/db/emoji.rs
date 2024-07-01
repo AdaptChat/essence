@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 use super::DbExt;
 use crate::models::{CustomEmoji, PartialEmoji, Reaction};
 
@@ -13,6 +11,27 @@ macro_rules! construct_emoji {
         }
     };
 }
+
+macro_rules! construct_reaction {
+    ($message_id:expr, $data:expr) => {
+        Reaction {
+            message_id: $message_id,
+            emoji: PartialEmoji {
+                id: $data.emoji_id.map(|id| id as u64),
+                name: $data.emoji_name,
+            },
+            user_ids: $data
+                .user_ids
+                .map_or_else(Vec::new, |u| u.into_iter().map(|id| id as u64).collect()),
+            created_at: $data.created_at,
+        }
+    };
+    ($data:expr) => {
+        construct_reaction!($data.message_id as u64, $data)
+    };
+}
+
+pub(crate) use construct_reaction;
 
 #[async_trait::async_trait]
 pub trait EmojiDbExt<'t>: DbExt<'t> {
@@ -99,32 +118,20 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
     /// Fetches all reactions from the message with the given ID.
     async fn fetch_reactions(&self, message_id: u64) -> crate::Result<Vec<Reaction>> {
         let reactions = sqlx::query!(
-            "SELECT * FROM reactions WHERE message_id = $1",
+            r"SELECT
+                emoji_id,
+                emoji_name,
+                array_agg(user_id) AS user_ids,
+                array_agg(created_at) AS created_at
+            FROM reactions
+            WHERE message_id = $1
+            GROUP BY (emoji_id, emoji_name)",
             message_id as i64
         )
         .fetch_all(self.executor())
         .await?
         .into_iter()
-        .map(|r| {
-            (
-                PartialEmoji {
-                    id: r.emoji_id.map(|id| id as u64),
-                    name: r.emoji_name,
-                },
-                (r.user_id as u64, r.created_at),
-            )
-        })
-        .into_group_map()
-        .into_iter()
-        .map(|(emoji, reactions)| {
-            let (user_ids, created_at): (Vec<_>, Vec<_>) = reactions.into_iter().unzip();
-            Reaction {
-                message_id,
-                emoji,
-                user_ids,
-                created_at: Some(created_at),
-            }
-        })
+        .map(|r| construct_reaction!(message_id, r))
         .collect();
 
         Ok(reactions)
