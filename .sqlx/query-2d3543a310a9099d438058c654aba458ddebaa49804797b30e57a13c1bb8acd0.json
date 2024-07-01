@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                message_id,\n                emoji_id,\n                emoji_name,\n                array_agg(user_id) AS user_ids,\n                array_agg(created_at) AS created_at\n            FROM reactions\n            WHERE\n                message_id = ANY($1::BIGINT[])\n            GROUP BY (message_id, emoji_id, emoji_name)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "emoji_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "emoji_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_ids",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "TimestamptzArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "2d3543a310a9099d438058c654aba458ddebaa49804797b30e57a13c1bb8acd0"
+}
