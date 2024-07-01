@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS reactions (
+    message_id BIGINT NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    emoji_id BIGINT,
+    emoji_name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL
+);

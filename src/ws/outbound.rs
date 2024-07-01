@@ -3,8 +3,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::models::{
-    Channel, ClientUser, DmChannel, Guild, Invite, Member, Message, PartialGuild, Presence,
-    Relationship, Role, User,
+    Channel, ClientUser, DmChannel, Guild, Invite, Member, Message, PartialEmoji, PartialGuild,
+    Presence, Relationship, Role, User,
 };
 
 /// Extra information about member removal.
@@ -134,7 +134,7 @@ pub enum OutboundMessage {
         /// the same nonce will be dispatched by the websocket, indicating that the channel was
         /// created.
         ///
-        /// This is only used once and it is not stored.
+        /// This is only used once, and it is not stored.
         nonce: Option<String>,
     },
     /// Sent by harmony when a channel is modified.
@@ -233,12 +233,48 @@ pub enum OutboundMessage {
         /// The ID of the user that is typing.
         user_id: u64,
     },
-    /// Send by harmony when a user stops typing. This is not always sent.
+    /// Sent by harmony when a user stops typing. This is not always sent.
     TypingStop {
         /// The ID of the channel that the user stopped typing in.
         channel_id: u64,
         /// The ID of the user that stopped typing.
         user_id: u64,
+    },
+    /// Sent by harmony when a user adds a reaction to a message.
+    ReactionAdd {
+        /// The ID of the channel that the reaction was added in.
+        channel_id: u64,
+        /// The ID of the message that the reaction was added to.
+        message_id: u64,
+        /// The ID of the user that added the reaction.
+        user_id: u64,
+        /// The emoji that was added.
+        emoji: PartialEmoji,
+    },
+    /// Sent by harmony when a user removes a reaction from a message.
+    ReactionRemove {
+        /// The ID of the channel that the reaction was removed in.
+        channel_id: u64,
+        /// The ID of the message that the reaction was removed from.
+        message_id: u64,
+        /// The ID of the user that removed the reaction.
+        user_id: u64,
+        /// The ID of the moderator that forced the removal of the reaction. This is `None` if the
+        /// user removed the reaction themselves.
+        moderator_id: Option<u64>,
+        /// The emoji that was removed.
+        emoji: PartialEmoji,
+    },
+    /// Sent by harmony when reactions are removed from a message in bulk.
+    ReactionRemoveBulk {
+        /// The ID of the channel that the reactions were removed in.
+        channel_id: u64,
+        /// The ID of the message that the reactions were removed from.
+        message_id: u64,
+        /// The ID of the moderator that removed the reactions.
+        moderator_id: u64,
+        /// The emoji that was removed. If this is `None`, then all reactions were removed.
+        emoji: Option<PartialEmoji>,
     },
     /// Sent by harmony when a user updates their presence.
     PresenceUpdate {

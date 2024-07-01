@@ -18,7 +18,9 @@ pub struct CreateEmojiPayload {
 }
 
 /// The payload sent to modify an emoji.
-/// The image of an emoji is immutable, users should create a new emoji instead.
+///
+/// # Note
+/// The image of an emoji is immutable. To change the image, create a new emoji instead.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
