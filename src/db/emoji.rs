@@ -116,7 +116,7 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
     }
 
     /// Returns whether the given emoji is already an existing reaction on the given message.
-    async fn reaction_exists(&self, message_id: u64, emoji: PartialEmoji) -> crate::Result<bool> {
+    async fn reaction_exists(&self, message_id: u64, emoji: &PartialEmoji) -> crate::Result<bool> {
         let exists = sqlx::query!(
             "SELECT EXISTS(
                 SELECT 1 FROM reactions
@@ -168,7 +168,7 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         &mut self,
         message_id: u64,
         user_id: u64,
-        emoji: PartialEmoji,
+        emoji: &PartialEmoji,
     ) -> crate::Result<()> {
         sqlx::query!(
             "INSERT INTO reactions (message_id, user_id, emoji_id, emoji_name)
@@ -193,7 +193,7 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         &mut self,
         message_id: u64,
         user_id: u64,
-        emoji: PartialEmoji,
+        emoji: &PartialEmoji,
     ) -> crate::Result<()> {
         sqlx::query!(
             "DELETE FROM reactions
@@ -216,17 +216,17 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
     async fn bulk_remove_reactions(
         &mut self,
         message_id: u64,
-        emoji: Option<PartialEmoji>,
+        emoji: Option<&PartialEmoji>,
     ) -> crate::Result<()> {
         match emoji {
             Some(emoji) => {
                 sqlx::query!(
                     "DELETE FROM reactions
-                WHERE
-                    message_id = $1
-                    AND emoji_id IS NOT DISTINCT FROM $2
-                    AND emoji_name = $3
-                ",
+                    WHERE
+                        message_id = $1
+                        AND emoji_id IS NOT DISTINCT FROM $2
+                        AND emoji_name = $3
+                    ",
                     message_id as i64,
                     emoji.id.map(|id| id as i64),
                     emoji.name,
