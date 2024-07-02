@@ -166,7 +166,8 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         Ok(reactions)
     }
 
-    /// Adds a reaction to the message with the given ID.
+    /// Adds a reaction to the message with the given ID. Returns whether the reaction was newly
+    /// added.
     ///
     /// # Errors
     /// * If an error occurs with adding the reaction.
@@ -176,12 +177,12 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         message_id: u64,
         user_id: u64,
         emoji: &PartialEmoji,
-    ) -> crate::Result<()> {
+    ) -> crate::Result<bool> {
         if get_pool()
             .reaction_exists(message_id, Some(user_id), emoji)
             .await?
         {
-            return Ok(());
+            return Ok(false);
         }
         sqlx::query!(
             "INSERT INTO reactions (message_id, user_id, emoji_id, emoji_name)
@@ -194,10 +195,11 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
-        Ok(())
+        Ok(true)
     }
 
-    /// Removes a reaction from the message with the given ID.
+    /// Removes a reaction from the message with the given ID. Returns whether reaction was actually
+    /// removed.
     ///
     /// # Errors
     /// * If an error occurs with removing the reaction.
@@ -207,8 +209,8 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         message_id: u64,
         user_id: u64,
         emoji: &PartialEmoji,
-    ) -> crate::Result<()> {
-        sqlx::query!(
+    ) -> crate::Result<bool> {
+        let deleted = sqlx::query!(
             "DELETE FROM reactions
             WHERE
                 message_id = $1 AND user_id = $2
@@ -220,9 +222,10 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
             emoji.name,
         )
         .execute(self.transaction())
-        .await?;
+        .await?
+        .rows_affected();
 
-        Ok(())
+        Ok(deleted > 0)
     }
 
     /// Removes all reactions from the message with the given ID, optionally filtering by emoji.
