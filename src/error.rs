@@ -96,6 +96,11 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// This operation is only allowed in guilds.
+    GuildOnly {
+        /// The error message.
+        message: String,
+    },
     /// Tried authorizing a bot account with anything but an authentication token.
     UnsupportedAuthMethod {
         /// The error message.
@@ -268,7 +273,8 @@ impl Error {
             | Self::CannotActOnSelf { .. }
             | Self::CannotFriendBots { .. } => 400,
             Self::InvalidToken { .. } | Self::InvalidCredentials { .. } => 401,
-            Self::NotMember { .. }
+            Self::GuildOnly { .. }
+            | Self::NotMember { .. }
             | Self::NotOwner { .. }
             | Self::NotBotOwner { .. }
             | Self::NotMessageAuthor { .. }
