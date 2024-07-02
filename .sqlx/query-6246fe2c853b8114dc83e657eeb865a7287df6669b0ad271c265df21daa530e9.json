@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                id,\n                guild_id,\n                name,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                position,\n                allowed_permissions,\n                denied_permissions,\n                flags\n            FROM roles\n            WHERE\n            guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                ORDER BY\n                    position ASC\n                ",
+  "query": "SELECT\n                c.id,\n                guild_id,\n                c.type AS kind,\n                name,\n                position,\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            guild_id = ANY($1::BIGINT[])",
   "describe": {
     "columns": [
       {
@@ -15,21 +15,41 @@
       },
       {
         "ordinal": 2,
-        "name": "name",
+        "name": "kind",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "icon",
+        "name": "name",
         "type_info": "Text"
       },
       {
         "ordinal": 4,
+        "name": "position",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 5,
+        "name": "parent_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "topic",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
         "name": "color",
         "type_info": "Int4"
       },
       {
-        "ordinal": 5,
+        "ordinal": 9,
         "name": "gradient: crate::models::DbGradient",
         "type_info": {
           "Custom": {
@@ -73,43 +93,53 @@
         }
       },
       {
-        "ordinal": 6,
-        "name": "position",
+        "ordinal": 10,
+        "name": "slowmode",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 11,
+        "name": "nsfw",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "locked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "user_limit",
         "type_info": "Int2"
       },
       {
-        "ordinal": 7,
-        "name": "allowed_permissions",
+        "ordinal": 14,
+        "name": "owner_id",
         "type_info": "Int8"
-      },
-      {
-        "ordinal": 8,
-        "name": "denied_permissions",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 9,
-        "name": "flags",
-        "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8Array"
       ]
     },
     "nullable": [
       false,
-      false,
+      true,
       false,
       true,
       true,
       true,
-      false,
-      false,
-      false,
-      false
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "b6065060ab449191ff026030611dc5f2f68e9ebd6b8852b657ae6488a7646022"
+  "hash": "6246fe2c853b8114dc83e657eeb865a7287df6669b0ad271c265df21daa530e9"
 }
