@@ -26,8 +26,8 @@ pub enum InboundMessage {
     Pong,
     /// Used to change the client's current presence status.
     UpdatePresence {
-        /// The new status of the client, if any.
-        status: Option<PresenceStatus>,
+        /// The new status of the client.
+        status: PresenceStatus,
         /// The new custom status of the client, if any.
         custom_status: Option<String>,
     },
