@@ -1,4 +1,4 @@
-use super::DbExt;
+use super::{get_pool, DbExt};
 use crate::models::{CustomEmoji, PartialEmoji, Reaction};
 
 macro_rules! construct_emoji {
@@ -177,6 +177,12 @@ pub trait EmojiDbExt<'t>: DbExt<'t> {
         user_id: u64,
         emoji: &PartialEmoji,
     ) -> crate::Result<()> {
+        if get_pool()
+            .reaction_exists(message_id, Some(user_id), emoji)
+            .await?
+        {
+            return Ok(());
+        }
         sqlx::query!(
             "INSERT INTO reactions (message_id, user_id, emoji_id, emoji_name)
             VALUES ($1, $2, $3, $4)",
