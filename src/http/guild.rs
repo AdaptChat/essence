@@ -72,6 +72,7 @@ pub struct DeleteGuildPayload {
 #[derive(Clone, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(IntoParams))]
+#[allow(clippy::struct_excessive_bools)]
 pub struct GetGuildQuery {
     /// Whether to resolve the guild's channels in the response.
     #[serde(default)]
@@ -82,6 +83,9 @@ pub struct GetGuildQuery {
     /// Whether to resolve the guild's roles in the response.
     #[serde(default)]
     pub roles: bool,
+    /// Whether to resolve the guild's emojis in the response.
+    #[serde(default)]
+    pub emojis: bool,
 }
 
 impl GetGuildQuery {
@@ -93,6 +97,7 @@ impl GetGuildQuery {
             channels: false,
             members: false,
             roles: false,
+            emojis: false,
         }
     }
 
@@ -104,6 +109,7 @@ impl GetGuildQuery {
             channels: true,
             members: true,
             roles: true,
+            emojis: true,
         }
     }
 }

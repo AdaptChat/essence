@@ -31,7 +31,7 @@ macro_rules! construct_reaction {
     };
 }
 
-pub(crate) use construct_reaction;
+pub(crate) use {construct_emoji, construct_reaction};
 
 #[async_trait::async_trait]
 pub trait EmojiDbExt<'t>: DbExt<'t> {

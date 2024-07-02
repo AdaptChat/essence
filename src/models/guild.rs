@@ -1,5 +1,5 @@
 use crate::{
-    models::{GuildChannel, Permissions, Role, User},
+    models::{CustomEmoji, GuildChannel, Permissions, Role, User},
     serde_for_bitflags,
 };
 use chrono::{DateTime, Utc};
@@ -147,6 +147,14 @@ pub struct Guild {
     /// * The client receives a ready event containing all guild data through the gateway.
     /// * The client receives a guild create event through the gateway.
     pub channels: Option<Vec<GuildChannel>>,
+    /// A list of resolved emojis in the guild.
+    ///
+    /// This is only available during the following events:
+    /// * Fetching the guild directly
+    /// * The client retrieves the response after a request to join a guild through an invite
+    /// * The client receives a ready event containing all guild data through the gateway.
+    /// * The client receives a guild create event through the gateway.
+    pub emojis: Option<Vec<CustomEmoji>>,
 }
 
 bitflags::bitflags! {

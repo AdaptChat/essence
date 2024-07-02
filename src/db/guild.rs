@@ -1,4 +1,7 @@
+use crate::db::emoji::construct_emoji;
 use crate::db::role::{query_roles, RoleRecord};
+use crate::db::EmojiDbExt;
+use crate::models::CustomEmoji;
 use crate::{
     cache,
     db::{
@@ -347,11 +350,18 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             None
         };
 
+        let emojis = if query.emojis {
+            Some(self.fetch_all_emojis_in_guild(guild_id).await?)
+        } else {
+            None
+        };
+
         Ok(Some(Guild {
             partial,
             members,
             roles,
             channels,
+            emojis,
         }))
     }
 
@@ -413,23 +423,22 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             members: None,
             roles: None,
             channels: None,
+            emojis: None,
         })
         .map(|guild| (guild.partial.id, guild))
         .collect();
+        let guild_ids = guilds.keys().map(|&k| k as i64).collect::<Vec<_>>();
 
         if query.channels {
             let mut overwrites = self.fetch_channel_overwrites_where(
-                "guild_id IS NOT NULL AND guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
+                "guild_id IS NOT NULL AND guild_id = ANY(SELECT guild_id FROM members WHERE id = $1)",
                 user_id,
             )
             .await?;
 
-            let out = query_channels!(
-                "guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
-                user_id as i64
-            )
-            .fetch_all(self.executor())
-            .await?;
+            let out = query_channels!("guild_id = ANY($1::BIGINT[])", &guild_ids)
+                .fetch_all(self.executor())
+                .await?;
 
             let channel_ids: Vec<_> = out.iter().map(|r| r.id).collect();
             let mut last_messages = self.fetch_last_message_map(&channel_ids).await?;
@@ -460,11 +469,8 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
 
         if query.roles {
             let roles = query_roles!(
-                r#"guild_id IN (SELECT guild_id FROM members WHERE id = $1)
-                ORDER BY
-                    position ASC
-                "#,
-                user_id as i64
+                "guild_id = ANY($1::BIGINT[]) ORDER BY position ASC",
+                &guild_ids
             )
             .fetch_all(self.executor())
             .await?
@@ -481,16 +487,9 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
 
         if query.members {
             let role_data = sqlx::query!(
-                r#"SELECT
-                    role_id,
-                    user_id,
-                    guild_id
-                FROM
-                    role_data
-                WHERE
-                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)
-                "#,
-                user_id as i64,
+                "SELECT role_id, user_id, guild_id FROM role_data \
+                WHERE guild_id = ANY($1::BIGINT[])",
+                &guild_ids,
             )
             .fetch_all(self.executor())
             .await?
@@ -513,9 +512,9 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 ON
                     members.id = users.id
                 WHERE
-                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)
+                    guild_id = ANY($1::BIGINT[])
                 "#,
-                user_id as i64,
+                &guild_ids,
             )
             .fetch_all(self.executor())
             .await?
@@ -532,6 +531,24 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                     }
 
                     guild.members = Some(members);
+                }
+            }
+        }
+
+        if query.emojis {
+            let emojis: HashMap<u64, Vec<CustomEmoji>> = sqlx::query!(
+                "SELECT * FROM emojis WHERE guild_id = ANY($1::BIGINT[])",
+                &guild_ids,
+            )
+            .fetch_all(self.executor())
+            .await?
+            .into_iter()
+            .map(|r| construct_emoji!(r))
+            .into_group_map_by(|e: &CustomEmoji| e.guild_id);
+
+            for (guild_id, emojis) in emojis {
+                if let Some(guild) = guilds.get_mut(&guild_id) {
+                    guild.emojis = Some(emojis);
                 }
             }
         }
@@ -676,6 +693,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
             members: Some(vec![member]),
             roles: Some(vec![role]),
             channels: Some(vec![channel]),
+            emojis: Some(Vec::new()),
         })
     }
 
