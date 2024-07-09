@@ -7,7 +7,7 @@ use serde::Serialize;
 use utoipa::{IntoParams, ToSchema};
 
 /// Payload sent to send a message.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct CreateMessagePayload {
@@ -27,7 +27,7 @@ pub struct CreateMessagePayload {
 }
 
 /// Payload sent to edit a message.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 pub struct EditMessagePayload {
