@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                c.id,\n                guild_id,\n                c.type AS kind,\n                name,\n                position,\n                parent_id,\n                topic,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                slowmode,\n                nsfw,\n                locked,\n                user_limit,\n                owner_id\n            FROM\n                channels c\n            WHERE\n            guild_id IN (SELECT guild_id FROM members WHERE id = $1)",
+  "query": "SELECT\n                id,\n                guild_id,\n                name,\n                icon,\n                color,\n                gradient AS \"gradient: crate::models::DbGradient\",\n                position,\n                allowed_permissions,\n                denied_permissions,\n                flags\n            FROM roles\n            WHERE\n            guild_id = ANY($1::BIGINT[]) ORDER BY position ASC",
   "describe": {
     "columns": [
       {
@@ -15,41 +15,21 @@
       },
       {
         "ordinal": 2,
-        "name": "kind",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 3,
         "name": "name",
         "type_info": "Text"
       },
       {
-        "ordinal": 4,
-        "name": "position",
-        "type_info": "Int2"
-      },
-      {
-        "ordinal": 5,
-        "name": "parent_id",
-        "type_info": "Int8"
-      },
-      {
-        "ordinal": 6,
-        "name": "topic",
-        "type_info": "Text"
-      },
-      {
-        "ordinal": 7,
+        "ordinal": 3,
         "name": "icon",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 4,
         "name": "color",
         "type_info": "Int4"
       },
       {
-        "ordinal": 9,
+        "ordinal": 5,
         "name": "gradient: crate::models::DbGradient",
         "type_info": {
           "Custom": {
@@ -93,53 +73,43 @@
         }
       },
       {
-        "ordinal": 10,
-        "name": "slowmode",
-        "type_info": "Int4"
-      },
-      {
-        "ordinal": 11,
-        "name": "nsfw",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 12,
-        "name": "locked",
-        "type_info": "Bool"
-      },
-      {
-        "ordinal": 13,
-        "name": "user_limit",
+        "ordinal": 6,
+        "name": "position",
         "type_info": "Int2"
       },
       {
-        "ordinal": 14,
-        "name": "owner_id",
+        "ordinal": 7,
+        "name": "allowed_permissions",
         "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "denied_permissions",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "flags",
+        "type_info": "Int4"
       }
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8Array"
       ]
     },
     "nullable": [
       false,
-      true,
+      false,
       false,
       true,
       true,
       true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true
+      false,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "e5313a55b247f40368775bcd2775255909afd1300e6ba0bb086cdca1005893e2"
+  "hash": "2c0e3413b3de844432060dda20fe3a4fcd80d10901640e80e31c58ed6eb1288d"
 }

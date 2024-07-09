@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                    role_id,\n                    user_id,\n                    guild_id\n                FROM\n                    role_data\n                WHERE\n                    guild_id IN (SELECT guild_id FROM members WHERE id = $1)\n                ",
+  "query": "SELECT role_id, user_id, guild_id FROM role_data WHERE guild_id = ANY($1::BIGINT[])",
   "describe": {
     "columns": [
       {
@@ -21,7 +21,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Int8Array"
       ]
     },
     "nullable": [
@@ -30,5 +30,5 @@
       false
     ]
   },
-  "hash": "179f3babac19b2c6a4dde26dbadc37ea17e2ea34bf95a3f714841a8e0cac2f6f"
+  "hash": "6faa45df7d91dd816588030506dd5dcee4401babe18c5e682b4000630d25e1bc"
 }
