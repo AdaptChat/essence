@@ -10,7 +10,7 @@ use crate::{
     Error, NotFoundExt,
 };
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -335,7 +335,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         message_id: u64,
         user_id: u64,
-        payload: CreateMessagePayload,
+        mut payload: CreateMessagePayload,
     ) -> crate::Result<Message> {
         let embeds =
             serde_json::to_value(payload.embeds.clone()).map_err(|err| Error::InternalError {
@@ -344,11 +344,39 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 debug: Some(format!("{err:?}")),
             })?;
 
+        let mention_author = payload
+            .references
+            .iter()
+            .filter_map(|r| r.mention_author.then_some(r.message_id))
+            .collect::<HashSet<_>>();
+        let reference_ids = payload
+            .references
+            .iter()
+            .map(|r| r.message_id as i64)
+            .collect_vec();
+        let valid_references: HashMap<u64, u64> = sqlx::query!(
+            "SELECT id, author_id FROM messages WHERE id = ANY($1::BIGINT[])",
+            &reference_ids,
+        )
+        .fetch_all(self.transaction())
+        .await?
+        .into_iter()
+        .map(|r| (r.id as u64, r.author_id.unwrap_or_default() as u64))
+        .collect();
+
+        payload
+            .references
+            .retain(|r| valid_references.contains_key(&r.message_id));
         let mut mentions = payload
             .content
             .as_deref()
             .map(extract_mentions)
             .unwrap_or_default();
+        mentions.extend(
+            valid_references
+                .iter()
+                .filter_map(|(id, author_id)| mention_author.contains(id).then_some(*author_id)),
+        );
         mentions.sort_unstable();
         mentions.dedup();
 
