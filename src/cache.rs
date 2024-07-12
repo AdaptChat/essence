@@ -181,6 +181,7 @@ pub async fn is_member_of_guild(guild_id: u64, user_id: u64) -> Result<Option<()
 }
 
 pub async fn remove_member_from_guild(guild_id: u64, user_id: u64) -> Result<()> {
+    delete_permissions_for_user(guild_id, user_id).await.ok();
     get_con()
         .await?
         .srem(format!("essence-{guild_id}-members"), user_id)

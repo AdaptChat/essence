@@ -159,6 +159,10 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        if payload.permissions.is_some() {
+            cache::delete_permissions_for_user(guild_id, user_id).await?;
+        }
+
         if let Some(roles) = payload.roles {
             let default_role_id = with_model_type(guild_id, ModelType::Role);
             sqlx::query!(
