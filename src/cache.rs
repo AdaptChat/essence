@@ -264,6 +264,15 @@ pub async fn delete_permissions_for_user(guild_id: u64, user_id: u64) -> Result<
         .err_into()
 }
 
+pub async fn delete_permissions_for_channel(guild_id: u64, channel_id: u64) -> Result<()> {
+    let mut con = get_con().await?;
+    let keys = con
+        .keys::<_, Vec<String>>(format!("essence-{guild_id}-*-perm"))
+        .await?;
+
+    con.hdel(keys, channel_id).await.err_into()
+}
+
 pub async fn delete_permissions_for_user_in_channel(
     guild_id: u64,
     user_id: u64,

@@ -951,6 +951,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
             if let Some(ref overwrites) = payload.overwrites {
                 self.bulk_register_overwrites(guild_id, channel_id, overwrites)
                     .await?;
+                cache::delete_permissions_for_channel(guild_id, channel_id).await?;
                 channel.overwrites.clone_from(overwrites);
             }
 

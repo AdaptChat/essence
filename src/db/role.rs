@@ -533,6 +533,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         .execute(self.transaction())
         .await?;
 
+        cache::clear_member_permissions(guild_id).await?;
         Ok(())
     }
 
