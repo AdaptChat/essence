@@ -172,6 +172,8 @@ pub enum OutboundMessage {
     },
     /// Sent by harmny when a role is deleted.
     RoleDelete {
+        /// The ID of the guild the role was in.
+        guild_id: u64,
         /// The ID of the role that was deleted.
         role_id: u64,
     },
