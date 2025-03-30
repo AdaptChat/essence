@@ -9,8 +9,9 @@ use crate::{
     snowflake::extract_mentions,
     Error, NotFoundExt,
 };
+use futures_util::TryStreamExt;
 use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 macro_rules! construct_message {
     ($data:ident) => {{
@@ -231,6 +232,108 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
+    async fn fetch_message_history_around(
+        &self,
+        channel_id: u64,
+        around_id: u64,
+        user_id: Option<u64>,
+        limit: u8,
+        oldest_first: bool,
+    ) -> crate::Result<Vec<Message>> {
+        enum HeapWrapper {
+            OldToNew(Message),
+            NewToOld(Message),
+        }
+
+        impl HeapWrapper {
+            const fn id(&self) -> u64 {
+                match self {
+                    Self::OldToNew(m) | Self::NewToOld(m) => m.id,
+                }
+            }
+
+            fn message(self) -> Message {
+                match self {
+                    Self::OldToNew(m) | Self::NewToOld(m) => m,
+                }
+            }
+        }
+
+        impl PartialEq for HeapWrapper {
+            fn eq(&self, other: &Self) -> bool {
+                self.id() == other.id()
+            }
+        }
+        impl Eq for HeapWrapper {}
+
+        impl PartialOrd for HeapWrapper {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+        impl Ord for HeapWrapper {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                match (self, other) {
+                    (Self::OldToNew(a), Self::OldToNew(b)) => b.id.cmp(&a.id),
+                    (Self::NewToOld(a), Self::NewToOld(b)) => a.id.cmp(&b.id),
+                    _ => unreachable!(),
+                }
+            }
+        }
+
+        let mut stream = sqlx::query!(
+            r#"SELECT
+                m.*,
+                embeds AS "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+                ABS(id - $2) AS distance
+            FROM
+                messages m
+            WHERE
+                m.channel_id = $1
+            AND
+                ($3::BIGINT IS NULL OR m.author_id = $3)
+            ORDER BY distance"#,
+            channel_id as i64,
+            around_id as i64,
+            user_id.map(|id| id as i64),
+        )
+        .fetch(self.executor());
+
+        let mut messages = BinaryHeap::with_capacity(limit as usize);
+        let mut before_count = 0;
+        let mut after_count = 0;
+        let limit = limit as usize / 2;
+
+        while let Some(record) = stream.try_next().await? {
+            let message = construct_message!(record);
+            let wrapped = if oldest_first {
+                HeapWrapper::OldToNew(message)
+            } else {
+                HeapWrapper::NewToOld(message)
+            };
+
+            if wrapped.id() <= around_id && before_count < limit {
+                messages.push(wrapped);
+                before_count += 1;
+            } else if wrapped.id() > around_id && after_count < limit {
+                messages.push(wrapped);
+                after_count += 1;
+            }
+
+            if before_count >= limit && after_count >= limit {
+                break;
+            }
+        }
+
+        let mut messages = messages
+            .into_iter_sorted()
+            .map(HeapWrapper::message)
+            .collect_vec();
+
+        self.populate_messages(&mut messages).await?;
+        Ok(messages)
+    }
+
     /// Fetches message history from a channel with the given query.
     ///
     /// # Errors
@@ -240,6 +343,19 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         channel_id: u64,
         query: MessageHistoryQuery,
     ) -> crate::Result<Vec<Message>> {
+        // If around is specified, we need to fetch messages before and after
+        if let Some(around_id) = query.around {
+            return self
+                .fetch_message_history_around(
+                    channel_id,
+                    around_id,
+                    query.user_id,
+                    query.limit,
+                    query.oldest_first,
+                )
+                .await;
+        }
+
         macro_rules! fetch_messages {
             ($direction:literal) => {{
                 sqlx::query!(
@@ -483,7 +599,7 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
                 md_pinned_by = Some(pinned_by as i64);
                 md_pinned_message_id = Some(pinned_message_id as i64);
             }
-        };
+        }
 
         sqlx::query!(
             "INSERT INTO messages (

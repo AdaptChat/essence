@@ -45,7 +45,7 @@ pub async fn cache_token(
     user_id: u64,
     flags: UserFlags,
 ) -> Result<()> {
-    get_con()
+    let () = get_con()
         .await?
         .hset(
             "essence-tokens",
@@ -84,7 +84,7 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
         .collect::<Vec<String>>();
 
     if !tokens.is_empty() {
-        con.hdel("essence-tokens", tokens).await?;
+        let () = con.hdel("essence-tokens", tokens).await?;
     }
     Ok(())
 }
@@ -143,7 +143,7 @@ pub async fn remove_guild(guild_id: u64) -> Result<()> {
     let keys = con
         .keys::<_, Vec<String>>(format!("essence-{guild_id}-*"))
         .await?;
-    con.del(keys).await?;
+    let () = con.del(keys).await?;
 
     con.srem("essence-guilds", guild_id).await.err_into()
 }

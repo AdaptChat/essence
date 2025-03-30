@@ -188,7 +188,7 @@ pub trait RoleDbExt<'t>: DbExt<'t> {
         )
         .fetch_optional(self.executor())
         .await?
-        .map_or(false, |row| {
+        .is_some_and(|row| {
             RoleFlags::from_bits_truncate(row.flags as _).contains(RoleFlags::MANAGED)
         });
 

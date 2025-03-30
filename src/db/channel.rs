@@ -459,7 +459,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         }
 
         let overwrites = sqlx::query_as::<_, Query>(&format!(
-            r#"SELECT channel_id, target_id, allow, deny FROM channel_overwrites WHERE {}"#,
+            "SELECT channel_id, target_id, allow, deny FROM channel_overwrites WHERE {}",
             clause.as_ref(),
         ))
         .bind(binding_id as i64)

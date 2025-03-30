@@ -62,14 +62,17 @@ pub struct MessageHistoryQuery {
     /// If specified, only messages after this message will be returned. If any messages exactly
     /// match this ID, they will **not** be returned.
     pub after: Option<u64>,
+    /// If specified, messages will be fetched centered around this message ID, with equal padding
+    /// on both sides up to the limit. If there are not enough messages on either side, the results
+    /// will be cut off on that side.
+    pub around: Option<u64>,
     /// The limit of messages to return. If unspecified, this defaults to ``100``. Must be between
     /// ``0`` and ``200``.
     #[serde(default = "default_limit")]
     pub limit: u8,
     /// If specified, only messages sent by the given user will be returned.
     pub user_id: Option<u64>,
-    /// Whether or not to query messages starting from the oldest message first. Defaults to
-    /// ``false``.
+    /// Whether to query messages starting from the oldest message first. Defaults to ``false``.
     ///
     /// If ``true``, messages will be sorted from oldest to newest. If ``false``, messages will be
     /// sorted from newest to oldest.

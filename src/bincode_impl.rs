@@ -16,7 +16,7 @@ impl<T: Encode> ToRedisArgs for BincodeType<T> {
     }
 }
 
-impl<T: Decode> FromRedisValue for BincodeType<T> {
+impl<T: Decode<()>> FromRedisValue for BincodeType<T> {
     fn from_redis_value(v: &Value) -> deadpool_redis::redis::RedisResult<Self> {
         if let Value::Data(d) = v {
             Ok(Self(

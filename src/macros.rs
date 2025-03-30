@@ -12,7 +12,7 @@ macro_rules! serde_for_bitflags {
         }
 
         #[cfg(feature = "db")]
-        impl bincode::Decode for $t {
+        impl bincode::Decode<()> for $t {
             fn decode<D: bincode::de::Decoder>(
                 decoder: &mut D,
             ) -> Result<Self, bincode::error::DecodeError> {

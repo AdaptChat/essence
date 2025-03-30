@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "db")]
-use sqlx::postgres::PgTypeInfo;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
@@ -108,17 +106,6 @@ impl ExtendedColor {
 pub(crate) struct DbGradientStop {
     position: f32,
     color: i32,
-}
-
-#[cfg(feature = "db")]
-impl sqlx::postgres::PgHasArrayType for DbGradientStop {
-    fn array_type_info() -> PgTypeInfo {
-        PgTypeInfo::with_name("gradient_stop[]")
-    }
-
-    fn array_compatible(_: &PgTypeInfo) -> bool {
-        true
-    }
 }
 
 #[cfg(feature = "db")]

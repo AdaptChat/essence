@@ -1,3 +1,4 @@
+#![feature(binary_heap_into_iter_sorted)]
 #![cfg_attr(feature = "db", feature(let_chains))]
 #![cfg_attr(feature = "db", feature(trait_alias))]
 #![allow(
@@ -10,7 +11,8 @@
     clippy::missing_panics_doc,
     clippy::doc_markdown,
     clippy::significant_drop_tightening,
-    clippy::collection_is_never_read // false positives, but when fixed this ignore can be removed
+    clippy::collection_is_never_read, // false positives, but when fixed this ignore can be removed
+    clippy::too_long_first_doc_paragraph
 )]
 
 #[cfg(any(feature = "auth", feature = "token-parsing"))]
