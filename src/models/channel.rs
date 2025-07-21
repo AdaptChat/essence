@@ -1,14 +1,14 @@
 use crate::models::ExtendedColor;
 use crate::{
-    models::{Message, PermissionPair},
     Error,
+    models::{Message, PermissionPair},
 };
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{Array, ArrayBuilder, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
     ToSchema,
+    openapi::{Array, ArrayBuilder, KnownFormat, ObjectBuilder, SchemaFormat, SchemaType},
 };
 
 /// Either a fully resolved message or just its ID.

@@ -1,5 +1,5 @@
-use crate::models::{ExtendedColor, PermissionPair};
 use crate::Maybe;
+use crate::models::{ExtendedColor, PermissionPair};
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;

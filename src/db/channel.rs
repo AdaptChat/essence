@@ -1,8 +1,9 @@
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
+    Error, Maybe, NotFoundExt,
     cache::{self, ChannelInspection},
-    db::{get_pool, message::construct_message, DbExt, GuildDbExt, MessageDbExt},
+    db::{DbExt, GuildDbExt, MessageDbExt, get_pool, message::construct_message},
     http::channel::{
         CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload,
         EditChannelPayload,
@@ -13,14 +14,13 @@ use crate::{
         TextBasedGuildChannelInfo,
     },
     ws::UnackedChannel,
-    Error, Maybe, NotFoundExt,
 };
 use futures_util::future::TryJoinAll;
 use itertools::Itertools;
 use std::{collections::HashMap, str::FromStr};
 
 macro_rules! query_channels {
-    ($where:literal $(, $($args:expr),*)?) => {{
+    ($where:literal $(, $($args:expr_2021),*)?) => {{
         sqlx::query_as!(
             crate::db::channel::ChannelRecord,
             r#"SELECT
@@ -51,7 +51,7 @@ macro_rules! query_channels {
 pub(crate) use query_channels;
 
 macro_rules! query_guild_channel_next_position {
-    ($(@clause $clause:literal,)? $($args:expr),*) => {{
+    ($(@clause $clause:literal,)? $($args:expr_2021),*) => {{
         sqlx::query!(
             r#"SELECT
                 COALESCE(MAX(position) + 1, 0) AS "position!"

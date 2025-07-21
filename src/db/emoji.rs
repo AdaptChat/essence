@@ -1,8 +1,8 @@
-use super::{get_pool, DbExt};
+use super::{DbExt, get_pool};
 use crate::models::{CustomEmoji, PartialEmoji, Reaction};
 
 macro_rules! construct_emoji {
-    ($data:expr) => {
+    ($data:expr_2021) => {
         CustomEmoji {
             id: $data.id as u64,
             guild_id: $data.guild_id as u64,
@@ -13,7 +13,7 @@ macro_rules! construct_emoji {
 }
 
 macro_rules! construct_reaction {
-    ($message_id:expr, $data:expr) => {
+    ($message_id:expr_2021, $data:expr_2021) => {
         Reaction {
             message_id: $message_id,
             emoji: PartialEmoji {
@@ -26,7 +26,7 @@ macro_rules! construct_reaction {
             created_at: $data.created_at,
         }
     };
-    ($data:expr) => {
+    ($data:expr_2021) => {
         construct_reaction!($data.message_id as u64, $data)
     };
 }

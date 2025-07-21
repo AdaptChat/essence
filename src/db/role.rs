@@ -1,14 +1,13 @@
 use crate::{
-    cache,
-    db::{get_pool, DbExt, GuildDbExt},
+    Error, Maybe, cache,
+    db::{DbExt, GuildDbExt, get_pool},
     http::role::{CreateRolePayload, EditRolePayload},
     models::{DbGradient, ExtendedColor, ModelType, PermissionPair, Permissions, Role, RoleFlags},
     snowflake::with_model_type,
-    Error, Maybe,
 };
 
 macro_rules! query_roles {
-    ($where:literal $(, $($args:expr),*)?) => {{
+    ($where:literal $(, $($args:expr_2021),*)?) => {{
         sqlx::query_as!(
             crate::db::role::RoleRecord,
             r#"SELECT

@@ -1,13 +1,13 @@
 #[allow(unused_imports)]
 use crate::models::Embed;
 use crate::{
-    db::{get_pool, DbExt, EmojiDbExt, GuildDbExt},
+    Error, NotFoundExt,
+    db::{DbExt, EmojiDbExt, GuildDbExt, get_pool},
     http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
     models::{
         Attachment, Guild, Message, MessageFlags, MessageInfo, MessageReference, Permissions,
     },
     snowflake::extract_mentions,
-    Error, NotFoundExt,
 };
 use futures_util::TryStreamExt;
 use itertools::Itertools;

@@ -1,4 +1,4 @@
-use crate::{models::Permissions, Maybe};
+use crate::{Maybe, models::Permissions};
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;

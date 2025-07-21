@@ -2,7 +2,7 @@
 name = "essence"
 authors = ["jay3332"]
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 description = "Essential models and database logic for the Adapt chat platform."
 homepage = "https://adapt.chat"
 license = "AGPL-3.0"

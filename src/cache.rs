@@ -3,7 +3,7 @@ use crate::{
     error::{ErrIntoExt, Result},
     models::{ChannelType, Permissions, User, UserFlags},
 };
-use deadpool_redis::{redis::AsyncCommands, Config, Connection, Pool, Runtime};
+use deadpool_redis::{Config, Connection, Pool, Runtime, redis::AsyncCommands};
 use std::sync::OnceLock;
 
 static POOL: OnceLock<Pool> = OnceLock::new();
@@ -73,13 +73,9 @@ pub async fn invalidate_tokens_for(user_id: u64) -> Result<()> {
         .await?
         .into_iter()
         .filter_map(|(token, x)| {
-            let user = x.0 .0;
+            let user = x.0.0;
 
-            if user == user_id {
-                Some(token)
-            } else {
-                None
-            }
+            if user == user_id { Some(token) } else { None }
         })
         .collect::<Vec<String>>();
 

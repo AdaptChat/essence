@@ -23,8 +23,8 @@ pub(crate) use user::{DbRelationship, DbRelationshipType};
 
 pub use sqlx;
 use sqlx::{
-    postgres::{PgConnection, PgPoolOptions},
     Pool, Postgres, Transaction,
+    postgres::{PgConnection, PgPoolOptions},
 };
 use std::sync::OnceLock;
 

@@ -43,7 +43,7 @@ macro_rules! serde_for_bitflags {
             }
         }
     };
-    (@serde($repr:ty) $tgt:ty => $openapi_format:ident; $minmax:expr) => {
+    (@serde($repr:ty) $tgt:ty => $openapi_format:ident; $minmax:expr_2021) => {
         impl serde::Serialize for $tgt {
             fn serialize<S>(&self, serializer: S) -> ::std::result::Result<S::Ok, S::Error>
             where

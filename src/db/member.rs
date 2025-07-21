@@ -1,8 +1,8 @@
-use crate::{cache, db::DbExt, models::Member, snowflake::with_model_type, NotFoundExt};
+use crate::{NotFoundExt, cache, db::DbExt, models::Member, snowflake::with_model_type};
 use itertools::Itertools;
 
 macro_rules! query_member {
-    ($where:literal, $($arg:expr),* $(,)?) => {{
+    ($where:literal, $($arg:expr_2021),* $(,)?) => {{
         sqlx::query!(
             r#"SELECT
                 m.id,
@@ -27,7 +27,7 @@ macro_rules! query_member {
 }
 
 macro_rules! construct_member {
-    ($data:ident, $roles:expr) => {{
+    ($data:ident, $roles:expr_2021) => {{
         use $crate::models::{MaybePartialUser, User, UserFlags};
 
         Member {
@@ -49,7 +49,7 @@ macro_rules! construct_member {
     }};
 }
 
-use crate::db::{get_pool, UserDbExt};
+use crate::db::{UserDbExt, get_pool};
 use crate::http::member::{EditClientMemberPayload, EditMemberPayload};
 use crate::models::{MaybePartialUser, ModelType, Permissions};
 pub(crate) use construct_member;

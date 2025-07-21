@@ -1,5 +1,5 @@
-use crate::models::{Embed, MessageReference};
 use crate::Maybe;
+use crate::models::{Embed, MessageReference};
 use serde::Deserialize;
 #[cfg(feature = "client")]
 use serde::Serialize;

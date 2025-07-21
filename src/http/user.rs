@@ -1,6 +1,6 @@
 use crate::{
-    models::{Bot, Permissions},
     Maybe,
+    models::{Bot, Permissions},
 };
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]

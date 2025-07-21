@@ -1,19 +1,18 @@
-use crate::db::emoji::construct_emoji;
-use crate::db::role::{query_roles, RoleRecord};
 use crate::db::EmojiDbExt;
+use crate::db::emoji::construct_emoji;
+use crate::db::role::{RoleRecord, query_roles};
 use crate::models::CustomEmoji;
 use crate::{
-    cache,
+    Error, NotFoundExt, cache,
     db::{
-        channel::query_channels, get_pool, member::construct_member, ChannelDbExt, DbExt,
-        MemberDbExt, RoleDbExt,
+        ChannelDbExt, DbExt, MemberDbExt, RoleDbExt, channel::query_channels, get_pool,
+        member::construct_member,
     },
     http::guild::{CreateGuildPayload, EditGuildPayload, GetGuildQuery},
     models::{
         Guild, GuildChannel, GuildFlags, GuildMemberCount, MaybePartialUser, Member, PartialGuild,
         PermissionPair, Permissions, Role, RoleFlags,
     },
-    Error, NotFoundExt,
 };
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};

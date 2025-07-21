@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use super::DbExt;
 use crate::http::user::EditBotPayload;
 use crate::{
+    Error, NotFoundExt,
     db::get_pool,
     error::UserInteractionType,
     http::user::EditUserPayload,
@@ -10,7 +11,6 @@ use crate::{
         Bot, BotFlags, ClientUser, NotificationFlags, Permissions, PrivacyConfiguration,
         Relationship, RelationshipType, Settings, User, UserFlags, UserOnboardingFlags,
     },
-    Error, NotFoundExt,
 };
 
 macro_rules! construct_user {
@@ -28,7 +28,7 @@ macro_rules! construct_user {
 }
 
 macro_rules! fetch_user {
-    ($self:ident, $query:literal, $($arg:expr),* $(,)?) => {{
+    ($self:ident, $query:literal, $($arg:expr_2021),* $(,)?) => {{
         let result = sqlx::query!($query, $($arg),*)
             .fetch_optional($self.executor())
             .await?
@@ -39,7 +39,7 @@ macro_rules! fetch_user {
 }
 
 macro_rules! fetch_client_user {
-    ($self:ident, $where:literal, $($arg:expr),* $(,)?) => {{
+    ($self:ident, $where:literal, $($arg:expr_2021),* $(,)?) => {{
         let mut result = sqlx::query!("SELECT * FROM users WHERE " + $where, $($arg),*)
             .fetch_optional($self.executor())
             .await?
@@ -75,7 +75,7 @@ macro_rules! fetch_client_user {
 }
 
 macro_rules! query_relationships {
-    ($where:literal, $($arg:expr),* $(,)?) => {{
+    ($where:literal, $($arg:expr_2021),* $(,)?) => {{
         sqlx::query_as!(
             DbRelationship,
             r#"
@@ -127,7 +127,7 @@ macro_rules! privacy_configuration_method {
 }
 
 macro_rules! query_bots {
-    ($where:literal, $($arg:expr),* $(,)?) => {{
+    ($where:literal, $($arg:expr_2021),* $(,)?) => {{
         sqlx::query!(
             r#"SELECT
                 u.id AS id,
@@ -573,7 +573,7 @@ pub trait UserDbExt<'t>: DbExt<'t> {
                 message: format!(
                     "The user you are trying to {} with has privacy settings that prevent you from doing so.",
                     interaction.as_verb(),
-                )
+                ),
             })
         }
     }

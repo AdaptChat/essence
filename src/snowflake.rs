@@ -21,8 +21,8 @@ use crate::models::ModelType;
 use regex::Regex;
 use std::{
     sync::{
-        atomic::{AtomicU8, Ordering::Relaxed},
         OnceLock,
+        atomic::{AtomicU8, Ordering::Relaxed},
     },
     time::{Duration, SystemTime, UNIX_EPOCH},
 };

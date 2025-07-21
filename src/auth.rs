@@ -1,12 +1,12 @@
 #![allow(unused_imports)]
 
-use crate::snowflake::{epoch_time, EPOCH_MILLIS};
+use crate::snowflake::{EPOCH_MILLIS, epoch_time};
 #[cfg(feature = "auth")]
-use argon2_async::{set_config, Config};
+use argon2_async::{Config, set_config};
 use base64::{
+    Engine,
     alphabet::URL_SAFE,
     engine::general_purpose::{GeneralPurpose, NO_PAD},
-    Engine,
 };
 #[cfg(feature = "auth")]
 use std::sync::OnceLock;

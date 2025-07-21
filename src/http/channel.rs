@@ -1,7 +1,7 @@
 use crate::models::ExtendedColor;
 use crate::{
-    models::{ChannelType, PermissionOverwrite},
     Maybe,
+    models::{ChannelType, PermissionOverwrite},
 };
 use serde::Deserialize;
 #[cfg(feature = "client")]

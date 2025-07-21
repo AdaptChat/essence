@@ -1,5 +1,4 @@
 #![feature(binary_heap_into_iter_sorted)]
-#![cfg_attr(feature = "db", feature(let_chains))]
 #![cfg_attr(feature = "db", feature(trait_alias))]
 #![allow(
     clippy::module_name_repetitions,

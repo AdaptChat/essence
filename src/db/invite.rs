@@ -1,12 +1,12 @@
 use crate::{
+    Error, NotFoundExt,
     db::{DbExt, GuildDbExt, MemberDbExt},
     http::invite::CreateInvitePayload,
-    models::{invite::Invite, Member},
-    Error, NotFoundExt,
+    models::{Member, invite::Invite},
 };
 
 macro_rules! construct_invite {
-    ($data:ident, $guild:expr) => {{
+    ($data:ident, $guild:expr_2021) => {{
         Invite {
             code: $data.code,
             guild_id: $data.guild_id as _,
