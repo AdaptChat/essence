@@ -22,7 +22,7 @@
                   "stops",
                   {
                     "Custom": {
-                      "name": "_gradient_stop",
+                      "name": "gradient_stop[]",
                       "kind": {
                         "Array": {
                           "Custom": {

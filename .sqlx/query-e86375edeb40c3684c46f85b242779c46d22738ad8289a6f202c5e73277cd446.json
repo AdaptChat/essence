@@ -1,0 +1,102 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                m.*,\n                embeds AS \"embeds_ser: sqlx::types::Json<Vec<Embed>>\",\n                ABS(id - $2) AS distance\n            FROM\n                messages m\n            WHERE\n                m.channel_id = $1\n            AND\n                ($3::BIGINT IS NULL OR m.author_id = $3)\n            ORDER BY distance",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "author_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "embeds",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 6,
+        "name": "flags",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "metadata_user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "metadata_pinned_message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata_pinned_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "edited_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "mentions",
+        "type_info": "Int8Array"
+      },
+      {
+        "ordinal": 12,
+        "name": "embeds_ser: sqlx::types::Json<Vec<Embed>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "distance",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e86375edeb40c3684c46f85b242779c46d22738ad8289a6f202c5e73277cd446"
+}
