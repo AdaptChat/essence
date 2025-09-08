@@ -119,7 +119,7 @@ pub struct ClientUser {
     /// Bitmask of client settings.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub settings: Settings,
-    /// A map for notification settings override.
+    /// A map of notification overrides.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
     pub notification_override: HashMap<u64, NotificationFlags>,
 }

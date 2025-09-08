@@ -6,7 +6,7 @@ use crate::{
     db::{DbExt, GuildDbExt, MessageDbExt, get_pool, message::construct_message},
     http::channel::{
         CreateDmChannelPayload, CreateGuildChannelInfo, CreateGuildChannelPayload,
-        EditChannelPayload,
+        EditChannelPayload, EditChannelPositionsPayload,
     },
     models::{
         Channel, ChannelType, DbGradient, DmChannel, DmChannelInfo, ExtendedColor, Guild,
@@ -17,7 +17,10 @@ use crate::{
 };
 use futures_util::future::TryJoinAll;
 use itertools::Itertools;
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 macro_rules! query_channels {
     ($where:literal $(, $($args:expr_2021),*)?) => {{
@@ -990,6 +993,162 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
 
         cache::remove_channel(channel_id).await?;
         Ok((old, channel))
+    }
+
+    /// Edits the positions of all channels in a guild. The positions of only the given channels
+    /// will be updated, and there will be no implicit "shifting" of channels to normalize position.
+    /// This means that each payload must contain at least two channels.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with updating the channel positions.
+    /// * If any of the channels are not found or do not belong to the given guild.
+    /// * If two or more channels end up sharing the same position.
+    /// * If each channel positioning scope does not begin at 0.
+    /// * If there is a gap in the channel positioning scopes.
+    async fn edit_guild_channel_positions(
+        &mut self,
+        guild_id: u64,
+        payload: &EditChannelPositionsPayload,
+    ) -> crate::Result<Vec<(u64, u16, Option<u64>)>> {
+        #[inline]
+        fn validate_positions(
+            positions: &[(u64, (u16, Option<u64>, ChannelType))],
+        ) -> crate::Result<()> {
+            let mut seen = HashSet::new();
+            let mut expected_position = 0u16;
+
+            for &(_id, (position, _parent_id, _kind)) in positions {
+                if position != expected_position {
+                    return Err(Error::InvalidField {
+                        field: "positions".to_string(),
+                        message: "Positions must start at 0 and increment without gaps".to_string(),
+                    });
+                }
+                if !seen.insert(position) {
+                    return Err(Error::InvalidField {
+                        field: "positions".to_string(),
+                        message: format!("Duplicate position {position} found"),
+                    });
+                }
+                expected_position += 1;
+            }
+            Ok(())
+        }
+
+        let mut positions: HashMap<u64, (u16, Option<u64>, ChannelType)> = sqlx::query!(
+            r#"SELECT
+                id,
+                position AS "position!",
+                parent_id,
+                type AS kind
+            FROM
+                channels
+            WHERE
+                guild_id = $1
+            "#,
+            guild_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| try {
+            (
+                r.id as u64,
+                (
+                    r.position as u16,
+                    r.parent_id.map(|id| id as u64),
+                    ChannelType::from_str(&r.kind)?,
+                ),
+            )
+        })
+        .collect::<crate::Result<_>>()?;
+
+        for entry in &payload.positions {
+            let Some((position, parent_id, _)) = positions.get_mut(&entry.id) else {
+                return Err(Error::NotFound {
+                    entity: "channel".to_string(),
+                    message: format!(
+                        "Channel with ID {} not found in guild with ID {guild_id}",
+                        entry.id
+                    ),
+                });
+            };
+
+            *position = entry.position;
+            *parent_id = entry
+                .parent_id
+                .as_ref()
+                .into_option_or_if_absent(parent_id.as_ref())
+                .copied();
+        }
+
+        // Validate
+        let (category_positions, channel_positions) = positions
+            .iter()
+            .partition::<HashMap<_, _>, _>(|(_, (_, _, kind))| *kind == ChannelType::Category);
+
+        let mut category_positions = category_positions
+            .into_iter()
+            .into_group_map_by(|(_, (_, parent_id, _))| *parent_id);
+        let mut channel_positions = channel_positions
+            .into_iter()
+            .into_group_map_by(|(_, (_, parent_id, _))| *parent_id);
+
+        for scope in category_positions
+            .values_mut()
+            .chain(channel_positions.values_mut())
+        {
+            scope.sort_unstable_by_key(|&(_, (position, _, _))| position);
+            validate_positions(&scope)?;
+        }
+
+        let out = payload.positions.iter().map(|entry| {
+            (
+                entry.id,
+                entry.position,
+                entry.parent_id.into_option_or_if_absent_then(|| {
+                    positions
+                        .get(&entry.id)
+                        .and_then(|(_, parent_id, _)| parent_id.as_ref())
+                        .map(|id| *id)
+                }),
+            )
+        });
+        let (ids, (positions, parent_ids)): (Vec<_>, (Vec<_>, Vec<_>)) = out
+            .clone()
+            .map(|(id, position, parent_id)| {
+                (id as i64, (position as i16, parent_id.map(|id| id as i64)))
+            })
+            .unzip();
+
+        // UPDATE
+        sqlx::query!(
+            r#"UPDATE channels
+            SET
+                position = data.position,
+                parent_id = data.parent_id
+            FROM
+                UNNEST($1::BIGINT[], $2::SMALLINT[], $3::BIGINT[])
+                AS data(id, position, parent_id)
+            WHERE
+                channels.id = data.id
+            AND
+                channels.guild_id = $4
+            "#,
+            &ids,
+            &positions,
+            &parent_ids as &[Option<i64>],
+            guild_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        cache::clear_member_permissions(guild_id).await?;
+        Ok(out.collect())
     }
 
     /// Deletes the channel with the given ID.

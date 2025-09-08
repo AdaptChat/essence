@@ -45,6 +45,19 @@ pub struct UnackedChannel {
     pub mentions: Vec<u64>,
 }
 
+/// The updated positioning information of a guild channel.
+#[derive(Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+pub struct GuildChannelPosition {
+    /// The ID of the channel.
+    pub channel_id: u64,
+    /// The new position of the channel.
+    pub position: u16,
+    /// The new parent category ID of the channel, if any.
+    pub parent_id: Option<u64>,
+}
+
 /// An outbound websocket message sent by harmony, received by the client.
 #[derive(Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
@@ -100,7 +113,7 @@ pub enum OutboundMessage {
         /// A custom nonce for this guild. This is a random string that if used, a message with the
         /// same nonce will be dispatched by the websocket, indicating that the guild was created.
         ///
-        /// This is only used once and it is not stored.
+        /// This is only used once, and it is not stored.
         nonce: Option<String>,
     },
     /// Sent by harmony when information about a guild is updated.
@@ -150,6 +163,13 @@ pub enum OutboundMessage {
         channel_id: u64,
         /// The ID of the guild that the channel was deleted in, if any.
         guild_id: Option<u64>,
+    },
+    /// Sent by harmony when guild channel positions are updated in a guild.
+    GuildChannelPositionsUpdate {
+        /// The ID of the guild that the channel positions were updated in.
+        guild_id: u64,
+        /// The updated positioning number and parent category ID for each updated channel.
+        positions: Vec<GuildChannelPosition>,
     },
     /// Sent by harmony when a role is created within a guild.
     RoleCreate {
@@ -211,7 +231,7 @@ pub enum OutboundMessage {
         /// A custom nonce for this message. This is a random string that if used, a message with the
         /// same nonce will be dispatched by the websocket, indicating that the message was sent.
         ///
-        /// This is only used once and it is not stored.
+        /// This is only used once, and it is not stored.
         nonce: Option<String>,
     },
     /// Sent by harmony when a message is updated.
