@@ -12,7 +12,7 @@ use serde::{Deserializer, Serializer, de::Deserialize, ser::Serialize};
 ///
 /// # OpenAPI
 /// The override `#[schema(nullable, value_type = Option<T>)]` must be placed on the field.
-#[derive(Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default)]
 pub enum Maybe<T> {
     /// The field is absent.
     #[default]
@@ -65,6 +65,26 @@ impl<T> Maybe<T> {
     #[inline]
     pub fn into_option(self) -> Option<T> {
         self.into()
+    }
+
+    /// Converts a `&Maybe<T>` to a `Maybe<&T>`.
+    #[inline]
+    pub const fn as_ref(&self) -> Maybe<&T> {
+        match self {
+            Self::Value(v) => Maybe::Value(v),
+            Self::Null => Maybe::Null,
+            Self::Absent => Maybe::Absent,
+        }
+    }
+
+    /// Converts a `&mut Maybe<T>` to a `Maybe<&mut T>`.
+    #[inline]
+    pub fn as_mut(&mut self) -> Maybe<&mut T> {
+        match self {
+            Self::Value(v) => Maybe::Value(v),
+            Self::Null => Maybe::Null,
+            Self::Absent => Maybe::Absent,
+        }
     }
 }
 

@@ -77,8 +77,8 @@ pub enum OutboundMessage {
         session_id: String,
         /// The client user of the current session.
         user: ClientUser,
-        /// A list of guilds that the session's user is a member of.
-        guilds: Vec<Guild>,
+        /// A list of partially resolved guilds that the session's user is a member of.
+        guilds: Vec<PartialGuild>,
         /// A list of DM channels that the session's user is a member of.
         dm_channels: Vec<DmChannel>,
         /// A list of channels or guilds favorited and shown in the user's home sidebar.
@@ -105,8 +105,13 @@ pub enum OutboundMessage {
         /// The ID of the user that was deleted.
         user_id: u64,
     },
-    /// Sent by harmony when the client joins or creates a guild. Note that this does not include
-    /// guilds received from the `Ready` event, those must be accounted for separately.
+    /// Sent by harmony when a full guild is available to the client. This is only sent when
+    /// the client first connects and requests to fetch all guilds.
+    GuildAvailable {
+        /// The guild that is now available.
+        guild: Guild,
+    },
+    /// Sent by harmony when the client joins or creates a guild.
     GuildCreate {
         /// The guild that was joined or created.
         guild: Guild,

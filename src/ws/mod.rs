@@ -2,4 +2,4 @@ mod inbound;
 mod outbound;
 
 pub use inbound::InboundMessage;
-pub use outbound::{MemberRemoveInfo, OutboundMessage, UnackedChannel};
+pub use outbound::{GuildChannelPosition, MemberRemoveInfo, OutboundMessage, UnackedChannel};

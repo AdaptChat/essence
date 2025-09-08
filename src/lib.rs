@@ -1,5 +1,6 @@
 #![feature(binary_heap_into_iter_sorted)]
 #![cfg_attr(feature = "db", feature(trait_alias))]
+#![cfg_attr(feature = "db", feature(try_blocks))]
 #![allow(
     clippy::module_name_repetitions,
     clippy::cast_possible_truncation,
