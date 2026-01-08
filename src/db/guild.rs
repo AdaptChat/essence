@@ -393,6 +393,34 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         Ok(guild_count)
     }
 
+    /// Fetches all guilds that a user is a member of as a partial guild.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the guilds.
+    async fn fetch_all_partial_guilds_for_user(
+        &self,
+        user_id: u64,
+    ) -> crate::Result<Vec<PartialGuild>> {
+        let guilds = sqlx::query!(
+            r#"SELECT
+                guilds.*,
+                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS "member_count!"
+            FROM
+                guilds
+            WHERE
+                EXISTS (SELECT 1 FROM members WHERE members.id = $1 AND guild_id = guilds.id)
+            "#,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| construct_partial_guild!(r))
+        .collect();
+
+        Ok(guilds)
+    }
+
     /// Fetches all guilds that a user is a member of, abiding by the query.
     ///
     /// # Errors
@@ -403,29 +431,19 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         user_id: u64,
         query: GetGuildQuery,
     ) -> crate::Result<Vec<Guild>> {
-        let mut guilds: HashMap<u64, Guild> = sqlx::query!(
-            r#"SELECT 
-                guilds.*,
-                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS "member_count!"
-            FROM
-                guilds 
-            WHERE 
-                id IN (SELECT guild_id FROM members WHERE id = $1)
-            "#,
-            user_id as i64,
-        )
-        .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .map(|r| Guild {
-            partial: construct_partial_guild!(r),
-            members: None,
-            roles: None,
-            channels: None,
-            emojis: None,
-        })
-        .map(|guild| (guild.partial.id, guild))
-        .collect();
+        let mut guilds: HashMap<u64, Guild> = self
+            .fetch_all_partial_guilds_for_user(user_id)
+            .await?
+            .into_iter()
+            .map(|partial| Guild {
+                partial,
+                members: None,
+                roles: None,
+                channels: None,
+                emojis: None,
+            })
+            .map(|guild| (guild.partial.id, guild))
+            .collect();
         let guild_ids = guilds.keys().map(|&k| k as i64).collect::<Vec<_>>();
 
         if query.channels {

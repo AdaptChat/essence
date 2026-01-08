@@ -37,9 +37,15 @@ pub enum InboundMessage {
         /// The new custom status of the client, if any.
         custom_status: Option<String>,
     },
-    /// Requests a `GuildAvailable` event to load a guild with the given ID.
-    RequestGuild {
-        /// The ID of the guild to request.
-        guild_id: u64,
+    /// Requests a `GuildsAvailable` event to load all guilds the given ID.
+    RequestGuilds {
+        /// The IDs of the guilds to request. At most, 20 guilds can be provided in a single
+        /// `RequestGuilds` payload.
+        ///
+        /// You must wait for Harmony to respond with a `GuildsAvailable` event before sending
+        /// another `RequestGuilds` message.
+        guild_ids: Vec<u64>,
+        /// An optional nonce string used to request guilds.
+        nonce: Option<String>,
     },
 }

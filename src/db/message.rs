@@ -48,7 +48,7 @@ macro_rules! construct_message {
 }
 
 use crate::db::emoji::construct_reaction;
-use crate::models::{PartialEmoji, Reaction};
+use crate::models::{PartialEmoji, PartialGuild, Reaction};
 pub(crate) use construct_message;
 
 #[async_trait::async_trait]
@@ -782,31 +782,38 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
         Ok(())
     }
 
-    /// Fetches the IDs of all viewable channels by the user with the given ID.
+    /// Fetches the IDs of all viewable guild channels by the user with the given ID.
     ///
     /// # Errors
     /// * If an error occurs with fetching the channels.
-    async fn fetch_observable_channel_ids(
+    async fn fetch_observable_guild_channel_ids(
         &self,
         user_id: u64,
-        guilds: &[Guild],
+        guild_ids: &[u64],
     ) -> crate::Result<Vec<u64>> {
-        let mut channel_ids = Vec::new();
-        for (guild, channels) in guilds
-            .iter()
-            .filter_map(|g| g.channels.as_ref().map(|c| (g, c)))
-        {
-            for channel in channels {
+        let lookup = sqlx::query!(
+            r#"SELECT id, guild_id AS "guild_id!" FROM channels WHERE guild_id = ANY($1::BIGINT[])"#,
+            &guild_ids.iter().map(|id| *id as i64).collect_vec(),
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|row| (row.guild_id as u64, row.id as u64))
+        .into_group_map();
+
+        let mut observable = Vec::new();
+        for (guild_id, channel_ids) in lookup {
+            for channel_id in channel_ids {
                 if self
-                    .fetch_member_permissions(guild.partial.id, user_id, Some(channel.id))
+                    .fetch_member_permissions(guild_id, user_id, Some(channel_id))
                     .await?
                     .contains(Permissions::VIEW_CHANNEL | Permissions::VIEW_MESSAGE_HISTORY)
                 {
-                    channel_ids.push(channel.id);
+                    observable.push(channel_id);
                 }
             }
         }
-        Ok(channel_ids)
+        Ok(observable)
     }
 
     /// Fetches the IDs of all unacked messages that mention the user with the given ID.
@@ -816,10 +823,11 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     async fn fetch_mentioned_messages(
         &self,
         user_id: u64,
-        guilds: &[Guild],
+        guilds: &[PartialGuild],
     ) -> crate::Result<HashMap<u64, Vec<u64>>> {
+        let guild_ids = guilds.iter().map(|g| g.id).collect_vec();
         let channel_ids = self
-            .fetch_observable_channel_ids(user_id, guilds)
+            .fetch_observable_guild_channel_ids(user_id, &guild_ids)
             .await?
             .into_iter()
             .map(|id| id as i64)

@@ -51,6 +51,7 @@ macro_rules! query_channels {
     }};
 }
 
+use crate::models::PartialGuild;
 pub(crate) use query_channels;
 
 macro_rules! query_guild_channel_next_position {
@@ -1261,7 +1262,7 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     async fn fetch_unacked(
         &self,
         user_id: u64,
-        guilds: &[Guild],
+        guilds: &[PartialGuild],
     ) -> crate::Result<Vec<UnackedChannel>> {
         let mut unacked = self
             .fetch_mentioned_messages(user_id, guilds)

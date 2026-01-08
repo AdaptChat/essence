@@ -1,6 +1,7 @@
 //! Common object models consumed by Adapt's services.
 
 pub mod channel;
+pub mod client;
 pub mod color;
 pub mod emoji;
 pub mod guild;
@@ -43,6 +44,8 @@ pub enum ModelType {
     Internal = 6,
     /// The model is an emoji.
     Emoji = 7,
+    /// The model is a marketplace item (theme or plugin).
+    MarketplaceItem = 8,
     /// Unknown model.
     Unknown = 31,
 }
@@ -60,6 +63,7 @@ impl ModelType {
             5 => Self::Role,
             6 => Self::Internal,
             7 => Self::Emoji,
+            8 => Self::MarketplaceItem,
             _ => Self::Unknown,
         }
     }
@@ -79,6 +83,7 @@ impl fmt::Display for ModelType {
                 Self::Role => "role",
                 Self::Internal => "internal",
                 Self::Emoji => "emoji",
+                Self::MarketplaceItem => "marketplace_item",
                 Self::Unknown => "unknown",
             }
         )
