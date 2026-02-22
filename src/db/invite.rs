@@ -1,5 +1,6 @@
+use crate::db::guild::construct_partial_guild;
 use crate::{
-    Error, NotFoundExt,
+    Error, NotFoundExt, cache,
     db::{DbExt, GuildDbExt, MemberDbExt},
     http::invite::CreateInvitePayload,
     models::{Member, invite::Invite},
@@ -11,17 +12,50 @@ macro_rules! construct_invite {
             code: $data.code,
             guild_id: $data.guild_id as _,
             guild: $guild,
-            inviter_id: $data.inviter_id as _,
+            created_at: Some($data.created_at),
+            inviter_id: Some($data.inviter_id as _),
             max_age: $data.max_age as _,
             max_uses: $data.max_uses as _,
             uses: $data.uses as _,
-            created_at: $data.created_at,
         }
     }};
 }
 
 #[async_trait::async_trait]
 pub trait InviteDbExt<'t>: DbExt<'t> {
+    /// Resolves the partial guild associated with the given vanity invite code, and then promotes
+    /// it to an [`Invite`].
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the vanity invite.
+    async fn fetch_vanity_invite(&self, vanity_code: &str) -> sqlx::Result<Option<Invite>> {
+        let partial_guild = sqlx::query!(
+            r#"SELECT
+                *,
+                (SELECT COUNT(*) FROM members WHERE guild_id = guilds.id) AS "member_count!"
+            FROM
+                guilds
+            WHERE
+                vanity_url = $1
+            "#,
+            vanity_code,
+        )
+        .fetch_optional(self.executor())
+        .await
+        .map(|r| r.map(|p| construct_partial_guild!(p)))?;
+
+        Ok(partial_guild.map(|p| Invite {
+            code: vanity_code.to_string(),
+            guild_id: p.id,
+            guild: Some(p),
+            created_at: None,
+            inviter_id: None,
+            max_age: 0,
+            max_uses: 0,
+            uses: 0,
+        }))
+    }
+
     /// Fetches an invite from the database with the given code. Returns `None` if the invite is not
     /// found. Since this is fetching a single invite, this will include guild information.
     ///
@@ -29,6 +63,9 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
     /// * If an error occurs with fetching the invite.
     /// * If an error occurs with fetching the guild.
     async fn fetch_invite(&self, code: impl AsRef<str> + Send) -> sqlx::Result<Option<Invite>> {
+        if let Some(invite) = self.fetch_vanity_invite(code.as_ref()).await? {
+            return Ok(Some(invite));
+        };
         let Some(i) = sqlx::query!(
             r#"SELECT * FROM invites
             WHERE
@@ -154,12 +191,13 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         })?
         .created_at;
 
+        cache::update_invite(&code, guild_id).await?;
         Ok(Invite {
             code,
-            inviter_id,
+            inviter_id: Some(inviter_id),
             guild: None,
             guild_id,
-            created_at,
+            created_at: Some(created_at),
             uses: 0,
             max_uses: payload.max_uses,
             max_age: payload.max_age,
@@ -180,6 +218,7 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
             .execute(self.transaction())
             .await?;
 
+        cache::invalidate_invite(code.as_ref()).await?;
         Ok(())
     }
 
@@ -193,13 +232,16 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
     /// * If the guild is not found.
     /// * If an error occurs with creating the invite.
     async fn delete_all_invites_in_guild(&mut self, guild_id: u64) -> crate::Result<()> {
-        sqlx::query!(
-            r#"DELETE FROM invites WHERE guild_id = $1"#,
+        let codes = sqlx::query!(
+            r#"DELETE FROM invites WHERE guild_id = $1 RETURNING code"#,
             guild_id as i64,
         )
-        .execute(self.transaction())
+        .fetch_all(self.transaction())
         .await?;
 
+        for record in codes {
+            cache::invalidate_invite(&record.code).await?;
+        }
         Ok(())
     }
 }

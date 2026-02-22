@@ -11,6 +11,7 @@ pub mod permissions;
 pub mod presence;
 pub mod role;
 pub mod user;
+mod voice;
 
 pub use channel::*;
 pub use color::*;

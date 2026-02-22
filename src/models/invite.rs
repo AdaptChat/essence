@@ -16,16 +16,17 @@ use serde::Deserialize;
 pub struct Invite {
     /// The code of the invite.
     pub code: String,
-    /// The ID of the user that created this invite.
-    pub inviter_id: u64,
+    /// The ID of the user that created this invite. This is `None` if this is a vanity invite.
+    pub inviter_id: Option<u64>,
     /// Partial guild information about the guild this invite leads to. This is `None` when this is
     /// already fetched from a guild.
     pub guild: Option<PartialGuild>,
     /// The ID of the guild this invite leads to.
     pub guild_id: u64,
-    /// A timestamp representing when this invite was created.
+    /// A timestamp representing when this invite was created. This is `None` if this is a vanity
+    /// invite.
     #[cfg_attr(feature = "bincode", bincode(with_serde))]
-    pub created_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
     /// How many times this invite has been used.
     pub uses: u32,
     /// How many times this invite can be used. ``0`` if unlimited.

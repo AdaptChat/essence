@@ -292,3 +292,23 @@ pub async fn clear_member_permissions(guild_id: u64) -> Result<()> {
 
     con.del(keys).await.err_into()
 }
+
+pub async fn resolve_invite_guild_id(code: &str) -> Result<Option<u64>> {
+    get_con()
+        .await?
+        .get(format!("essence-invite-{code}"))
+        .await
+        .err_into()
+}
+
+pub async fn invalidate_invite(code: &str) -> Result<()> {
+    let mut con = get_con().await?;
+    con.del(format!("essence-invite-{code}")).await.err_into()
+}
+
+pub async fn update_invite(code: &str, guild_id: u64) -> Result<()> {
+    let mut con = get_con().await?;
+    con.set(format!("essence-invite-{code}"), guild_id)
+        .await
+        .err_into()
+}
