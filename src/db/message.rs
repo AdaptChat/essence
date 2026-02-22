@@ -4,9 +4,7 @@ use crate::{
     Error, NotFoundExt,
     db::{DbExt, EmojiDbExt, GuildDbExt, get_pool},
     http::message::{CreateMessagePayload, EditMessagePayload, MessageHistoryQuery},
-    models::{
-        Attachment, Guild, Message, MessageFlags, MessageInfo, MessageReference, Permissions,
-    },
+    models::{Attachment, Message, MessageFlags, MessageInfo, MessageReference, Permissions},
     snowflake::extract_mentions,
 };
 use futures_util::TryStreamExt;
@@ -48,7 +46,7 @@ macro_rules! construct_message {
 }
 
 use crate::db::emoji::construct_reaction;
-use crate::models::{PartialEmoji, PartialGuild, Reaction};
+use crate::models::{PartialEmoji, Reaction};
 pub(crate) use construct_message;
 
 #[async_trait::async_trait]
@@ -823,9 +821,9 @@ pub trait MessageDbExt<'t>: DbExt<'t> {
     async fn fetch_mentioned_messages(
         &self,
         user_id: u64,
-        guilds: &[PartialGuild],
+        guild_ids: &[u64],
     ) -> crate::Result<HashMap<u64, Vec<u64>>> {
-        let guild_ids = guilds.iter().map(|g| g.id).collect_vec();
+        let guild_ids = guild_ids.to_vec();
         let channel_ids = self
             .fetch_observable_guild_channel_ids(user_id, &guild_ids)
             .await?

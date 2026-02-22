@@ -111,7 +111,7 @@ pub struct PartialGuild {
     ///
     /// Guilds have the ability to set vanity URLs once they surpass 100 non-bot members *and* have
     /// their visibility set to public. The vanity URL code can be between 3 and 32 characters long.
-    pub vanity_url: Option<String>,
+    pub vanity_code: Option<String>,
 }
 
 /// Represents a guild with all information, sometimes referred to as a server.
@@ -155,6 +155,20 @@ pub struct Guild {
     /// * The client receives a ready event containing all guild data through the gateway.
     /// * The client receives a guild create event through the gateway.
     pub emojis: Option<Vec<CustomEmoji>>,
+}
+
+impl Guild {
+    /// Upgrades the provided [`PartialGuild`] into a [`Guild`].
+    #[must_use]
+    pub const fn from_partial(partial: PartialGuild) -> Self {
+        Self {
+            partial,
+            members: None,
+            roles: None,
+            channels: None,
+            emojis: None,
+        }
+    }
 }
 
 bitflags::bitflags! {

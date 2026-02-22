@@ -105,11 +105,13 @@ pub enum OutboundMessage {
         /// The ID of the user that was deleted.
         user_id: u64,
     },
-    /// Sent by harmony when a full guild is available to the client. This is only sent when
-    /// the client first connects and requests to fetch all guilds.
-    GuildAvailable {
-        /// The guild that is now available.
-        guild: Guild,
+    /// Sent by harmony when full guild(s) is available to the client. This is only sent when
+    /// the client first connects and requests to fetch these guilds via `RequestGuilds`.
+    GuildsAvailable {
+        /// The guilds that are now available.
+        guilds: Vec<Guild>,
+        /// The nonce associated with the corresponding `RequestGuilds` inbound message, if any.
+        nonce: Option<String>,
     },
     /// Sent by harmony when the client joins or creates a guild.
     GuildCreate {

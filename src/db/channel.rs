@@ -9,8 +9,8 @@ use crate::{
         EditChannelPayload, EditChannelPositionsPayload,
     },
     models::{
-        Channel, ChannelType, DbGradient, DmChannel, DmChannelInfo, ExtendedColor, Guild,
-        GuildChannel, GuildChannelInfo, Message, PermissionOverwrite, PermissionPair, Permissions,
+        Channel, ChannelType, DbGradient, DmChannel, DmChannelInfo, ExtendedColor, GuildChannel,
+        GuildChannelInfo, Message, PermissionOverwrite, PermissionPair, Permissions,
         TextBasedGuildChannelInfo,
     },
     ws::UnackedChannel,
@@ -51,8 +51,40 @@ macro_rules! query_channels {
     }};
 }
 
-use crate::models::PartialGuild;
 pub(crate) use query_channels;
+
+#[derive(sqlx::FromRow)]
+pub(crate) struct OverwriteRow {
+    pub channel_id: i64,
+    pub target_id: i64,
+    pub allow: i64,
+    pub deny: i64,
+}
+
+pub(crate) fn map_overwrite_rows(
+    rows: Vec<OverwriteRow>,
+) -> HashMap<u64, Option<Vec<PermissionOverwrite>>> {
+    rows.into_iter()
+        .into_group_map_by(|o| o.channel_id as u64)
+        .into_iter()
+        .map(|(c, o)| {
+            (
+                c,
+                Some(
+                    o.into_iter()
+                        .map(|o| PermissionOverwrite {
+                            id: o.target_id as _,
+                            permissions: PermissionPair {
+                                allow: Permissions::from_bits_truncate(o.allow),
+                                deny: Permissions::from_bits_truncate(o.deny),
+                            },
+                        })
+                        .collect(),
+                ),
+            )
+        })
+        .collect()
+}
 
 macro_rules! query_guild_channel_next_position {
     ($(@clause $clause:literal,)? $($args:expr_2021),*) => {{
@@ -454,45 +486,34 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
         clause: impl AsRef<str> + Send,
         binding_id: u64,
     ) -> crate::Result<HashMap<u64, Option<Vec<PermissionOverwrite>>>> {
-        #[derive(sqlx::FromRow)]
-        struct Query {
-            channel_id: i64,
-            target_id: i64,
-            allow: i64,
-            deny: i64,
-        }
-
-        let overwrites = sqlx::query_as::<_, Query>(&format!(
+        let rows = sqlx::query_as::<_, OverwriteRow>(&format!(
             "SELECT channel_id, target_id, allow, deny FROM channel_overwrites WHERE {}",
             clause.as_ref(),
         ))
         .bind(binding_id as i64)
         .fetch_all(self.executor())
-        .await?
-        .into_iter()
-        .into_group_map_by(|o| o.channel_id as u64);
+        .await?;
 
-        let overwrites = overwrites
-            .into_iter()
-            .map(|(c, o)| {
-                (
-                    c,
-                    Some(
-                        o.into_iter()
-                            .map(|o| PermissionOverwrite {
-                                id: o.target_id as _,
-                                permissions: PermissionPair {
-                                    allow: Permissions::from_bits_truncate(o.allow),
-                                    deny: Permissions::from_bits_truncate(o.deny),
-                                },
-                            })
-                            .collect(),
-                    ),
-                )
-            })
-            .collect::<HashMap<_, _>>();
+        Ok(map_overwrite_rows(rows))
+    }
 
-        Ok(overwrites)
+    /// Fetches all channel overwrites for all channels in the given guilds, keyed by channel ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the channel overwrites.
+    async fn fetch_channel_overwrites_for_guilds(
+        &self,
+        guild_ids: &[i64],
+    ) -> crate::Result<HashMap<u64, Option<Vec<PermissionOverwrite>>>> {
+        let rows = sqlx::query_as::<_, OverwriteRow>(
+            "SELECT channel_id, target_id, allow, deny FROM channel_overwrites \
+             WHERE guild_id IS NOT NULL AND guild_id = ANY($1)",
+        )
+        .bind(guild_ids)
+        .fetch_all(self.executor())
+        .await?;
+
+        Ok(map_overwrite_rows(rows))
     }
 
     /// Fetches the channel overwrites for a specific channel. This assumes that the channel is
@@ -1262,10 +1283,10 @@ pub trait ChannelDbExt<'t>: DbExt<'t> {
     async fn fetch_unacked(
         &self,
         user_id: u64,
-        guilds: &[PartialGuild],
+        guild_ids: &[u64],
     ) -> crate::Result<Vec<UnackedChannel>> {
         let mut unacked = self
-            .fetch_mentioned_messages(user_id, guilds)
+            .fetch_mentioned_messages(user_id, guild_ids)
             .await?
             .into_iter()
             .map(|(k, mentions)| {

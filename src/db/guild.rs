@@ -19,22 +19,24 @@ use std::collections::{HashMap, HashSet};
 
 macro_rules! construct_partial_guild {
     ($data:ident) => {{
-        PartialGuild {
+        $crate::models::PartialGuild {
             id: $data.id as _,
             name: $data.name,
             description: $data.description,
             icon: $data.icon,
             banner: $data.banner,
             owner_id: $data.owner_id as _,
-            flags: GuildFlags::from_bits_truncate($data.flags as _),
-            member_count: Some(GuildMemberCount {
+            flags: $crate::models::GuildFlags::from_bits_truncate($data.flags as _),
+            member_count: Some($crate::models::GuildMemberCount {
                 total: $data.member_count as _,
                 online: None, // TODO
             }),
-            vanity_url: $data.vanity_url,
+            vanity_code: $data.vanity_url,
         }
     }};
 }
+
+pub(crate) use construct_partial_guild;
 
 #[async_trait::async_trait]
 pub trait GuildDbExt<'t>: DbExt<'t> {
@@ -393,24 +395,37 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         Ok(guild_count)
     }
 
-    /// Fetches all guilds that a user is a member of as a partial guild.
+    /// Fetches partial guild info for the given user, optionally filtered to a specific list of
+    /// guild IDs. If `guild_ids` is `None`, all guilds the user is a member of are returned.
+    /// Guild IDs for which the user is not a member are silently skipped.
     ///
     /// # Errors
     /// * If an error occurs with fetching the guilds.
-    async fn fetch_all_partial_guilds_for_user(
+    async fn fetch_partial_guilds_for_user(
         &self,
         user_id: u64,
+        guild_ids: Option<&[u64]>,
     ) -> crate::Result<Vec<PartialGuild>> {
+        let ids = guild_ids.map(|ids| ids.iter().map(|&id| id as i64).collect::<Vec<_>>());
         let guilds = sqlx::query!(
             r#"SELECT
-                guilds.*,
-                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS "member_count!"
+                guilds.id,
+                guilds.name,
+                guilds.description,
+                guilds.icon,
+                guilds.banner,
+                guilds.owner_id,
+                guilds.flags,
+                guilds.vanity_url,
+                (SELECT COUNT(*) FROM members WHERE guild_id = guilds.id) AS "member_count!"
             FROM
                 guilds
             WHERE
-                EXISTS (SELECT 1 FROM members WHERE members.id = $1 AND guild_id = guilds.id)
+                EXISTS (SELECT 1 FROM members WHERE members.id = $1 AND members.guild_id = guilds.id)
+                AND ($2::BIGINT[] IS NULL OR guilds.id = ANY($2::BIGINT[]))
             "#,
             user_id as i64,
+            ids.as_deref() as Option<&[i64]>,
         )
         .fetch_all(self.executor())
         .await?
@@ -421,6 +436,23 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
         Ok(guilds)
     }
 
+    /// Fetches full guild data for the given list of guild IDs, verifying that the given user is
+    /// a member of each guild. Guild IDs for which the user is not a member are silently skipped.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the guilds.
+    async fn fetch_guilds_by_ids(
+        &self,
+        user_id: u64,
+        guild_ids: &[u64],
+        query: GetGuildQuery,
+    ) -> crate::Result<Vec<Guild>> {
+        let partial_guilds = self
+            .fetch_partial_guilds_for_user(user_id, Some(guild_ids))
+            .await?;
+        self.fetch_all_guilds_for_user(partial_guilds, query).await
+    }
+
     /// Fetches all guilds that a user is a member of, abiding by the query.
     ///
     /// # Errors
@@ -428,30 +460,18 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
     #[allow(clippy::too_many_lines)]
     async fn fetch_all_guilds_for_user(
         &self,
-        user_id: u64,
+        partial_guilds: impl IntoIterator<Item = PartialGuild> + Send,
         query: GetGuildQuery,
     ) -> crate::Result<Vec<Guild>> {
-        let mut guilds: HashMap<u64, Guild> = self
-            .fetch_all_partial_guilds_for_user(user_id)
-            .await?
+        let mut guilds: HashMap<u64, Guild> = partial_guilds
             .into_iter()
-            .map(|partial| Guild {
-                partial,
-                members: None,
-                roles: None,
-                channels: None,
-                emojis: None,
-            })
+            .map(Guild::from_partial)
             .map(|guild| (guild.partial.id, guild))
             .collect();
         let guild_ids = guilds.keys().map(|&k| k as i64).collect::<Vec<_>>();
 
         if query.channels {
-            let mut overwrites = self.fetch_channel_overwrites_where(
-                "guild_id IS NOT NULL AND guild_id = ANY(SELECT guild_id FROM members WHERE id = $1)",
-                user_id,
-            )
-            .await?;
+            let mut overwrites = self.fetch_channel_overwrites_for_guilds(&guild_ids).await?;
 
             let out = query_channels!("guild_id = ANY($1::BIGINT[])", &guild_ids)
                 .fetch_all(self.executor())
@@ -675,7 +695,7 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 total: 1,
                 online: None, // TODO
             }),
-            vanity_url: None,
+            vanity_code: None,
         };
 
         let role = Role {
