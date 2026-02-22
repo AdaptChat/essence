@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE channels\n            SET\n                position = data.position,\n                parent_id = data.parent_id\n            FROM\n                UNNEST($1::BIGINT[], $2::SMALLINT[], $3::BIGINT[])\n                AS data(id, position, parent_id)\n            WHERE\n                channels.id = data.id\n            AND\n                channels.guild_id = $4\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array",
+        "Int2Array",
+        "Int8Array",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "990845fb94a0f39c71c5e622d8598c71840c05085a1dd7c9949343f38a54c3ee"
+}
