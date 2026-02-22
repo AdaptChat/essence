@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT \n                guilds.*,\n                (SELECT COUNT(*) FROM members WHERE guild_id = $1) AS \"member_count!\"\n            FROM\n                guilds \n            WHERE \n                id IN (SELECT guild_id FROM members WHERE id = $1)\n            ",
+  "query": "SELECT\n                *,\n                (SELECT COUNT(*) FROM members WHERE guild_id = guilds.id) AS \"member_count!\"\n            FROM\n                guilds\n            WHERE\n                vanity_url = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -51,7 +51,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -66,5 +66,5 @@
       null
     ]
   },
-  "hash": "24ade9288fd8119e54fcf7f1498135255b48dc03ee574ad3b7185515a8267865"
+  "hash": "05f728de63e4cc8a1d6c1b5dd15d490749f50626b664506bc4d7c067d2c8d2f2"
 }
