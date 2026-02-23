@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                guilds.id,\n                guilds.name,\n                guilds.description,\n                guilds.icon,\n                guilds.banner,\n                guilds.owner_id,\n                guilds.flags,\n                guilds.vanity_url,\n                (SELECT COUNT(*) FROM members WHERE guild_id = guilds.id) AS \"member_count!\"\n            FROM\n                guilds\n            WHERE\n                EXISTS (SELECT 1 FROM members WHERE members.id = $1 AND members.guild_id = guilds.id)\n                AND ($2::BIGINT[] IS NULL OR guilds.id = ANY($2::BIGINT[]))\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "icon",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "banner",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "owner_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "flags",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 7,
+        "name": "vanity_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "member_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "f89466380506910e351feb29e734849c131664d372bc5c0218a99ff1c912345d"
+}
