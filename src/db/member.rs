@@ -56,6 +56,46 @@ pub(crate) use construct_member;
 
 #[async_trait::async_trait]
 pub trait MemberDbExt<'t>: DbExt<'t> {
+    /// Fetches a user's member record across multiple guilds.
+    /// Returns a mapping `guild_id -> member`
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the members.
+    async fn fetch_members_for_user_in_guilds(
+        &self,
+        user_id: u64,
+        guild_ids: &[i64],
+    ) -> sqlx::Result<std::collections::HashMap<u64, Member>> {
+        let roles = sqlx::query!(
+            "SELECT guild_id, role_id FROM role_data WHERE guild_id = ANY($1::BIGINT[]) AND user_id = $2",
+            guild_ids,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .into_group_map_by(|r| r.guild_id as u64);
+
+        let members = query_member!(
+            r"WHERE m.guild_id = ANY($1::BIGINT[]) AND m.id = $2",
+            guild_ids,
+            user_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|m| {
+            let gid = m.guild_id as u64;
+            let role_ids = roles
+                .get(&gid)
+                .map(|rs| rs.iter().map(|r| r.role_id as u64).collect::<Vec<_>>());
+            (gid, construct_member!(m, role_ids))
+        })
+        .collect();
+
+        Ok(members)
+    }
+
     /// Fetches a member from the database with the given guild and user ID.
     ///
     /// # Errors
