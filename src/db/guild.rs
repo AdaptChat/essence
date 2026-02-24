@@ -417,12 +417,16 @@ pub trait GuildDbExt<'t>: DbExt<'t> {
                 guilds.owner_id,
                 guilds.flags,
                 guilds.vanity_url,
-                (SELECT COUNT(*) FROM members WHERE guild_id = guilds.id) AS "member_count!"
+                COALESCE(mc.cnt, 0) AS "member_count!"
             FROM
                 guilds
+            INNER JOIN
+                members AS m ON m.id = $1 AND m.guild_id = guilds.id
+            LEFT JOIN
+                (SELECT guild_id, COUNT(*) AS cnt FROM members GROUP BY guild_id) AS mc
+                ON mc.guild_id = guilds.id
             WHERE
-                EXISTS (SELECT 1 FROM members WHERE members.id = $1 AND members.guild_id = guilds.id)
-                AND ($2::BIGINT[] IS NULL OR guilds.id = ANY($2::BIGINT[]))
+                ($2::BIGINT[] IS NULL OR guilds.id = ANY($2::BIGINT[]))
             "#,
             user_id as i64,
             ids.as_deref() as Option<&[i64]>,
