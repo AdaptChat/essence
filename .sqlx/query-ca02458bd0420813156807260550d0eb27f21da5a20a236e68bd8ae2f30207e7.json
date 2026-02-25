@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n                guilds.id,\n                guilds.name,\n                guilds.description,\n                guilds.icon,\n                guilds.banner,\n                guilds.owner_id,\n                guilds.flags,\n                guilds.vanity_url,\n                (SELECT COUNT(*) FROM members WHERE guild_id = guilds.id) AS \"member_count!\"\n            FROM\n                guilds\n            WHERE\n                EXISTS (SELECT 1 FROM members WHERE members.id = $1 AND members.guild_id = guilds.id)\n                AND ($2::BIGINT[] IS NULL OR guilds.id = ANY($2::BIGINT[]))\n            ",
+  "query": "SELECT\n                guilds.id,\n                guilds.name,\n                guilds.description,\n                guilds.icon,\n                guilds.banner,\n                guilds.owner_id,\n                guilds.flags,\n                guilds.vanity_url,\n                COALESCE(mc.cnt, 0) AS \"member_count!\"\n            FROM\n                guilds\n            INNER JOIN\n                members AS m ON m.id = $1 AND m.guild_id = guilds.id\n            LEFT JOIN\n                (SELECT guild_id, COUNT(*) AS cnt FROM members GROUP BY guild_id) AS mc\n                ON mc.guild_id = guilds.id\n            WHERE\n                ($2::BIGINT[] IS NULL OR guilds.id = ANY($2::BIGINT[]))\n            ",
   "describe": {
     "columns": [
       {
@@ -67,5 +67,5 @@
       null
     ]
   },
-  "hash": "f89466380506910e351feb29e734849c131664d372bc5c0218a99ff1c912345d"
+  "hash": "ca02458bd0420813156807260550d0eb27f21da5a20a236e68bd8ae2f30207e7"
 }

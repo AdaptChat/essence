@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO bans (guild_id, user_id, moderator_id, reason)\n             VALUES ($1, $2, $3, $4)\n             RETURNING banned_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "banned_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f13c0782067d4795528b7d27e079b5cbddc0dec17a232c77963f264bf086b6e6"
+}

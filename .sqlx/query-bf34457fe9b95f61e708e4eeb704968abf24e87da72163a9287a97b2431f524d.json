@@ -1,0 +1,83 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                bans.guild_id, bans.user_id, bans.moderator_id, bans.reason, bans.banned_at,\n                users.username, users.display_name, users.avatar, users.banner, users.bio, users.flags\n            FROM bans\n            INNER JOIN users ON bans.user_id = users.id\n            WHERE bans.guild_id = $1 AND bans.user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "guild_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "moderator_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "banned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "banner",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "bio",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "flags",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "bf34457fe9b95f61e708e4eeb704968abf24e87da72163a9287a97b2431f524d"
+}
