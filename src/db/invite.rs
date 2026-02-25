@@ -145,6 +145,15 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
         }
 
         let guild_id = invite.guild_id;
+
+        if cache::is_banned(guild_id, user_id).await? {
+            return Err(Error::BannedFromGuild {
+                guild_id,
+                reason: None,
+                message: format!("You are banned from guild {guild_id}"),
+            });
+        }
+
         Ok((
             invite,
             self.create_member(guild_id, user_id, Default::default())

@@ -1,4 +1,10 @@
-use crate::{NotFoundExt, cache, db::DbExt, models::Member, snowflake::with_model_type};
+use crate::{
+    NotFoundExt, cache,
+    db::{DbExt, UserDbExt, get_pool},
+    http::member::{BanMemberPayload, EditClientMemberPayload, EditMemberPayload},
+    models::{GuildBan, MaybePartialUser, Member, ModelType, Permissions, User, UserFlags},
+    snowflake::with_model_type,
+};
 use itertools::Itertools;
 
 macro_rules! query_member {
@@ -49,9 +55,6 @@ macro_rules! construct_member {
     }};
 }
 
-use crate::db::{UserDbExt, get_pool};
-use crate::http::member::{EditClientMemberPayload, EditMemberPayload};
-use crate::models::{MaybePartialUser, ModelType, Permissions};
 pub(crate) use construct_member;
 
 #[async_trait::async_trait]
@@ -340,6 +343,167 @@ pub trait MemberDbExt<'t>: DbExt<'t> {
 
         cache::remove_member_from_guild(guild_id, user_id).await?;
         Ok(())
+    }
+
+    /// Fetches a ban entry from the database with the given guild and user ID.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the ban.
+    async fn fetch_ban(&self, guild_id: u64, user_id: u64) -> crate::Result<Option<GuildBan>> {
+        let ban = sqlx::query!(
+            r#"SELECT
+                bans.guild_id, bans.user_id, bans.moderator_id, bans.reason, bans.banned_at,
+                users.username, users.display_name, users.avatar, users.banner, users.bio, users.flags
+            FROM bans
+            INNER JOIN users ON bans.user_id = users.id
+            WHERE bans.guild_id = $1 AND bans.user_id = $2"#,
+            guild_id as i64,
+            user_id as i64,
+        )
+        .fetch_optional(self.executor())
+        .await?
+        .map(|r| GuildBan {
+            guild_id: r.guild_id as u64,
+            user: MaybePartialUser::Full(User {
+                id: r.user_id as u64,
+                username: r.username,
+                display_name: r.display_name,
+                avatar: r.avatar,
+                banner: r.banner,
+                bio: r.bio,
+                flags: UserFlags::from_bits_truncate(r.flags as _),
+            }),
+            moderator_id: r.moderator_id as u64,
+            reason: r.reason,
+            banned_at: r.banned_at,
+        });
+
+        Ok(ban)
+    }
+
+    /// Fetches all ban entries for the given guild.
+    ///
+    /// # Errors
+    /// * If an error occurs with fetching the bans.
+    async fn fetch_all_bans(&self, guild_id: u64) -> crate::Result<Vec<GuildBan>> {
+        let bans = sqlx::query!(
+            r#"SELECT
+                bans.guild_id, bans.user_id, bans.moderator_id, bans.reason, bans.banned_at,
+                users.username, users.display_name, users.avatar, users.banner, users.bio, users.flags
+            FROM bans
+            INNER JOIN users ON bans.user_id = users.id
+            WHERE bans.guild_id = $1"#,
+            guild_id as i64,
+        )
+        .fetch_all(self.executor())
+        .await?
+        .into_iter()
+        .map(|r| GuildBan {
+            guild_id: r.guild_id as u64,
+            user: MaybePartialUser::Full(User {
+                id: r.user_id as u64,
+                username: r.username,
+                display_name: r.display_name,
+                avatar: r.avatar,
+                banner: r.banner,
+                bio: r.bio,
+                flags: UserFlags::from_bits_truncate(r.flags as _),
+            }),
+            moderator_id: r.moderator_id as u64,
+            reason: r.reason,
+            banned_at: r.banned_at,
+        })
+        .collect();
+
+        Ok(bans)
+    }
+
+    /// Bans a user from a guild. If the user is currently a member, they are removed. Returns the
+    /// created [`GuildBan`] entry.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If the user is already banned.
+    /// * If an error occurs with banning the user.
+    async fn ban_member(
+        &mut self,
+        guild_id: u64,
+        user_id: u64,
+        moderator_id: u64,
+        payload: BanMemberPayload,
+    ) -> crate::Result<GuildBan> {
+        let ban_exists = cache::is_banned(guild_id, user_id).await?
+            || sqlx::query!(
+                "SELECT 1 AS exists FROM bans WHERE guild_id = $1 AND user_id = $2",
+                guild_id as i64,
+                user_id as i64,
+            )
+            .fetch_optional(self.executor())
+            .await?
+            .is_some();
+
+        if ban_exists {
+            return Err(crate::Error::AlreadyExists {
+                what: "ban".to_string(),
+                message: format!("User {user_id} is already banned from guild {guild_id}"),
+            });
+        }
+
+        sqlx::query!(
+            "DELETE FROM members WHERE guild_id = $1 AND id = $2",
+            guild_id as i64,
+            user_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+        cache::remove_member_from_guild(guild_id, user_id).await?;
+
+        let ban = sqlx::query!(
+            "INSERT INTO bans (guild_id, user_id, moderator_id, reason)
+             VALUES ($1, $2, $3, $4)
+             RETURNING banned_at",
+            guild_id as i64,
+            user_id as i64,
+            moderator_id as i64,
+            payload.reason.as_deref(),
+        )
+        .fetch_one(self.transaction())
+        .await
+        .map(|r| GuildBan {
+            guild_id,
+            user: MaybePartialUser::Partial { id: user_id },
+            moderator_id,
+            reason: payload.reason,
+            banned_at: r.banned_at,
+        })?;
+
+        cache::add_ban(guild_id, user_id).await?;
+        Ok(ban)
+    }
+
+    /// Removes a ban for the given user from the guild. Returns `true` if a ban was removed,
+    /// `false` if the user was not banned.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with removing the ban.
+    async fn unban_member(&mut self, guild_id: u64, user_id: u64) -> crate::Result<bool> {
+        let result = sqlx::query!(
+            "DELETE FROM bans WHERE guild_id = $1 AND user_id = $2",
+            guild_id as i64,
+            user_id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        cache::remove_ban(guild_id, user_id).await?;
+        Ok(result.rows_affected() > 0)
     }
 }
 

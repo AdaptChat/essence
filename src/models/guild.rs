@@ -1,5 +1,5 @@
 use crate::{
-    models::{CustomEmoji, GuildChannel, Permissions, Role, User},
+    models::{CustomEmoji, GuildChannel, MaybePartialUser, Permissions, Role},
     serde_for_bitflags,
 };
 use chrono::{DateTime, Utc};
@@ -8,19 +8,6 @@ use serde::Deserialize;
 use serde::Serialize;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
-
-/// Potentially a partial user.
-#[derive(Clone, Debug, Serialize)]
-#[cfg_attr(feature = "client", derive(Deserialize))]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
-#[serde(untagged)]
-pub enum MaybePartialUser {
-    /// A user with full information.
-    Full(User),
-    /// A user with only an ID.
-    Partial { id: u64 },
-}
 
 /// Represents a member of a guild. Members are user objects associated with a guild.
 #[derive(Clone, Debug, Serialize)]
@@ -49,11 +36,8 @@ impl Member {
     /// The ID of the user associated with this member.
     #[inline]
     #[must_use]
-    pub const fn user_id(&self) -> u64 {
-        match &self.user {
-            MaybePartialUser::Full(user) => user.id,
-            MaybePartialUser::Partial { id } => *id,
-        }
+    pub fn user_id(&self) -> u64 {
+        self.user.id()
     }
 
     /// The display name of the member. This is the nickname if the member has one,
@@ -168,6 +152,36 @@ impl Guild {
             channels: None,
             emojis: None,
         }
+    }
+}
+
+/// Represents a ban entry in a guild.
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+pub struct GuildBan {
+    /// The ID of the guild this ban is in.
+    pub guild_id: u64,
+    /// The banned user. This is either a fully resolved [`MaybePartialUser::Full`] or a
+    /// [`MaybePartialUser::Partial`] containing only the user's ID.
+    #[serde(flatten)]
+    pub user: MaybePartialUser,
+    /// The ID of the moderator that issued the ban.
+    pub moderator_id: u64,
+    /// The reason for the ban, if any.
+    pub reason: Option<String>,
+    /// The time that the ban was issued.
+    #[cfg_attr(feature = "bincode", bincode(with_serde))]
+    pub banned_at: DateTime<Utc>,
+}
+
+impl GuildBan {
+    /// The ID of the banned user.
+    #[inline]
+    #[must_use]
+    pub fn user_id(&self) -> u64 {
+        self.user.id()
     }
 }
 

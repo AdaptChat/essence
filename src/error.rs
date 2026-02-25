@@ -187,6 +187,15 @@ pub enum Error {
         /// The error message.
         message: String,
     },
+    /// You are banned from the guild you are trying to join.
+    BannedFromGuild {
+        /// The ID of the guild you are banned from.
+        guild_id: u64,
+        /// The reason for the ban, if any.
+        reason: Option<String>,
+        /// The error message.
+        message: String,
+    },
     /// You cannot leave a server or group DM that you are the owner of (you should transfer
     /// ownership before leaving).
     CannotLeaveAsOwner {
@@ -281,6 +290,7 @@ impl Error {
             | Self::MissingPermissions { .. }
             | Self::RoleTooLow { .. }
             | Self::RoleIsManaged { .. }
+            | Self::BannedFromGuild { .. }
             | Self::CannotLeaveAsOwner { .. }
             | Self::UserInteractionDisallowed { .. }
             | Self::BlockedByUser { .. }

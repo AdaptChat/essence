@@ -8,7 +8,7 @@ use crate::models::{
 };
 
 /// Extra information about member removal.
-#[derive(Debug, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize))]
 #[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
 #[serde(tag = "type", rename_all = "snake_case")]

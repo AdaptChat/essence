@@ -43,6 +43,19 @@ pub struct EditMemberPayload {
     pub permissions: Option<Permissions>,
 }
 
+/// The payload sent to ban a member from a guild.
+#[derive(Clone, Debug, Default, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct BanMemberPayload {
+    /// The reason for the ban.
+    pub reason: Option<String>,
+    /// The number of seconds of message history to delete from the banned user. Capped at 7 days
+    /// (604800 seconds). If not specified or `0`, no messages are deleted.
+    #[serde(default)]
+    pub delete_message_seconds: u32,
+}
+
 /// The payload sent to add a bot to a guild.
 #[derive(Clone, Debug, Deserialize)]
 #[cfg_attr(feature = "client", derive(Serialize))]

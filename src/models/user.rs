@@ -55,6 +55,31 @@ bitflags::bitflags! {
 
 serde_for_bitflags!(u32: UserFlags);
 
+/// Potentially a partial user.
+#[derive(Clone, Debug, Serialize)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "bincode", derive(bincode::Encode, bincode::Decode))]
+#[serde(untagged)]
+pub enum MaybePartialUser {
+    /// A user with full information.
+    Full(User),
+    /// A user with only an ID.
+    Partial { id: u64 },
+}
+
+impl MaybePartialUser {
+    /// Returns the ID of the user.
+    #[inline]
+    #[must_use]
+    pub const fn id(&self) -> u64 {
+        match self {
+            Self::Full(user) => user.id,
+            Self::Partial { id } => *id,
+        }
+    }
+}
+
 /// Represents information such as the name and color of a guild folder.
 /// This is only shown in the client's UI.
 #[derive(Clone, Debug, Deserialize, Serialize)]

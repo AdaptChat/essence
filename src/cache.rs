@@ -293,6 +293,30 @@ pub async fn clear_member_permissions(guild_id: u64) -> Result<()> {
     con.del(keys).await.err_into()
 }
 
+pub async fn is_banned(guild_id: u64, user_id: u64) -> Result<bool> {
+    get_con()
+        .await?
+        .sismember(format!("essence-{guild_id}-bans"), user_id)
+        .await
+        .err_into()
+}
+
+pub async fn add_ban(guild_id: u64, user_id: u64) -> Result<()> {
+    get_con()
+        .await?
+        .sadd(format!("essence-{guild_id}-bans"), user_id)
+        .await
+        .err_into()
+}
+
+pub async fn remove_ban(guild_id: u64, user_id: u64) -> Result<()> {
+    get_con()
+        .await?
+        .srem(format!("essence-{guild_id}-bans"), user_id)
+        .await
+        .err_into()
+}
+
 pub async fn resolve_invite_guild_id(code: &str) -> Result<Option<u64>> {
     get_con()
         .await?
