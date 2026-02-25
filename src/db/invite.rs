@@ -1,7 +1,7 @@
 use crate::db::guild::construct_partial_guild;
 use crate::{
     Error, NotFoundExt, cache,
-    db::{DbExt, GuildDbExt, MemberDbExt},
+    db::{DbExt, GuildDbExt, MemberDbExt, get_pool},
     http::invite::CreateInvitePayload,
     models::{Member, invite::Invite},
 };
@@ -146,7 +146,9 @@ pub trait InviteDbExt<'t>: DbExt<'t> {
 
         let guild_id = invite.guild_id;
 
-        if cache::is_banned(guild_id, user_id).await? {
+        if cache::is_banned(guild_id, user_id).await?
+            || get_pool().fetch_ban(guild_id, user_id).await?.is_some()
+        {
             return Err(Error::BannedFromGuild {
                 guild_id,
                 reason: None,
