@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH user_roles AS (\n                SELECT guild_id, array_agg(role_id) AS role_ids\n                FROM role_data\n                WHERE user_id = $1\n                GROUP BY guild_id\n            )\n            SELECT m.id, m.channel_id FROM messages m\n            INNER JOIN channels c ON m.channel_id = c.id\n            LEFT JOIN channel_acks a ON m.channel_id = a.channel_id AND a.user_id = $1\n            LEFT JOIN user_roles r ON r.guild_id = c.guild_id\n            WHERE\n                m.channel_id = ANY($2::BIGINT[])\n            AND m.id > COALESCE(a.last_message_id, 0)\n            AND (\n                $1 = ANY(m.mentions)\n                OR c.guild_id = ANY(m.mentions)\n                OR m.mentions && r.role_ids\n            )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "channel_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "75710611bf3c5b6fe5be28a54d0a90c2b9ef35bd2e03b8a30aeb10bca56cfaad"
+}
