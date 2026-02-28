@@ -317,6 +317,54 @@ pub async fn remove_ban(guild_id: u64, user_id: u64) -> Result<()> {
         .err_into()
 }
 
+pub async fn store_email_verification(
+    user_id: u64,
+    code: &str,
+    pending_email: Option<&str>,
+) -> Result<()> {
+    // 10 minute window to verify
+    const VERIFICATION_CODE_TTL_SECS: u64 = 600;
+
+    let value = format!("{}:{}", code, pending_email.unwrap_or(""));
+    get_con()
+        .await?
+        .set_ex(
+            format!("essence-email-verify-{user_id}"),
+            value,
+            VERIFICATION_CODE_TTL_SECS,
+        )
+        .await
+        .err_into()
+}
+
+/// Returns ``Some((code, pending_email))``` if an entry exists.
+pub async fn get_email_verification(user_id: u64) -> Result<Option<(String, Option<String>)>> {
+    let raw: Option<String> = get_con()
+        .await?
+        .get(format!("essence-email-verify-{user_id}"))
+        .await?;
+
+    Ok(raw.map(|s| {
+        let (code, email) = s.split_once(':').unwrap_or((&s, ""));
+        (
+            code.to_string(),
+            if email.is_empty() {
+                None
+            } else {
+                Some(email.to_string())
+            },
+        )
+    }))
+}
+
+pub async fn delete_email_verification(user_id: u64) -> Result<()> {
+    get_con()
+        .await?
+        .del(format!("essence-email-verify-{user_id}"))
+        .await
+        .err_into()
+}
+
 pub async fn resolve_invite_guild_id(code: &str) -> Result<Option<u64>> {
     get_con()
         .await?

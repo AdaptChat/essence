@@ -43,3 +43,22 @@ pub struct LoginResponse {
     /// The authentication token to use for future requests.
     pub token: String,
 }
+
+/// The request body for POST /auth/verify
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct RequestEmailVerification {
+    /// If provided, the email address to change to and verify. If absent, the existing email
+    /// address on the account is used.
+    pub new_email: Option<String>,
+}
+
+/// The request body for POST /auth/verify/followup
+#[derive(Clone, Debug, Deserialize)]
+#[cfg_attr(feature = "client", derive(Serialize))]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+pub struct EmailVerificationFollowup {
+    /// The six-digit verification code.
+    pub code: String,
+}

@@ -409,6 +409,30 @@ pub trait UserDbExt<'t>: DbExt<'t> {
         Ok((old, user))
     }
 
+    /// Updates the email address of a user.
+    ///
+    /// # Note
+    /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
+    /// rolled back, and the transaction must be committed to save the changes.
+    ///
+    /// # Errors
+    /// * If an error occurs with the database.
+    async fn update_user_email(
+        &mut self,
+        id: u64,
+        email: impl AsRef<str> + Send,
+    ) -> sqlx::Result<()> {
+        sqlx::query!(
+            "UPDATE users SET email = $1 WHERE id = $2",
+            email.as_ref(),
+            id as i64,
+        )
+        .execute(self.transaction())
+        .await?;
+
+        Ok(())
+    }
+
     /// Deletes a user from the database.
     ///
     /// This method uses transactions, on the event of an ``Err`` the transaction must be properly
