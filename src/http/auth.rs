@@ -52,6 +52,9 @@ pub struct RequestEmailVerification {
     /// If provided, the email address to change to and verify. If absent, the existing email
     /// address on the account is used.
     pub new_email: Option<String>,
+    /// Required when `new_email` is provided and the user has a verified email.
+    #[cfg_attr(feature = "utoipa", schema(format = "password"))]
+    pub password: Option<String>,
 }
 
 /// The request body for POST /auth/verify/followup
